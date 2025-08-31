@@ -1,165 +1,82 @@
-# Ollama Desktop Client
+# Ollama 模型管理工具
 
-Ollama桌面客户端，提供图形化界面来管理本地Ollama模型。
+Ollama 模型管理工具是一个基于 Wails 框架开发的桌面应用程序，用于管理本地和远程 Ollama 服务器上的大语言模型。
 
 ## 功能特性
 
-- 模型管理：查看、下载、删除本地模型
-- 模型市场：浏览和下载Ollama模型库中的模型
-- 聊天测试：与模型进行交互式对话
-- 系统监控：监控Ollama服务状态和系统资源使用情况
-- 参数配置：自定义模型运行参数
-- 服务设置：配置本地和远程Ollama服务
+- **多服务器支持**：管理本地 Ollama 服务和多个远程 Ollama 服务器
+- **模型管理**：查看、运行、停止和删除大语言模型
+- **模型参数配置**：设置模型运行参数（温度、top_p、上下文大小等）
+- **模型搜索**：根据名称、家族、标签等条件搜索模型
+- **直观界面**：基于 Vue.js 和 Element Plus 构建的现代化用户界面
 
-## 界面预览
+## 安装说明
 
-![Ollama Client](./screenshot.png)
+### 环境要求
 
-## 安装要求
+- Go 1.19+
+- Node.js 16+
+- Ollama 服务（本地或远程）
 
-- Ollama服务已安装并运行
-- 支持的操作系统：Windows、macOS、Linux
+### 开发环境搭建
 
-## 快速开始
+1. 克隆项目代码：
+```bash
+git clone <项目地址>
+```
 
-1. 确保Ollama服务正在运行：
-   ```bash
-   ollama serve
-   ```
+2. 安装前端依赖：
+```bash
+cd frontend
+npm install
+```
 
-2. 安装前端依赖（可能需要管理员权限）：
-   ```bash
-   cd frontend
-   npm install --legacy-peer-deps
-   ```
-   
-   如果遇到权限问题，请尝试：
-   ```bash
-   sudo chown -R $(whoami) .
-   npm install --legacy-peer-deps
-   ```
+3. 运行开发环境：
+```bash
+wails dev
+```
 
-3. 构建并运行客户端：
-   ```bash
-   wails build
-   ./build/bin/ollama-desktop
-   ```
+### 构建应用
 
-## 使用说明
-
-### 模型管理
-在"模型管理"页面，您可以：
-- 查看本地已下载的模型列表
-- 查看模型详细信息
-- 运行、加载、卸载和删除模型
-
-### 模型市场
-在"模型市场"页面，您可以：
-- 浏览Ollama官方模型库
-- 搜索特定模型
-- 查看模型详情并下载
-
-### 聊天测试
-在"聊天测试"页面，您可以：
-- 选择要测试的模型
-- 与模型进行对话
-- 调整模型参数（温度、Top-P等）
-
-### 系统监控
-在"系统监控"页面，您可以：
-- 查看Ollama服务状态
-- 监控系统资源使用情况
-- 查看模型加载状态
-- 查看最近的活动日志
-
-### 服务设置
-在"服务设置"页面，您可以：
-- 配置本地Ollama服务参数
-- 添加和管理多个远程Ollama服务
-- 测试服务连接状态
-- 启动或停止本地服务
-
-## 技术栈
-
-- 前端：Vue 3 + TypeScript + Element Plus
-- 后端：Go + Wails框架
-- 通信：通过Ollama REST API与服务交互
+```bash
+wails build
+```
 
 ## 项目结构
 
 ```
-frontend/
-  ├── src/
-  │   ├── views/           # 页面组件
-  │   │   ├── ModelManager.vue    # 模型管理页面
-  │   │   ├── ModelMarket.vue     # 模型市场页面
-  │   │   ├── ChatInterface.vue   # 聊天测试页面
-  │   │   ├── SystemMonitor.vue   # 系统监控页面
-  │   │   └── OllamaSettings.vue  # 服务设置页面
-  │   ├── router/          # 路由配置
-  │   ├── App.vue          # 主应用组件
-  │   └── main.ts          # 应用入口
-  ├── vite.config.ts       # Vite配置
-  └── package.json         # 项目依赖
+tools-ollama/
+├── app.go              # 主应用逻辑
+├── main.go             # 程序入口
+├── model_manager.go    # 模型管理逻辑
+├── ollama_config.go    # 配置管理
+├── docs/               # 文档目录
+├── frontend/           # 前端代码
+├── build/              # 构建相关文件
+└── wails.json          # Wails 配置文件
 ```
 
-## Vue项目结构
+## 文档
 
-本项目使用Vue 3 Composition API和TypeScript构建，包含以下主要文件：
-- `src/App.vue`：主Vue组件
-- `src/main.ts`：应用入口文件
-- `src/router/index.ts`：路由配置
-- `src/views/*.vue`：各个功能页面
+详细文档请查看 [docs](./docs) 目录：
 
-## 依赖说明
-
-本项目使用以下主要依赖：
-- Vue 3：前端框架
-- Element Plus：UI组件库
-- Vue Router：路由管理
-- TypeScript：类型检查
-- Vite：构建工具
-
-## 故障排除
-
-### 构建错误
-如果遇到构建错误，请尝试以下步骤：
-
-1. 清理node_modules并重新安装：
-   ```bash
-   cd frontend
-   rm -rf node_modules package-lock.json
-   npm install --legacy-peer-deps
-   ```
-
-2. 检查Vite配置是否正确：
-   确保[vite.config.ts](file:///home/fzxs/workspaces/demo/duola/duola-desktop/duola-tools/frontend/vite.config.ts)文件中正确配置了Element Plus和Vue插件
-
-3. 检查Element Plus导入：
-   确保在[main.ts](file:///home/fzxs/workspaces/demo/duola/duola-desktop/duola-tools/frontend/src/main.ts)中正确导入了Element Plus及其图标
-
-### 权限问题
-如果遇到权限问题，请尝试：
-```bash
-sudo chown -R $(whoami) .
-```
-
-### 依赖冲突
-如果遇到依赖版本冲突，请使用`--legacy-peer-deps`参数：
-```bash
-npm install --legacy-peer-deps
-```
-
-## 开发
-
-```bash
-# 开发模式运行
-wails dev
-
-# 构建生产版本
-wails build
-```
+### 需求文档
+1. [需求文档](docs/设计)
+   - [通用文档](docs/设计/通用文档)
+   - [ModelManager 页面](docs/设计/ModelManager)
+   - [OllamaSettings 页面](docs/设计/OllamaSettings)
 
 ## 许可证
 
-MIT
+[MIT](./LICENSE)
+
+
+```shell
+docker run -it --rm \
+  -v "$(pwd)":/app \
+  -e DISPLAY=$DISPLAY \
+  -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+  -v /tmp/logs:/tmp/logs \
+  wails-dev-env:1.0.5 wails dev
+``` 

@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fzxs8/duolasdk/core"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/fzxs8/duolasdk/core"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // ModelManager 模型管理器
@@ -92,6 +93,15 @@ func (m *ModelManager) RunModel(modelName string, params ModelParams) error {
 		return fmt.Errorf("启动模型失败，状态码: %d", response.StatusCode)
 	}
 
+	// 安全地解析响应
+	var result map[string]interface{}
+	if response.Body != "" {
+		if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
+			// 即使解析失败，我们也认为模型启动成功，因为HTTP请求是成功的
+			fmt.Printf("警告: 解析Ollama响应失败: %v\n", err)
+		}
+	}
+
 	// 创建运行中的模型记录
 	runningModels[modelName] = &RunningModel{
 		Name:      modelName,
@@ -123,6 +133,20 @@ func (m *ModelManager) StopModel(modelName string) error {
 		"stream":  false,
 		"options": map[string]interface{}{"num_predict": 1},
 	}
+
+	// 使用defer recover()防止panic导致应用崩溃
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("恢复 StopModel panic: %v\n", r)
+			// 即使出现panic，也从运行列表中移除模型
+			delete(runningModels, modelName)
+			// 发送停止通知
+			runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{
+				"name": modelName,
+				"time": time.Now().Format("2006-01-02 15:04:05"),
+			})
+		}
+	}()
 
 	_, err := m.app.httpClient.Post("/api/generate", core.Options{
 		Headers: map[string]string{
@@ -180,7 +204,7 @@ func (m *ModelManager) TestModel(modelName string) (string, error) {
 		"stream": false,
 	}
 
-	response, err := m.app.httpClient.Post("/api/chat", core.Options{
+	response, err := m.app.httpClient.Post("/api/generate", core.Options{
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
@@ -195,17 +219,23 @@ func (m *ModelManager) TestModel(modelName string) (string, error) {
 		return "", fmt.Errorf("测试模型失败，状态码: %d", response.StatusCode)
 	}
 
-	// 解析响应
+	// 安全地解析响应
 	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
-		return "", fmt.Errorf("解析响应失败: %v", err)
+	if response.Body != "" {
+		if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
+			return "", fmt.Errorf("解析响应失败: %v", err)
+		}
+	} else {
+		return "测试完成，但未收到有效响应", nil
 	}
 
 	if responseText, ok := result["response"].(string); ok {
 		return responseText, nil
 	}
 
-	return "测试完成，但未收到有效响应", nil
+	// 如果没有response字段，返回完整响应供调试
+	responseStr, _ := json.Marshal(result)
+	return fmt.Sprintf("测试完成，响应内容: %s", string(responseStr)), nil
 }
 
 // DeleteModel 删除模型
