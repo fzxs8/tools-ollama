@@ -74,9 +74,28 @@ tools-ollama/
 ```shell
 docker run -it --rm \
   -v "$(pwd)":/app \
+  -p 40000:40000 \
+  -p 34115:34115 \
   -e DISPLAY=$DISPLAY \
   -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   -v /tmp/logs:/tmp/logs \
-  wails-dev-env:1.0.5 wails dev
+  wails-dev-env:1.0.6 \
+  bash -c "wails build -debug && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/build/bin/ollama"
+  
 ``` 
+
+```shell
+docker run -it --rm \
+  -v "$(pwd)":/app \
+  -e DISPLAY=$DISPLAY \
+  -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+  -v /tmp/logs:/tmp/logs \
+  wails-dev-env:1.0.6  \
+  bash -c "/go/bin/dlv --help"
+  
+``` 
+```shell
+docker run -it --rm wails-dev-env:1.0.6  bash
+```
