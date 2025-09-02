@@ -21,6 +21,7 @@ export namespace main {
 	    size: number;
 	    digest: string;
 	    details: Record<string, any>;
+	    is_running: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Model(source);
@@ -34,6 +35,7 @@ export namespace main {
 	        this.size = source["size"];
 	        this.digest = source["digest"];
 	        this.details = source["details"];
+	        this.is_running = source["is_running"];
 	    }
 	}
 	export class OllamaServerConfig {
@@ -43,6 +45,7 @@ export namespace main {
 	    api_key: string;
 	    is_active: boolean;
 	    test_status: string;
+	    type: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OllamaServerConfig(source);
@@ -56,6 +59,7 @@ export namespace main {
 	        this.api_key = source["api_key"];
 	        this.is_active = source["is_active"];
 	        this.test_status = source["test_status"];
+	        this.type = source["type"];
 	    }
 	}
 

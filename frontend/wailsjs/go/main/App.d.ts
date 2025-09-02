@@ -10,41 +10,27 @@ export function DeleteModel(arg1:string):Promise<void>;
 
 export function DeleteRemoteServer(arg1:string):Promise<void>;
 
+export function DownloadModel(arg1:string,arg2:string):Promise<void>;
+
 export function GetActiveServer():Promise<main.OllamaServerConfig>;
 
-export function GetModelFamilies():Promise<Array<string>>;
+export function GetLocalServerTestStatus():Promise<string>;
 
 export function GetModelParams(arg1:string):Promise<Record<string, any>>;
-
-export function GetModelSettings(arg1:string):Promise<Record<string, any>>;
-
-export function GetModelStatus(arg1:string):Promise<Record<string, any>>;
-
-export function GetModelTags():Promise<Array<string>>;
 
 export function GetOllamaServerConfig():Promise<string>;
 
 export function GetRemoteServers():Promise<Array<main.OllamaServerConfig>>;
 
-export function ListModels():Promise<Array<main.Model>>;
-
 export function ListModelsByServer(arg1:string):Promise<Array<main.Model>>;
-
-export function ListRunningModels():Promise<Array<Record<string, any>>>;
-
-export function LoadModel(arg1:string):Promise<void>;
-
-export function PullModel(arg1:string):Promise<void>;
 
 export function RunModel(arg1:string,arg2:Record<string, any>):Promise<void>;
 
-export function SaveModelSettings(arg1:string,arg2:Record<string, any>):Promise<void>;
+export function SaveLocalServerTestStatus(arg1:string):Promise<void>;
 
 export function SaveOllamaServerConfig(arg1:string):Promise<void>;
 
-export function SaveRemoteServers(arg1:Array<main.OllamaServerConfig>):Promise<void>;
-
-export function SearchModels(arg1:Record<string, any>):Promise<Array<main.Model>>;
+export function SearchModels(arg1:string):Promise<Array<any>>;
 
 export function SetActiveServer(arg1:string):Promise<void>;
 
@@ -52,10 +38,8 @@ export function SetModelParams(arg1:string,arg2:Record<string, any>):Promise<voi
 
 export function StopModel(arg1:string):Promise<void>;
 
-export function TestModel(arg1:string):Promise<string>;
+export function TestModel(arg1:string,arg2:string):Promise<string>;
 
-export function TestOllamaServer(arg1:string):Promise<void>;
-
-export function UnloadModel(arg1:string):Promise<void>;
+export function TestOllamaServer(arg1:string):Promise<string>;
 
 export function UpdateRemoteServer(arg1:main.OllamaServerConfig):Promise<void>;

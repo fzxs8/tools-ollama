@@ -18,28 +18,20 @@ export function DeleteRemoteServer(arg1) {
   return window['go']['main']['App']['DeleteRemoteServer'](arg1);
 }
 
+export function DownloadModel(arg1, arg2) {
+  return window['go']['main']['App']['DownloadModel'](arg1, arg2);
+}
+
 export function GetActiveServer() {
   return window['go']['main']['App']['GetActiveServer']();
 }
 
-export function GetModelFamilies() {
-  return window['go']['main']['App']['GetModelFamilies']();
+export function GetLocalServerTestStatus() {
+  return window['go']['main']['App']['GetLocalServerTestStatus']();
 }
 
 export function GetModelParams(arg1) {
   return window['go']['main']['App']['GetModelParams'](arg1);
-}
-
-export function GetModelSettings(arg1) {
-  return window['go']['main']['App']['GetModelSettings'](arg1);
-}
-
-export function GetModelStatus(arg1) {
-  return window['go']['main']['App']['GetModelStatus'](arg1);
-}
-
-export function GetModelTags() {
-  return window['go']['main']['App']['GetModelTags']();
 }
 
 export function GetOllamaServerConfig() {
@@ -50,40 +42,20 @@ export function GetRemoteServers() {
   return window['go']['main']['App']['GetRemoteServers']();
 }
 
-export function ListModels() {
-  return window['go']['main']['App']['ListModels']();
-}
-
 export function ListModelsByServer(arg1) {
   return window['go']['main']['App']['ListModelsByServer'](arg1);
-}
-
-export function ListRunningModels() {
-  return window['go']['main']['App']['ListRunningModels']();
-}
-
-export function LoadModel(arg1) {
-  return window['go']['main']['App']['LoadModel'](arg1);
-}
-
-export function PullModel(arg1) {
-  return window['go']['main']['App']['PullModel'](arg1);
 }
 
 export function RunModel(arg1, arg2) {
   return window['go']['main']['App']['RunModel'](arg1, arg2);
 }
 
-export function SaveModelSettings(arg1, arg2) {
-  return window['go']['main']['App']['SaveModelSettings'](arg1, arg2);
+export function SaveLocalServerTestStatus(arg1) {
+  return window['go']['main']['App']['SaveLocalServerTestStatus'](arg1);
 }
 
 export function SaveOllamaServerConfig(arg1) {
   return window['go']['main']['App']['SaveOllamaServerConfig'](arg1);
-}
-
-export function SaveRemoteServers(arg1) {
-  return window['go']['main']['App']['SaveRemoteServers'](arg1);
 }
 
 export function SearchModels(arg1) {
@@ -102,16 +74,12 @@ export function StopModel(arg1) {
   return window['go']['main']['App']['StopModel'](arg1);
 }
 
-export function TestModel(arg1) {
-  return window['go']['main']['App']['TestModel'](arg1);
+export function TestModel(arg1, arg2) {
+  return window['go']['main']['App']['TestModel'](arg1, arg2);
 }
 
 export function TestOllamaServer(arg1) {
   return window['go']['main']['App']['TestOllamaServer'](arg1);
-}
-
-export function UnloadModel(arg1) {
-  return window['go']['main']['App']['UnloadModel'](arg1);
 }
 
 export function UpdateRemoteServer(arg1) {

@@ -21,17 +21,20 @@ Ollama 模型管理工具是一个基于 Wails 框架开发的桌面应用程序
 ### 开发环境搭建
 
 1. 克隆项目代码：
+
 ```bash
 git clone <项目地址>
 ```
 
 2. 安装前端依赖：
+
 ```bash
 cd frontend
 npm install
 ```
 
 3. 运行开发环境：
+
 ```bash
 wails dev
 ```
@@ -40,6 +43,28 @@ wails dev
 
 ```bash
 wails build
+```
+
+docker 启动
+
+```shell
+docker run -it --rm \
+  -v "$(pwd)":/tools-ollama \
+  -v "$(pwd)"/../duolasdk:/duolasdk:ro \
+  -v "$(pwd)"/../go.work:/go.work:ro \
+  -w /tools-ollama \
+  -p 34115:34115 \
+  -p 40000:40000 \
+  -e DISPLAY=$DISPLAY \
+  -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+  -v /tmp/logs:/tmp/logs \
+  wails-dev-env:1.0.6 \
+  wails dev
+``` 
+
+```shell
+docker run -it --rm wails-dev-env:1.0.6  ls -l
 ```
 
 ## 项目结构
@@ -61,41 +86,12 @@ tools-ollama/
 详细文档请查看 [docs](./docs) 目录：
 
 ### 需求文档
+
 1. [需求文档](docs/设计)
-   - [通用文档](docs/设计/通用文档)
-   - [ModelManager 页面](docs/设计/ModelManager)
-   - [OllamaSettings 页面](docs/设计/OllamaSettings)
+    - [通用文档](docs/设计/通用文档)
+    - [ModelManager 页面](docs/设计/ModelManager)
+    - [OllamaSettings 页面](docs/设计/OllamaSettings)
 
 ## 许可证
 
 [MIT](./LICENSE)
-
-
-```shell
-docker run -it --rm \
-  -v "$(pwd)":/app \
-  -p 40000:40000 \
-  -p 34115:34115 \
-  -e DISPLAY=$DISPLAY \
-  -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
-  -v /tmp/logs:/tmp/logs \
-  wails-dev-env:1.0.6 \
-  bash -c "wails build -debug && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/build/bin/ollama"
-  
-``` 
-
-```shell
-docker run -it --rm \
-  -v "$(pwd)":/app \
-  -e DISPLAY=$DISPLAY \
-  -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
-  -v /tmp/logs:/tmp/logs \
-  wails-dev-env:1.0.6  \
-  bash -c "/go/bin/dlv --help"
-  
-``` 
-```shell
-docker run -it --rm wails-dev-env:1.0.6  bash
-```

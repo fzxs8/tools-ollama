@@ -3,7 +3,7 @@ module tools-ollama
 go 1.24.4
 
 require (
-	github.com/fzxs8/duolasdk v1.0.5
+	github.com/fzxs8/duolasdk v1.0.6
 	github.com/wailsapp/wails/v2 v2.10.2
 )
 

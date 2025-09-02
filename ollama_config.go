@@ -20,15 +20,38 @@ func NewOllamaConfigManager(store *duolasdk.AppStore) *OllamaConfigManager {
 }
 
 // SaveLocalConfig 保存本地配置
-func (o *OllamaConfigManager) SaveLocalConfig(baseURL string) error {
+func (o *OllamaConfigManager) SaveLocalConfig(config OllamaServerConfig) error {
 	key := "ollama_config:local"
-	return o.store.Set(key, baseURL)
+	config.ID = "local"
+	config.Type = "local"
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("序列化本地服务配置失败: %w", err)
+	}
+	return o.store.Set(key, string(data))
 }
 
 // GetLocalConfig 获取本地配置
-func (o *OllamaConfigManager) GetLocalConfig() (string, error) {
+func (o *OllamaConfigManager) GetLocalConfig() (OllamaServerConfig, error) {
 	key := "ollama_config:local"
-	return o.store.Get(key)
+	data, err := o.store.Get(key)
+	if err != nil {
+		// 如果没有找到配置，返回默认配置
+		return OllamaServerConfig{
+			ID:         "local",
+			Name:       "本地服务",
+			BaseURL:    "http://localhost:11434",
+			Type:       "local",
+			TestStatus: "unknown",
+		}, nil
+	}
+
+	var config OllamaServerConfig
+	if err := json.Unmarshal([]byte(data), &config); err != nil {
+		return OllamaServerConfig{}, fmt.Errorf("反序列化本地服务配置失败: %w", err)
+	}
+
+	return config, nil
 }
 
 // SaveRemoteServers 保存远程服务器列表
@@ -36,7 +59,7 @@ func (o *OllamaConfigManager) SaveRemoteServers(servers []OllamaServerConfig) er
 	key := "ollama_config:remote_servers"
 	data, err := json.Marshal(servers)
 	if err != nil {
-		return fmt.Errorf("failed to marshal remote servers: %w", err)
+		return fmt.Errorf("序列化远程服务器列表失败: %w", err)
 	}
 	return o.store.Set(key, string(data))
 }
@@ -52,7 +75,7 @@ func (o *OllamaConfigManager) GetRemoteServers() ([]OllamaServerConfig, error) {
 
 	var servers []OllamaServerConfig
 	if err := json.Unmarshal([]byte(data), &servers); err != nil {
-		return []OllamaServerConfig{}, fmt.Errorf("failed to unmarshal remote servers: %w", err)
+		return []OllamaServerConfig{}, fmt.Errorf("反序列化远程服务器列表失败: %w", err)
 	}
 
 	return servers, nil
@@ -131,5 +154,21 @@ func (o *OllamaConfigManager) GetActiveServer() (*OllamaServerConfig, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no active server found")
+	return nil, fmt.Errorf("未找到活动服务器")
+}
+
+// SaveLocalServerTestStatus 保存本地服务器的测试状态
+func (o *OllamaConfigManager) SaveLocalServerTestStatus(status string) error {
+	key := "ollama_config:local:test_status"
+	return o.store.Set(key, status)
+}
+
+// GetLocalServerTestStatus 获取本地服务器的测试状态
+func (o *OllamaConfigManager) GetLocalServerTestStatus() (string, error) {
+	key := "ollama_config:local:test_status"
+	status, err := o.store.Get(key)
+	if err != nil {
+		return "unknown", nil // 如果没有找到，默认为 "unknown"
+	}
+	return status, nil
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"sort"
-	"strings"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/fzxs8/duolasdk/core"
@@ -41,13 +41,6 @@ type ModelParams struct {
 	RepeatPenalty float64 `json:"repeat_penalty"`
 }
 
-// ModelSearchParams 模型搜索参数
-type ModelSearchParams struct {
-	Query    string   `json:"query"`
-	Families []string `json:"families"`
-	Tags     []string `json:"tags"`
-}
-
 // RunningModel 运行中的模型
 type RunningModel struct {
 	Name      string      `json:"name"`
@@ -59,348 +52,228 @@ type RunningModel struct {
 // 模型运行状态管理
 var runningModels = make(map[string]*RunningModel)
 
-// ListModels 获取模型列表
-func (m *ModelManager) ListModels() ([]Model, error) {
-	return m.app.ListModels()
+// IsModelRunning 检查模型是否在运行
+func (m *ModelManager) IsModelRunning(modelName string) bool {
+	_, exists := runningModels[modelName]
+	return exists
 }
 
 // RunModel 运行模型
 func (m *ModelManager) RunModel(modelName string, params ModelParams) error {
-	// 检查模型是否已经在运行
 	if _, exists := runningModels[modelName]; exists {
 		return fmt.Errorf("模型 %s 已经在运行", modelName)
 	}
-
-	// 发送请求到Ollama生成端点来预热模型
 	requestBody := map[string]interface{}{
 		"model":  modelName,
 		"prompt": "hello",
 		"stream": false,
 	}
-
 	response, err := m.app.httpClient.Post("/api/generate", core.Options{
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: requestBody,
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
 	})
-
 	if err != nil {
 		return fmt.Errorf("启动模型失败: %v", err)
 	}
-
 	if response.StatusCode >= 400 {
 		return fmt.Errorf("启动模型失败，状态码: %d", response.StatusCode)
 	}
-
-	// 安全地解析响应
-	var result map[string]interface{}
-	if response.Body != "" {
-		if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
-			// 即使解析失败，我们也认为模型启动成功，因为HTTP请求是成功的
-			fmt.Printf("警告: 解析Ollama响应失败: %v\n", err)
-		}
-	}
-
-	// 创建运行中的模型记录
 	runningModels[modelName] = &RunningModel{
 		Name:      modelName,
 		Params:    params,
 		StartTime: time.Now(),
 		IsActive:  true,
 	}
-
-	// 发送通知
 	runtime.EventsEmit(m.ctx, "model:started", map[string]interface{}{
 		"name": modelName,
 		"time": time.Now().Format("2006-01-02 15:04:05"),
 	})
-
 	return nil
 }
 
 // StopModel 停止模型
 func (m *ModelManager) StopModel(modelName string) error {
-	// 检查模型是否在运行
 	if _, exists := runningModels[modelName]; !exists {
 		return fmt.Errorf("模型 %s 未在运行", modelName)
 	}
-
-	// 发送请求到Ollama生成端点来卸载模型
 	requestBody := map[string]interface{}{
-		"model":   modelName,
-		"prompt":  "",
-		"stream":  false,
-		"options": map[string]interface{}{"num_predict": 1},
+		"model":      modelName,
+		"keep_alive": 0,
 	}
-
-	// 使用defer recover()防止panic导致应用崩溃
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Printf("恢复 StopModel panic: %v\n", r)
-			// 即使出现panic，也从运行列表中移除模型
-			delete(runningModels, modelName)
-			// 发送停止通知
-			runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{
-				"name": modelName,
-				"time": time.Now().Format("2006-01-02 15:04:05"),
-			})
-		}
-	}()
-
 	_, err := m.app.httpClient.Post("/api/generate", core.Options{
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: requestBody,
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
 	})
-
 	if err != nil {
-		// 即使API调用失败，我们仍然从运行列表中移除模型
 		delete(runningModels, modelName)
-		// 发送通知
-		runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{
-			"name": modelName,
-			"time": time.Now().Format("2006-01-02 15:04:05"),
-		})
-		return fmt.Errorf("停止模型时出现警告: %v", err)
+		runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{"name": modelName})
+		return fmt.Errorf("停止模型时出现警告(但UI已更新): %v", err)
 	}
-
-	// 删除运行记录
 	delete(runningModels, modelName)
-
-	// 发送通知
-	runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{
-		"name": modelName,
-		"time": time.Now().Format("2006-01-02 15:04:05"),
-	})
-
+	runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{"name": modelName})
 	return nil
 }
 
-// GetModelStatus 获取模型状态
-func (m *ModelManager) GetModelStatus(modelName string) (*RunningModel, error) {
-	if model, exists := runningModels[modelName]; exists {
-		return model, nil
-	}
-	return nil, fmt.Errorf("模型 %s 未在运行", modelName)
-}
-
-// ListRunningModels 获取运行中的模型列表
-func (m *ModelManager) ListRunningModels() []RunningModel {
-	var models []RunningModel
-	for _, model := range runningModels {
-		models = append(models, *model)
-	}
-	return models
-}
-
 // TestModel 测试模型
-func (m *ModelManager) TestModel(modelName string) (string, error) {
-	// 发送测试请求到Ollama
+func (m *ModelManager) TestModel(modelName string, prompt string) (string, error) {
 	requestBody := map[string]interface{}{
 		"model":  modelName,
-		"prompt": "你好，请简单介绍一下自己",
+		"prompt": prompt,
 		"stream": false,
 	}
-
 	response, err := m.app.httpClient.Post("/api/generate", core.Options{
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: requestBody,
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
 	})
-
 	if err != nil {
 		return "", fmt.Errorf("测试模型失败: %v", err)
 	}
-
 	if response.StatusCode >= 400 {
 		return "", fmt.Errorf("测试模型失败，状态码: %d", response.StatusCode)
 	}
-
-	// 安全地解析响应
 	var result map[string]interface{}
-	if response.Body != "" {
-		if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
-			return "", fmt.Errorf("解析响应失败: %v", err)
-		}
-	} else {
-		return "测试完成，但未收到有效响应", nil
+	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
+		return "", fmt.Errorf("解析响应失败: %v", err)
 	}
-
 	if responseText, ok := result["response"].(string); ok {
 		return responseText, nil
 	}
-
-	// 如果没有response字段，返回完整响应供调试
-	responseStr, _ := json.Marshal(result)
-	return fmt.Sprintf("测试完成，响应内容: %s", string(responseStr)), nil
+	return "", fmt.Errorf("未在响应中找到 'response' 字段")
 }
 
-// DeleteModel 删除模型
-func (m *ModelManager) DeleteModel(modelName string) error {
-	return m.app.DeleteModel(modelName)
+// DownloadModel 下载模型
+func (m *ModelManager) DownloadModel(serverID string, modelName string) {
+	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "DownloadClient"})
+	logger.Infof("开始下载模型: %s, 服务器ID: %s", modelName, serverID)
+
+	var serverConfig *OllamaServerConfig
+	if serverID == "local" {
+		localConfig, err := m.app.configMgr.GetLocalConfig()
+		if err != nil {
+			// 如果获取配置失败，使用默认的本地服务器配置
+			localConfig = OllamaServerConfig{BaseURL: "http://localhost:11434"}
+		}
+		serverConfig = &localConfig
+	} else {
+		servers, err := m.app.configMgr.GetRemoteServers()
+		if err != nil {
+			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "获取远程服务器列表失败: " + err.Error()})
+			return
+		}
+		found := false
+		for _, server := range servers {
+			if server.ID == serverID {
+				serverConfig = &server
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := fmt.Errorf("找不到指定的服务器: %s", serverID)
+			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": err.Error()})
+			return
+		}
+	}
+
+	downloadClient := core.NewHttp(logger)
+	downloadClient.Create(&core.Config{BaseURL: serverConfig.BaseURL})
+
+	requestBody := map[string]interface{}{
+		"name":   modelName,
+		"stream": true,
+	}
+
+	resp, err := downloadClient.PostStream("/api/pull", core.Options{
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
+	})
+	if err != nil {
+		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "创建下载请求失败: " + err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		errMsg := fmt.Sprintf("下载失败，服务器响应: %s (状态码 %d)", string(bodyBytes), resp.StatusCode)
+		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": errMsg})
+		return
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		var progressInfo map[string]interface{}
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		if err := json.Unmarshal(line, &progressInfo); err != nil {
+			logger.Warnf("无法解析下载进度JSON: %s, 错误: %v", string(line), err)
+			continue
+		}
+		progressInfo["model"] = modelName
+		runtime.EventsEmit(m.ctx, "model:download:progress", progressInfo)
+	}
+
+	if err := scanner.Err(); err != nil {
+		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "读取下载流失败: " + err.Error()})
+		return
+	}
+
+	runtime.EventsEmit(m.ctx, "model:download:done", map[string]interface{}{"model": modelName})
 }
 
 // SetModelParams 设置模型参数
 func (m *ModelManager) SetModelParams(modelName string, params ModelParams) error {
-	// 如果模型正在运行，更新运行参数
 	if model, exists := runningModels[modelName]; exists {
 		model.Params = params
 	}
-
-	// 这里可以将参数保存到本地存储或配置文件中
-	// 暂时只在内存中保存
 	return nil
 }
 
 // GetModelParams 获取模型参数
 func (m *ModelManager) GetModelParams(modelName string) (ModelParams, error) {
-	// 如果模型正在运行，返回运行参数
 	if model, exists := runningModels[modelName]; exists {
 		return model.Params, nil
 	}
-
-	// 默认参数
-	defaultParams := ModelParams{
+	return ModelParams{
 		Temperature:   0.8,
 		TopP:          0.9,
 		TopK:          40,
 		Context:       2048,
 		NumPredict:    512,
 		RepeatPenalty: 1.1,
-	}
-
-	return defaultParams, nil
+	}, nil
 }
 
-// SearchModels 搜索模型
-func (m *ModelManager) SearchModels(params ModelSearchParams) ([]Model, error) {
-	// 这里应该调用Ollama的模型库API或者维护一个本地模型库
-	// 目前使用模拟数据
-	allModels := []Model{
-		{
-			Name:       "llama3:8b",
-			Model:      "llama3:8b",
-			ModifiedAt: "2024-01-01T12:00:00Z",
-			Size:       4670000000,
-			Digest:     "sha256:abc123",
+// SearchModels 在 ollamadb.dev 上搜索模型
+func (m *ModelManager) SearchModels(query string) ([]interface{}, error) {
+	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "SearchClient"})
+	searchClient := core.NewHttp(logger)
+
+	resp, err := searchClient.Get("https://ollamadb.dev/api/v1/models", core.Options{
+		Query: map[string]string{
+			"search": query,
 		},
-		{
-			Name:       "llama3:70b",
-			Model:      "llama3:70b",
-			ModifiedAt: "2024-01-02T12:00:00Z",
-			Size:       40000000000,
-			Digest:     "sha256:def456",
-		},
-		{
-			Name:       "mistral:7b",
-			Model:      "mistral:7b",
-			ModifiedAt: "2024-01-03T12:00:00Z",
-			Size:       4100000000,
-			Digest:     "sha256:ghi789",
-		},
-		{
-			Name:       "mixtral:8x7b",
-			Model:      "mixtral:8x7b",
-			ModifiedAt: "2024-01-04T12:00:00Z",
-			Size:       46700000000,
-			Digest:     "sha256:jkl012",
-		},
-		{
-			Name:       "gemma:7b",
-			Model:      "gemma:7b",
-			ModifiedAt: "2024-01-05T12:00:00Z",
-			Size:       5000000000,
-			Digest:     "sha256:mno345",
-		},
-		{
-			Name:       "phi3:3.8b",
-			Model:      "phi3:3.8b",
-			ModifiedAt: "2024-01-06T12:00:00Z",
-			Size:       2500000000,
-			Digest:     "sha256:pqr678",
-		},
-	}
-
-	var filteredModels []Model
-
-	// 如果没有查询条件，返回所有模型
-	if params.Query == "" && len(params.Families) == 0 && len(params.Tags) == 0 {
-		return allModels, nil
-	}
-
-	// 根据查询条件过滤模型
-	for _, model := range allModels {
-		match := true
-
-		// 根据查询关键词过滤
-		if params.Query != "" {
-			lowerQuery := strings.ToLower(params.Query)
-			lowerName := strings.ToLower(model.Name)
-
-			// 支持正则表达式匹配
-			if matched, _ := regexp.MatchString(lowerQuery, lowerName); !matched {
-				// 普通字符串匹配
-				if !strings.Contains(lowerName, lowerQuery) {
-					match = false
-				}
-			}
-		}
-
-		// 根据家族过滤
-		if len(params.Families) > 0 {
-			familyMatch := false
-			modelFamily := strings.Split(model.Name, ":")[0]
-			for _, family := range params.Families {
-				if strings.ToLower(modelFamily) == strings.ToLower(family) {
-					familyMatch = true
-					break
-				}
-			}
-			if !familyMatch {
-				match = false
-			}
-		}
-
-		// 根据标签过滤
-		if len(params.Tags) > 0 {
-			tagMatch := false
-			// 简化的标签匹配逻辑
-			for _, tag := range params.Tags {
-				lowerTag := strings.ToLower(tag)
-				if strings.Contains(strings.ToLower(model.Name), lowerTag) {
-					tagMatch = true
-					break
-				}
-			}
-			if !tagMatch {
-				match = false
-			}
-		}
-
-		if match {
-			filteredModels = append(filteredModels, model)
-		}
-	}
-
-	// 按名称排序
-	sort.Slice(filteredModels, func(i, j int) bool {
-		return filteredModels[i].Name < filteredModels[j].Name
 	})
+	if err != nil {
+		return nil, fmt.Errorf("搜索模型失败: %w", err)
+	}
 
-	return filteredModels, nil
-}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("搜索模型失败: 状态码 %d", resp.StatusCode)
+	}
 
-// GetModelFamilies 获取模型家族列表
-func (m *ModelManager) GetModelFamilies() []string {
-	families := []string{"llama3", "mistral", "mixtral", "gemma", "phi3"}
-	return families
-}
+	var searchResult map[string]interface{}
+	err = json.Unmarshal([]byte(resp.Body), &searchResult)
+	if err != nil {
+		return nil, fmt.Errorf("解析搜索结果失败: %w", err)
+	}
 
-// GetModelTags 获取模型标签列表
-func (m *ModelManager) GetModelTags() []string {
-	tags := []string{"embedding", "vision", "tools", "thinking", "8b", "70b", "7b", "3.8b"}
-	return tags
+	models, ok := searchResult["models"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("在搜索结果中找不到模型")
+	}
+
+	return models, nil
 }

@@ -19,7 +19,9 @@
                       :value="server.id"
                   />
                 </el-select>
-                <el-button type="primary" @click="openModelSearch">搜索模型</el-button>
+                <el-button type="primary" @click="openDownloadDialog">下载模型</el-button>
+                <el-button type="success" @click="openSearchDrawer">搜索模型</el-button>
+                <el-button @click="openDownloadQueueDialog">下载队列</el-button>
                 <el-button @click="refreshModels">刷新</el-button>
               </div>
             </div>
@@ -53,6 +55,82 @@
       </el-col>
     </el-row>
 
+    <!-- 下载模型对话框 -->
+    <el-dialog v-model="downloadDialogVisible" title="下载模型" width="30%">
+      <el-alert
+          title="提示"
+          type="info"
+          show-icon
+          :closable="false"
+          style="margin-bottom: 20px;"
+      >
+        请从 <el-link type="primary" href="https://ollama.com/library" target="_blank">Ollama Library</el-link> 复制模型名称 (例如: llama3:8b) 并粘贴到下方。
+      </el-alert>
+      <el-input v-model="modelNameToDownload" placeholder="请输入要下载的模型名称"></el-input>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="downloadDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleDownload" :loading="isDownloading" :disabled="isDownloading">
+            开始下载
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 搜索模型抽屉 -->
+    <el-drawer
+        v-model="searchDrawerVisible"
+        title="搜索在线模型"
+        direction="rtl"
+        size="50%"
+    >
+      <div class="search-drawer-content">
+        <el-input
+            v-model="searchQuery"
+            placeholder="输入模型名称进行搜索 (例如: llama3)"
+            clearable
+            @input="handleSearch"
+            style="margin-bottom: 20px;"
+        >
+          <template #prepend>
+            <el-button :icon="Search" />
+          </template>
+        </el-input>
+
+        <el-table :data="searchResults" style="width: 100%" v-loading="isSearching">
+          <el-table-column prop="name" label="模型名称" />
+          <el-table-column prop="pull_count" label="下载次数">
+            <template #default="scope">
+              {{ formatPullCount(scope.row.pull_count) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="updated_at" label="更新时间">
+            <template #default="scope">
+              {{ formatDate(scope.row.updated_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="scope">
+              <el-button size="small" type="primary" @click="handleDownloadFromSearch(scope.row.name)">下载</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-drawer>
+
+    <!-- 下载队列对话框 -->
+    <el-dialog v-model="downloadQueueDialogVisible" title="下载队列" width="60%">
+      <el-table :data="downloadQueue" style="width: 100%">
+        <el-table-column prop="model" label="模型名称" />
+        <el-table-column prop="status" label="状态" />
+        <el-table-column label="进度">
+          <template #default="scope">
+            <el-progress :percentage="scope.row.percentage" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
     <!-- 模型详情抽屉 -->
     <el-drawer
         v-model="drawerVisible"
@@ -72,13 +150,14 @@
         </el-descriptions>
 
         <div style="margin-top: 20px">
-          <el-button type="primary" @click="runModel">运行</el-button>
-          <el-button @click="testModel">测试</el-button>
+          <el-button v-if="!selectedModel.is_running" type="primary" @click="runModel" :loading="isRunningModel" :disabled="isRunningModel">运行</el-button>
+          <el-button v-if="selectedModel.is_running" @click="stopModel" :loading="isStoppingModel" :disabled="isStoppingModel">停止</el-button>
           <el-button type="danger" @click="deleteModel(selectedModel)">删除</el-button>
-          <el-button v-if="selectedModel.is_running" @click="stopModel">停止</el-button>
         </div>
 
-        <div style="margin-top: 20px">
+        <el-divider />
+
+        <div>
           <h4>模型参数</h4>
           <el-form :model="modelParams" label-width="80px" size="small">
             <el-form-item label="温度">
@@ -96,90 +175,62 @@
             <el-button @click="resetModelParams" size="small">重置参数</el-button>
           </div>
         </div>
+
+        <el-divider />
+
+        <div>
+          <h4>模型测试</h4>
+          <el-form label-position="top">
+            <el-form-item label="测试内容">
+              <el-input
+                  v-model="testPrompt"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入要发送给模型的测试内容"
+              />
+            </el-form-item>
+          </el-form>
+          <el-button @click="testModel" :loading="isTestingModel" type="primary" size="small">发送测试</el-button>
+
+          <div v-if="testResult || isTestingModel" style="margin-top: 15px;">
+            <el-card shadow="never" v-loading="isTestingModel">
+              <div style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">
+                {{ testResult }}
+              </div>
+            </el-card>
+          </div>
+        </div>
+
       </div>
       <div v-else>
         <p>请选择一个模型查看详情</p>
       </div>
     </el-drawer>
 
-    <!-- 搜索模型抽屉 -->
-    <el-drawer
-        v-model="searchDrawerVisible"
-        title="搜索模型"
-        direction="rtl"
-        size="40%"
-    >
-      <div style="margin-bottom: 20px">
-        <el-input
-            v-model="searchModelQuery"
-            placeholder="请输入模型名称"
-            clearable
-            @keyup.enter="searchModels"
-        >
-          <template #append>
-            <el-button @click="searchModels">搜索</el-button>
-          </template>
-        </el-input>
-      </div>
-
-      <div v-if="searchResults.length > 0">
-        <el-collapse v-model="activeNames">
-          <el-collapse-item
-              v-for="(group, index) in modelGroups"
-              :key="index"
-              :name="index"
-              :title="group.name"
-          >
-            <el-table :data="group.models" style="width: 100%">
-              <el-table-column prop="name" label="模型名称"/>
-              <el-table-column prop="size" label="大小">
-                <template #default="scope">
-                  {{ formatSize(scope.row.size) }}
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="100">
-                <template #default="scope">
-                  <el-button size="small" type="success" @click="downloadModelFromSearch(scope.row)">下载</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </el-collapse-item>
-        </el-collapse>
-      </div>
-
-      <div v-else-if="searchModelQuery && searchResults.length === 0">
-        <el-empty description="未找到相关模型"/>
-      </div>
-
-      <div v-else>
-        <el-alert
-            title="提示"
-            description="请输入模型名称进行搜索，例如 'llama' 或 'mistral'"
-            type="info"
-            show-icon
-        />
-      </div>
-    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {computed, onMounted, onUnmounted, reactive, ref, h} from 'vue'
+import {ElMessage, ElMessageBox, ElNotification} from 'element-plus'
+import * as runtime from '../../wailsjs/runtime/runtime.js'
 import {
   DeleteModel,
-  GetModelFamilies,
+  DownloadModel,
+  GetActiveServer,
+  GetLocalServerTestStatus,
   GetModelParams,
-  GetModelTags,
   GetOllamaServerConfig,
   GetRemoteServers,
   ListModelsByServer,
   RunModel,
   SearchModels,
+  SetActiveServer,
   SetModelParams,
   StopModel,
   TestModel
 } from '../../wailsjs/go/main/App'
+import { Search } from '@element-plus/icons-vue'
 
 interface Model {
   name: string
@@ -194,9 +245,9 @@ interface Server {
   baseUrl: string
   apiKey: string
   isActive: boolean
+  test_status?: 'unknown' | 'success' | 'failed'
 }
 
-// 模型参数接口
 interface ModelParams {
   temperature: number
   topP: number
@@ -212,18 +263,25 @@ const loading = ref(false)
 const availableServers = ref<Server[]>([])
 const selectedServer = ref<string>('local')
 const drawerVisible = ref(false)
-const searchDrawerVisible = ref(false)
-const searchModelQuery = ref('')
-const searchResults = ref<Model[]>([])
-const activeNames = ref([])
-const downloading = ref(false)
-const downloadProgress = ref(0)
-const selectedFamilies = ref([])
-const selectedTags = ref([])
-const modelFamilies = ref([])
-const modelTags = ref([])
 
-// 模型参数
+const downloadDialogVisible = ref(false)
+const modelNameToDownload = ref('')
+const isDownloading = ref(false)
+const downloadProgresses = reactive<any>({})
+const downloadQueueDialogVisible = ref(false)
+const downloadQueue = computed(() => Object.values(downloadProgresses))
+
+const searchDrawerVisible = ref(false)
+const searchQuery = ref('')
+const searchResults = ref<any[]>([])
+const isSearching = ref(false)
+
+const isRunningModel = ref(false)
+const isStoppingModel = ref(false)
+const isTestingModel = ref(false)
+const testPrompt = ref('你好，请用中文简单介绍一下自己。')
+const testResult = ref('')
+
 const modelParams = reactive<ModelParams>({
   temperature: 0.8,
   topP: 0.9,
@@ -233,7 +291,6 @@ const modelParams = reactive<ModelParams>({
   repeatPenalty: 1.1
 })
 
-// 格式化文件大小
 const formatSize = (size: number) => {
   if (size < 1024) return size + ' B'
   if (size < 1024 * 1024) return (size / 1024).toFixed(2) + ' KB'
@@ -241,7 +298,16 @@ const formatSize = (size: number) => {
   return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
 }
 
-// 格式化日期
+const formatPullCount = (count: number) => {
+  if (count > 1000000) {
+    return (count / 1000000).toFixed(1) + 'M'
+  }
+  if (count > 1000) {
+    return (count / 1000).toFixed(1) + 'K'
+  }
+  return count
+}
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.getFullYear() + '年' +
@@ -252,31 +318,6 @@ const formatDate = (dateString: string) => {
       date.getSeconds().toString().padStart(2, '0')
 }
 
-// 模型分组
-const modelGroups = computed(() => {
-  const groups: { name: string; models: Model[] }[] = []
-  const groupMap: { [key: string]: Model[] } = {}
-
-  searchResults.value.forEach(model => {
-    // 以模型名称的第一部分作为分组依据（例如：llama3:8b 中的 llama3）
-    const groupName = model.name.split(':')[0]
-    if (!groupMap[groupName]) {
-      groupMap[groupName] = []
-    }
-    groupMap[groupName].push(model)
-  })
-
-  Object.keys(groupMap).forEach(key => {
-    groups.push({
-      name: key,
-      models: groupMap[key]
-    })
-  })
-
-  return groups
-})
-
-// 重置模型参数
 const resetModelParams = () => {
   modelParams.temperature = 0.8
   modelParams.topP = 0.9
@@ -287,381 +328,302 @@ const resetModelParams = () => {
   ElMessage.info('参数已重置为默认值')
 }
 
-// 获取可用的服务列表
 const loadAvailableServers = async () => {
   try {
-    // 获取本地配置
-    const localBaseUrl = await GetOllamaServerConfig()
-    const localServer: Server = {
-      id: 'local',
-      name: '本地服务',
-      baseUrl: localBaseUrl,
-      apiKey: '',
-      isActive: true
-    }
+    const localConfig = await GetOllamaServerConfig();
+    const remoteList = await GetRemoteServers();
+    const localTestStatus = await GetLocalServerTestStatus();
+    let activeServerId = 'local'; // 默认本地
 
-    let remoteServers: Server[] = []
+    const allServersRaw = [
+        { id: 'local', name: '本地服务', baseUrl: localConfig, apiKey: '', isActive: false, test_status: localTestStatus },
+        ...remoteList
+    ];
+
+    const testedServers = allServersRaw.filter(s => s.test_status === 'success');
+
+    availableServers.value = testedServers;
 
     try {
-      // 获取远程服务器列表
-      remoteServers = await GetRemoteServers()
-    } catch (remoteError) {
-      console.error('获取远程服务器列表失败:', remoteError)
-      ElMessage.warning('无法获取远程服务器列表，将仅使用本地服务')
+        const activeServer = await GetActiveServer();
+        if (activeServer && activeServer.id && availableServers.value.some(s => s.id === activeServer.id)) {
+            activeServerId = activeServer.id;
+        } else if (availableServers.value.length > 0) {
+            activeServerId = availableServers.value[0].id
+            await SetActiveServer(activeServerId)
+        } else {
+            activeServerId = ''
+        }
+    } catch(e) {
+        console.error("无法获取活动服务器，将默认使用第一个可用服务器。", e)
+        if (availableServers.value.length > 0) {
+            activeServerId = availableServers.value[0].id
+        } else {
+            activeServerId = ''
+        }
     }
 
-    // 合并本地和远程服务器
-    availableServers.value = [localServer, ...remoteServers]
+    // 更新 isActive 标志
+    availableServers.value.forEach(s => {
+        s.isActive = s.id === activeServerId;
+    });
 
-    // 设置默认选中的服务器
-    // 首先检查是否有活动的远程服务器
-    const activeRemoteServer = remoteServers.find((server: Server) => server.isActive)
-    if (activeRemoteServer) {
-      selectedServer.value = activeRemoteServer.id
-    } else {
-      // 如果没有活动的远程服务器，默认选择本地服务器
-      selectedServer.value = 'local'
-    }
+    selectedServer.value = activeServerId;
+
   } catch (error) {
-    console.error('加载服务列表失败:', error)
-    ElMessage.error('加载服务列表失败: ' + (error as Error).message)
-
-    // 出现错误时默认设置为本地服务
-    selectedServer.value = 'local'
+    console.error('加载可用服务器列表失败:', error);
+    availableServers.value = [];
+    selectedServer.value = '';
   }
-}
+};
 
-// 当服务器选择改变时
 const onServerChange = () => {
   getModels()
 }
 
-// 获取模型列表
 const getModels = async () => {
   try {
     loading.value = true
-
-    // 根据选择的服务获取模型列表
-    const models: Model[] = await ListModelsByServer(selectedServer.value)
-    // 添加默认状态
-    localModels.value = models.map(model => ({
-      ...model,
-      is_running: false // 默认未运行
-    }))
-  } catch (error) {
-    ElMessage.error('获取模型列表失败: ' + (error as Error).message)
+    localModels.value = await ListModelsByServer(selectedServer.value)
+  } catch (error: any) {
+    ElMessage.error('获取模型列表失败: ' + error.message)
   } finally {
     loading.value = false
   }
 }
 
-// 刷新模型列表
 const refreshModels = () => {
   getModels()
 }
 
-// 查看模型详情
 const viewModelDetails = (model: Model) => {
-  selectedModel.value = {
-    ...model,
-    is_running: model.is_running !== undefined ? model.is_running : false
-  }
+  selectedModel.value = { ...model }
   drawerVisible.value = true
-
-  // 加载模型参数
   loadModelParams(model.name)
 }
 
-// 运行模型
 const runModel = async () => {
-  if (!selectedModel.value) {
-    ElMessage.warning('请先选择一个模型')
-    return
-  }
-  
+  if (!selectedModel.value) return
+  isRunningModel.value = true
+  ElMessage.info(`正在启动模型 "${selectedModel.value.name}"...`)
   try {
-    // 添加参数验证
-    if (modelParams.context < 1 || modelParams.context > 32768) {
-      ElMessage.error('上下文大小必须在1-32768之间')
-      return
-    }
-    
-    if (modelParams.temperature < 0 || modelParams.temperature > 1) {
-      ElMessage.error('温度参数必须在0-1之间')
-      return
-    }
-    
-    if (modelParams.topP < 0 || modelParams.topP > 1) {
-      ElMessage.error('Top P参数必须在0-1之间')
-      return
-    }
-    
-    await RunModel(selectedModel.value.name, {
-      temperature: modelParams.temperature,
-      top_p: modelParams.topP,
-      top_k: modelParams.topK,
-      context: modelParams.context,
-      num_predict: modelParams.numPredict,
-      repeat_penalty: modelParams.repeatPenalty
-    })
-    
+    await RunModel(selectedModel.value.name, modelParams)
     selectedModel.value.is_running = true
-    // 更新本地模型列表中的状态
     const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) {
-      localModels.value[index].is_running = true
-    }
+    if (index !== -1) localModels.value[index].is_running = true
     ElMessage.success(`模型 "${selectedModel.value.name}" 已启动`)
   } catch (error: any) {
-    console.error('启动模型失败:', error)
-    ElMessage.error('启动模型失败: ' + (error?.message || error?.toString() || '未知错误'))
-    
-    // 确保状态一致性，如果出错则重置状态
-    selectedModel.value.is_running = false
-    const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) {
-      localModels.value[index].is_running = false
-    }
+    ElMessage.error('启动模型失败: ' + error.message)
+    if(selectedModel.value) selectedModel.value.is_running = false
+  } finally {
+    isRunningModel.value = false
   }
 }
 
-// 停止模型
 const stopModel = async () => {
-  if (!selectedModel.value) {
-    ElMessage.warning('请先选择一个模型')
-    return
-  }
-  
+  if (!selectedModel.value) return
+  isStoppingModel.value = true
+  ElMessage.info(`正在停止模型 "${selectedModel.value.name}"...`)
   try {
     await StopModel(selectedModel.value.name)
-    
     selectedModel.value.is_running = false
-    // 更新本地模型列表中的状态
     const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) {
-      localModels.value[index].is_running = false
-    }
+    if (index !== -1) localModels.value[index].is_running = false
     ElMessage.success(`模型 "${selectedModel.value.name}" 已停止`)
   } catch (error: any) {
-    console.error('停止模型失败:', error)
-    ElMessage.error('停止模型失败: ' + (error?.message || error?.toString() || '未知错误'))
-    
-    // 确保状态一致性，即使出错也更新UI状态
-    selectedModel.value.is_running = false
-    const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) {
-      localModels.value[index].is_running = false
-    }
+    ElMessage.error('停止模型失败: ' + error.message)
+  } finally {
+    isStoppingModel.value = false
   }
 }
 
-// 删除模型
 const deleteModel = (model: Model) => {
   ElMessageBox.confirm(
-    `确定要删除模型 "${model.name}" 吗？此操作不可恢复。`,
-    '删除模型',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
+      `确定要删除模型 "${model.name}" 吗？此操作不可恢复。`,
+      '删除模型',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
   ).then(async () => {
     try {
       await DeleteModel(model.name)
       ElMessage.success('模型删除成功')
       refreshModels()
-      // 关闭抽屉
       drawerVisible.value = false
     } catch (error: any) {
-      console.error('删除模型失败:', error)
-      ElMessage.error('删除模型失败: ' + (error?.message || error?.toString() || '未知错误'))
+      ElMessage.error('删除模型失败: ' + error.message)
     }
   }).catch(() => {
     ElMessage.info('已取消删除')
   })
 }
 
-// 测试模型
 const testModel = async () => {
-  if (!selectedModel.value) {
-    ElMessage.warning('请先选择一个模型')
+  if (!selectedModel.value) return
+  if (!testPrompt.value.trim()) {
+    ElMessage.warning('请输入测试内容')
     return
   }
-  
+  isTestingModel.value = true
+  testResult.value = ''
   try {
-    ElMessage.info(`正在测试模型: ${selectedModel.value.name}`)
-    const response = await TestModel(selectedModel.value.name)
-    ElMessage.success(`测试完成: ${response.substring(0, 100)}...`)
+    const response = await TestModel(selectedModel.value.name, testPrompt.value)
+    testResult.value = response
+    ElMessage.success(`测试完成`)
   } catch (error: any) {
-    console.error('测试模型失败:', error)
-    ElMessage.error('测试模型失败: ' + (error?.message || error?.toString() || '未知错误'))
+    testResult.value = '测试失败: ' + error.message
+    ElMessage.error('测试模型失败')
+  } finally {
+    isTestingModel.value = false
   }
 }
 
-// 下载模型
-const downloadModel = () => {
-  if (selectedModel.value) {
-    downloading.value = true
-    downloadProgress.value = 0
-
-    // 模拟下载进度
-    const timer = setInterval(() => {
-      downloadProgress.value += 10
-      if (downloadProgress.value >= 100) {
-        clearInterval(timer)
-        downloading.value = false
-        if (selectedModel.value) {
-          selectedModel.value.is_running = false
-        }
-        ElMessage.success('模型下载完成')
-      }
-    }, 300)
-  } else {
-    ElMessage.warning('请先选择一个模型')
-  }
+const openDownloadDialog = () => {
+  modelNameToDownload.value = ''
+  downloadDialogVisible.value = true
 }
 
-// 打开模型搜索
-const openModelSearch = () => {
+const handleDownload = async () => {
+  const modelName = modelNameToDownload.value.trim()
+  if (!modelName) {
+    ElMessage.warning('请输入要下载的模型名称')
+    return
+  }
+  if (downloadProgresses[modelName]) {
+    ElMessage.warning(`模型 "${modelName}" 已在下载队列中。`)
+    return
+  }
+
+  downloadProgresses[modelName] = reactive({
+    model: modelName,
+    status: '正在准备...',
+    percentage: 0,
+  })
+
+  isDownloading.value = true
+  downloadDialogVisible.value = false
+
+  DownloadModel(selectedServer.value, modelName)
+  ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
+  isDownloading.value = false
+}
+
+const openSearchDrawer = () => {
   searchDrawerVisible.value = true
-  searchModelQuery.value = ''
   searchResults.value = []
-  selectedFamilies.value = []
-  selectedTags.value = []
+  searchQuery.value = ''
 }
 
-// 加载搜索模型数据
-const loadSearchModels = async () => {
-  try {
-    // 加载模型家族和标签
-    modelFamilies.value = await GetModelFamilies()
-    modelTags.value = await GetModelTags()
-
-    // 加载所有模型
-    await searchModels()
-  } catch (error) {
-    ElMessage.error('加载搜索数据失败: ' + (error as Error).message)
+const handleSearch = async () => {
+  if (!searchQuery.value.trim()) {
+    searchResults.value = []
+    return
   }
-}
-
-// 搜索模型
-const searchModels = async () => {
+  isSearching.value = true
   try {
-    const params: any = {
-      families: selectedFamilies.value,
-      tags: selectedTags.value
-    }
-
-    if (searchModelQuery.value.trim()) {
-      params.query = searchModelQuery.value.trim()
-    }
-
-    const results: Model[] = await SearchModels(params)
+    const results = await SearchModels(searchQuery.value)
     searchResults.value = results
-  } catch (error) {
-    ElMessage.error('搜索模型失败: ' + (error as Error).message)
+  } catch (error: any) {
+    ElMessage.error('搜索模型失败: ' + error.message)
+  } finally {
+    isSearching.value = false
   }
 }
 
-// 从搜索结果下载模型
-const downloadModelFromSearch = async (model: Model) => {
-  try {
-    ElMessage.success(`开始在 ${getCurrentServerName()} 中下载模型: ${model.name}`)
-    // 关闭搜索抽屉
-    searchDrawerVisible.value = false
-    // 刷新模型列表
-    setTimeout(() => {
-      refreshModels()
-    }, 1000)
-  } catch (error) {
-    ElMessage.error('下载模型失败: ' + (error as Error).message)
+const handleDownloadFromSearch = (modelName: string) => {
+  if (!modelName) {
+    ElMessage.warning('无效的模型名称')
+    return
   }
+  if (downloadProgresses[modelName]) {
+    ElMessage.warning(`模型 "${modelName}" 已在下载队列中。`)
+    return
+  }
+
+  downloadProgresses[modelName] = reactive({
+    model: modelName,
+    status: '正在准备...',
+    percentage: 0,
+  })
+
+  DownloadModel(selectedServer.value, modelName)
+  ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
 }
 
-// 获取当前选中服务的名称
-const getCurrentServerName = () => {
-  const server = availableServers.value.find(s => s.id === selectedServer.value)
-  return server ? server.name : '未知服务'
+const openDownloadQueueDialog = () => {
+  downloadQueueDialogVisible.value = true
 }
 
-// 加载模型参数
 const loadModelParams = async (modelName: string) => {
   try {
     const params: any = await GetModelParams(modelName)
-    modelParams.temperature = params.temperature
-    modelParams.topP = params.top_p
-    modelParams.topK = params.top_k
-    modelParams.context = params.context
-    modelParams.numPredict = params.num_predict
-    modelParams.repeatPenalty = params.repeat_penalty
+    Object.assign(modelParams, params)
   } catch (error) {
-    console.error('加载模型参数失败:', error)
-    // 使用默认参数
-    modelParams.temperature = 0.8
-    modelParams.topP = 0.9
-    modelParams.topK = 40
-    modelParams.context = 2048
-    modelParams.numPredict = 512
-    modelParams.repeatPenalty = 1.1
+    resetModelParams()
   }
 }
 
-
-// 保存模型参数
 const saveModelParams = async () => {
-  if (!selectedModel.value) {
-    ElMessage.warning('请先选择一个模型')
-    return
-  }
-
+  if (!selectedModel.value) return
   try {
-    // 验证参数有效性
-    if (modelParams.temperature < 0 || modelParams.temperature > 1) {
-      ElMessage.warning('温度值必须在0到1之间')
-      return
-    }
-
-    if (modelParams.topP < 0 || modelParams.topP > 1) {
-      ElMessage.warning('Top P值必须在0到1之间')
-      return
-    }
-
-    // 构造参数对象，注意参数命名的一致性
-    const params = {
-      temperature: modelParams.temperature,
-      top_p: modelParams.topP,  // 注意：前端使用topP，但API期望top_p
-      top_k: modelParams.topK,
-      context: modelParams.context,
-      num_predict: modelParams.numPredict,
-      repeat_penalty: modelParams.repeatPenalty
-    }
-
-    // 调用API保存参数
-    const result = await SetModelParams(selectedModel.value.name, params)
-
-    // 处理结果反馈
-    if (result === true || result?.success === true) {
-      ElMessage.success('参数保存成功')
-    } else {
-      throw new Error(result?.message || '参数保存失败')
-    }
+    await SetModelParams(selectedModel.value.name, modelParams)
+    ElMessage.success('参数保存成功')
   } catch (error: any) {
-    const errorMessage = error?.response?.data?.message ||
-        error?.message ||
-        '参数保存失败'
-    ElMessage.error(errorMessage)
-
-    // 记录错误详情到控制台
-    console.error('保存模型参数错误:', error)
+    ElMessage.error('参数保存失败: ' + error.message)
   }
 }
 
+const setupDownloadListeners = () => {
+  runtime.EventsOn(`model:download:progress`, (data) => {
+    const { model, status, completed, total } = data
+    if (!downloadProgresses[model]) {
+      downloadProgresses[model] = reactive({
+        model: model,
+        status: '',
+        percentage: 0,
+      })
+    }
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0
+    downloadProgresses[model].status = status
+    downloadProgresses[model].percentage = progress
+  })
 
-onMounted(() => {
-  loadAvailableServers()
-  getModels()
-  loadSearchModels()
+  runtime.EventsOn('model:download:done', (data) => {
+    const { model } = data
+    delete downloadProgresses[model]
+    ElNotification.success({
+      title: '下载完成',
+      message: `模型 "${model}" 已成功下载。`,
+      duration: 3000
+    })
+    refreshModels()
+  })
+
+  runtime.EventsOn('model:download:error', (data) => {
+    const { model, error } = data
+    delete downloadProgresses[model]
+    ElNotification.error({
+      title: '下载失败',
+      message: `模型 "${model}" 下载失败: ${error}`,
+      duration: 0
+    })
+  })
+}
+
+onMounted(async () => {
+  await loadAvailableServers()
+  await getModels()
+  setupDownloadListeners()
 })
+
+onUnmounted(() => {
+  // 清理所有事件监听器
+  Object.keys(downloadProgresses).forEach(modelName => {
+    if (downloadProgresses[modelName] && downloadProgresses[modelName].notification) {
+      downloadProgresses[modelName].notification.close()
+    }
+  })
+  runtime.EventsOff(['model:download:progress', 'model:download:done', 'model:download:error'])
+})
+
 </script>
 
 <style scoped>

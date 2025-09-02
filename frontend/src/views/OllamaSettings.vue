@@ -122,18 +122,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  SaveOllamaServerConfig, 
-  GetOllamaServerConfig,
-  SaveRemoteServers,
-  GetRemoteServers,
+import {computed, onMounted, reactive, ref} from 'vue'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {
   AddRemoteServer,
-  UpdateRemoteServer,
   DeleteRemoteServer,
+  GetOllamaServerConfig,
+  GetRemoteServers,
+  GetLocalServerTestStatus,
+  SaveLocalServerTestStatus,
+  SaveOllamaServerConfig,
   SetActiveServer,
-  TestOllamaServer
+  TestOllamaServer,
+  UpdateRemoteServer
 } from '../../wailsjs/go/main/App'
 
 // 抽屉可见性
@@ -162,7 +163,8 @@ const isTestingConnection = ref(false)
 
 // 本地服务状态
 const localServerState = reactive({
-  test_status: 'unknown' as 'unknown' | 'success' | 'failed', // unknown, success, failed
+  base_url: 'http://localhost:11434',
+  test_status: 'unknown' as 'unknown' | 'success' | 'failed',
   is_running: false
 })
 
@@ -172,9 +174,9 @@ const allServers = computed(() => {
   const localServer = {
     id: 'local',
     name: '本地服务',
-    base_url: 'http://localhost:11434',
+    base_url: localServerState.base_url,
     api_key: '',
-    is_active: false,
+    is_active: false, // This will be updated later
     test_status: localServerState.test_status,
     type: 'local',
     is_running: localServerState.is_running
@@ -249,51 +251,35 @@ const testConnection = async (server: any, isAutoTest = false) => {
   try {
     await TestOllamaServer(server.base_url)
     
-    // 只有手动测试时才显示提示信息
     if (!isAutoTest) {
       ElMessage.success(`${server.name} 连接测试成功`)
     }
     
-    // 更新测试状态
     if (server.type === 'local') {
-      // 更新本地服务状态
       localServerState.test_status = 'success'
+      await SaveLocalServerTestStatus('success')
     } else {
-      // 更新远程服务状态
-      const servers = [...remoteServers.value]
-      const index = servers.findIndex((s: any) => s.id === server.id)
+      const index = remoteServers.value.findIndex((s: any) => s.id === server.id)
       if (index !== -1) {
-        servers[index].test_status = 'success'
-        remoteServers.value = servers
-        
-        // 同时更新后端存储的状态
-        servers[index].test_status = 'success'
-        await UpdateRemoteServer(servers[index])
+        remoteServers.value[index].test_status = 'success'
+        await UpdateRemoteServer(remoteServers.value[index])
       }
     }
     
     return 'success'
   } catch (error) {
-    // 只有手动测试时才显示提示信息
     if (!isAutoTest) {
       ElMessage.error(`${server.name} 连接测试失败: ${(error as Error).message}`)
     }
     
-    // 更新测试状态
     if (server.type === 'local') {
-      // 更新本地服务状态
       localServerState.test_status = 'failed'
+      await SaveLocalServerTestStatus('failed')
     } else {
-      // 更新远程服务状态
-      const servers = [...remoteServers.value]
-      const index = servers.findIndex((s: any) => s.id === server.id)
+      const index = remoteServers.value.findIndex((s: any) => s.id === server.id)
       if (index !== -1) {
-        servers[index].test_status = 'failed'
-        remoteServers.value = servers
-        
-        // 同时更新后端存储的状态
-        servers[index].test_status = 'failed'
-        await UpdateRemoteServer(servers[index])
+        remoteServers.value[index].test_status = 'failed'
+        await UpdateRemoteServer(remoteServers.value[index])
       }
     }
     
@@ -330,7 +316,8 @@ const saveServer = async () => {
           base_url: serverForm.base_url,
           api_key: serverForm.api_key,
           is_active: serverForm.is_active,
-          test_status: 'success'
+          test_status: 'success',
+          type: 'remote'
         })
         ElMessage.success('服务器已更新')
       } else {
@@ -341,7 +328,8 @@ const saveServer = async () => {
           base_url: serverForm.base_url,
           api_key: serverForm.api_key,
           is_active: false,
-          test_status: 'success'
+          test_status: 'success',
+          type: 'remote'
         })
         ElMessage.success('服务器已添加')
       }
@@ -350,7 +338,7 @@ const saveServer = async () => {
     // 关闭抽屉
     drawerVisible.value = false
     // 刷新服务器列表
-    loadRemoteServers()
+    loadData()
   } catch (error) {
     isTestingConnection.value = false
     ElMessage.error((editingServer.value ? '更新' : '添加') + '失败: ' + (error as Error).message)
@@ -372,7 +360,7 @@ const removeRemoteServer = (server: any) => {
     try {
       await DeleteRemoteServer(server.id)
       ElMessage.success('服务器已删除')
-      loadRemoteServers()
+      loadData()
     } catch (error) {
       ElMessage.error('删除失败: ' + (error as Error).message)
     }
@@ -384,15 +372,15 @@ const setActiveServer = async (server: any) => {
   try {
     // 如果是本地服务，直接保存本地配置
     if (server.type === 'local') {
-      await SaveOllamaServerConfig(server.base_url)
+      await SetActiveServer('local')
       ElMessage.success('已设置本地服务为默认服务器')
-      loadRemoteServers()
+      loadData()
       return
     }
     
     await SetActiveServer(server.id)
     ElMessage.success(`已设置 ${server.name} 为默认服务器`)
-    loadRemoteServers()
+    loadData()
   } catch (error) {
     ElMessage.error('设置失败: ' + (error as Error).message)
   }
@@ -403,25 +391,43 @@ const cancelEdit = () => {
   drawerVisible.value = false
 }
 
-// 加载远程服务器列表
-const loadRemoteServers = async () => {
+// 加载所有数据
+const loadData = async () => {
   try {
+    // 加载本地服务器配置和状态
+    const localConf = await GetOllamaServerConfig()
+    const localStatus = await GetLocalServerTestStatus()
+    const localServerInList = allServers.value.find(s => s.id === 'local')
+    if (localServerInList) {
+      localServerInList.base_url = localConf
+      localServerState.test_status = localStatus as 'unknown' | 'success' | 'failed'
+    }
+
+    // 加载远程服务器
     const servers = await GetRemoteServers()
     remoteServers.value = servers
+
+    // 获取活动服务器并更新is_active状态
+    const activeServer = await GetActiveServer()
+    allServers.value.forEach(s => {
+        s.is_active = activeServer ? s.id === activeServer.id : s.id === 'local' && servers.length === 0
+    })
     
     // 自动测试所有服务的连接
     setTimeout(async () => {
       for (const server of allServers.value) {
-        await testConnection(server, true) // 传入true表示是自动测试
+        if (server.test_status === 'unknown') {
+          await testConnection(server, true)
+        }
       }
     }, 100)
   } catch (error) {
-    console.error('加载远程服务器列表失败:', error)
+    console.error('加载服务器列表失败:', error)
   }
 }
 
 onMounted(() => {
-  loadRemoteServers()
+  loadData()
 })
 </script>
 

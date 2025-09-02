@@ -8,6 +8,14 @@
               <span>模型选择</span>
             </div>
           </template>
+          <el-select v-model="selectedServer" placeholder="选择服务" style="width: 100%; margin-bottom: 10px;" @change="onServerChange">
+            <el-option
+                v-for="server in availableServers"
+                :key="server.id"
+                :label="server.name"
+                :value="server.id"
+            />
+          </el-select>
           <el-select v-model="selectedModel" placeholder="选择模型" style="width: 100%">
             <el-option
               v-for="model in localModels"
@@ -103,12 +111,20 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ListModels, ChatMessage, GetModelSettings, SaveModelSettings } from '../../wailsjs/go/main/App'
+import { ListModelsByServer, ChatMessage, GetModelSettings, SaveModelSettings, GetOllamaServerConfig, GetRemoteServers, GetActiveServer } from '../../wailsjs/go/main/App'
 
 interface Model {
   name: string
   size: number
   modified_at: string
+}
+
+interface Server {
+  id: string
+  name: string
+  baseUrl: string
+  apiKey: string
+  isActive: boolean
 }
 
 interface Message {
@@ -128,6 +144,8 @@ interface ModelParams {
 
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
+const availableServers = ref<Server[]>([])
+const selectedServer = ref<string>('local')
 const inputMessage = ref('')
 const messages = ref<Message[]>([
   { role: 'assistant', content: '你好！我是Ollama助手，请选择一个模型开始对话。' }
@@ -145,15 +163,50 @@ const modelParams = ref<ModelParams>({
   repeatPenalty: 1.1
 })
 
+const loadAvailableServers = async () => {
+  try {
+    const localBaseUrl = await GetOllamaServerConfig()
+    const localServer: Server = { id: 'local', name: '本地服务', baseUrl: localBaseUrl, apiKey: '', isActive: true }
+    let remoteServers: Server[] = []
+    try {
+      remoteServers = await GetRemoteServers()
+    } catch (remoteError) {
+      console.error('获取远程服务器列表失败:', remoteError)
+    }
+    availableServers.value = [localServer, ...remoteServers]
+
+    try {
+      const activeServer = await GetActiveServer()
+      const activeServerExists = activeServer && activeServer.id && availableServers.value.some(s => s.id === activeServer.id)
+      if (activeServerExists) {
+        selectedServer.value = activeServer.id
+      } else {
+        selectedServer.value = 'local'
+      }
+    } catch (e) {
+      selectedServer.value = 'local'
+    }
+  } catch (error) {
+    availableServers.value = [{ id: 'local', name: '本地服务', baseUrl: '', apiKey: '', isActive: true }];
+    selectedServer.value = 'local'
+  }
+}
+
+const onServerChange = () => {
+  getModels()
+}
+
 // 获取模型列表
 const getModels = async () => {
   try {
-    const models: Model[] = await ListModels()
+    const models: Model[] = await ListModelsByServer(selectedServer.value)
     localModels.value = models
-    if (models.length > 0 && !selectedModel.value) {
+    if (models.length > 0) {
       selectedModel.value = models[0].name
       // 加载选中模型的参数设置
       loadModelParams(models[0].name)
+    } else {
+      selectedModel.value = ''
     }
   } catch (error) {
     ElMessage.error('获取模型列表失败: ' + (error as Error).message)
@@ -264,8 +317,9 @@ const onModelChange = (newModel: string) => {
   loadModelParams(newModel)
 }
 
-onMounted(() => {
-  getModels()
+onMounted(async () => {
+  await loadAvailableServers()
+  await getModels()
 })
 </script>
 
