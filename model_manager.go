@@ -152,11 +152,13 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 		if err != nil {
 			// 如果获取配置失败，使用默认的本地服务器配置
 			localConfig = OllamaServerConfig{BaseURL: "http://localhost:11434"}
+			logger.Warnf("获取本地配置失败，使用默认配置: %v", err)
 		}
 		serverConfig = &localConfig
 	} else {
 		servers, err := m.app.configMgr.GetRemoteServers()
 		if err != nil {
+			logger.Errorf("获取远程服务器列表失败: %v", err)
 			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "获取远程服务器列表失败: " + err.Error()})
 			return
 		}
@@ -170,57 +172,108 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 		}
 		if !found {
 			err := fmt.Errorf("找不到指定的服务器: %s", serverID)
+			logger.Errorf("找不到指定的服务器: %s", serverID)
 			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": err.Error()})
 			return
 		}
 	}
 
-	downloadClient := core.NewHttp(logger)
-	downloadClient.Create(&core.Config{BaseURL: serverConfig.BaseURL})
+	logger.Infof("使用服务器配置: %+v", serverConfig)
 
+	// 为特定服务器创建临时的HTTP客户端
+	downloadClient := core.NewHttp(logger)
+	downloadClient.Create(&core.Config{
+		BaseURL: serverConfig.BaseURL,
+	})
+
+	// 修复：使用正确的字段名 "name" 而不是 "model"
 	requestBody := map[string]interface{}{
 		"name":   modelName,
 		"stream": true,
 	}
+
+	logger.Infof("发送下载请求到 %s/api/pull，请求体: %+v", serverConfig.BaseURL, requestBody)
 
 	resp, err := downloadClient.PostStream("/api/pull", core.Options{
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    requestBody,
 	})
 	if err != nil {
+		logger.Errorf("创建下载请求失败: %v", err)
 		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "创建下载请求失败: " + err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
+	logger.Infof("收到响应，状态码: %d", resp.StatusCode)
+
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		errMsg := fmt.Sprintf("下载失败，服务器响应: %s (状态码 %d)", string(bodyBytes), resp.StatusCode)
+		logger.Errorf(errMsg)
 		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": errMsg})
 		return
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
+	errorOccurred := false
+	var lastError string
+
 	for scanner.Scan() {
-		var progressInfo map[string]interface{}
 		line := scanner.Bytes()
+		logger.Debugf("收到进度行: %s", string(line))
+
 		if len(line) == 0 {
 			continue
 		}
+
+		var progressInfo map[string]interface{}
 		if err := json.Unmarshal(line, &progressInfo); err != nil {
 			logger.Warnf("无法解析下载进度JSON: %s, 错误: %v", string(line), err)
 			continue
 		}
+
+		// 检查是否有错误信息
+		if errorMsg, ok := progressInfo["error"]; ok && errorMsg != nil && errorMsg != "" {
+			errorOccurred = true
+			lastError = fmt.Sprintf("%v", errorMsg)
+			logger.Errorf("下载过程中出现错误: %s", lastError)
+			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": lastError})
+			// 出现错误时中断下载
+			break
+		}
+
+		// 确保status字段存在
+		if _, ok := progressInfo["status"]; !ok {
+			progressInfo["status"] = "下载中"
+		}
+
+		// 添加默认的completed和total字段，以防它们不存在
+		if _, ok := progressInfo["completed"]; !ok {
+			progressInfo["completed"] = 0
+		}
+		if _, ok := progressInfo["total"]; !ok {
+			progressInfo["total"] = 0
+		}
+
 		progressInfo["model"] = modelName
 		runtime.EventsEmit(m.ctx, "model:download:progress", progressInfo)
 	}
 
 	if err := scanner.Err(); err != nil {
+		logger.Errorf("读取下载流失败: %v", err)
 		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "读取下载流失败: " + err.Error()})
 		return
 	}
 
-	runtime.EventsEmit(m.ctx, "model:download:done", map[string]interface{}{"model": modelName})
+	// 只有在没有错误的情况下才发送下载完成事件
+	if !errorOccurred {
+		logger.Infof("模型 %s 下载完成", modelName)
+		runtime.EventsEmit(m.ctx, "model:download:done", map[string]interface{}{"model": modelName})
+	} else {
+		logger.Infof("模型 %s 下载失败: %s", modelName, lastError)
+		// 错误事件已经发送，无需再次发送
+	}
 }
 
 // SetModelParams 设置模型参数

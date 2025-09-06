@@ -9,7 +9,5 @@
   "author": {
     "name": "xiao.qiang",
     "email": "xiaoqiang.li2125@chancegiver.com"
-  },
-  "dev:command": "bash -c 'sleep 2 && dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec ./build/bin/ollama'",
-  "build:go:gcflags": "-gcflags=all=-N -l"
+  }
 }

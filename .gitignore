@@ -1,3 +1,9 @@
 build/bin
 node_modules
 frontend/dist
+/frontend/yarn.lock
+/frontend/package-lock.json
+/frontend/package.json.md5
+/duola.dat
+/ollama-client.db
+/tools-ollama

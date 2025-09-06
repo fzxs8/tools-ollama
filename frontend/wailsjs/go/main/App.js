@@ -46,6 +46,10 @@ export function ListModelsByServer(arg1) {
   return window['go']['main']['App']['ListModelsByServer'](arg1);
 }
 
+export function OpenInBrowser(arg1) {
+  return window['go']['main']['App']['OpenInBrowser'](arg1);
+}
+
 export function RunModel(arg1, arg2) {
   return window['go']['main']['App']['RunModel'](arg1, arg2);
 }
@@ -76,6 +80,10 @@ export function StopModel(arg1) {
 
 export function TestModel(arg1, arg2) {
   return window['go']['main']['App']['TestModel'](arg1, arg2);
+}
+
+export function TestOllamaConnection() {
+  return window['go']['main']['App']['TestOllamaConnection']();
 }
 
 export function TestOllamaServer(arg1) {

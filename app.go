@@ -8,6 +8,7 @@ import (
 
 	"github.com/fzxs8/duolasdk"
 	"github.com/fzxs8/duolasdk/core"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Model 模型信息
@@ -183,8 +184,9 @@ func (a *App) ListModelsByServer(serverID string) ([]Model, error) {
 	return result.Models, nil
 }
 
-// DownloadModel 下载模型（非阻塞）
+// DownloadModel 下载模型
 func (a *App) DownloadModel(serverID string, modelName string) {
+	a.modelManager.SetContext(a.ctx)
 	go a.modelManager.DownloadModel(serverID, modelName)
 }
 
@@ -438,4 +440,23 @@ func (a *App) GetLocalServerTestStatus() (string, error) {
 // GetActiveServer 获取活动服务器
 func (a *App) GetActiveServer() (*OllamaServerConfig, error) {
 	return a.configMgr.GetActiveServer()
+}
+
+// OpenInBrowser opens the given URL in the default browser.
+func (a *App) OpenInBrowser(url string) {
+	runtime.BrowserOpenURL(a.ctx, url)
+}
+
+// TestOllamaConnection 测试Ollama连接
+func (a *App) TestOllamaConnection() (bool, error) {
+	response, err := a.httpClient.Get("/api/tags", core.Options{})
+	if err != nil {
+		return false, err
+	}
+
+	if response.StatusCode != 200 {
+		return false, fmt.Errorf("状态码错误: %d", response.StatusCode)
+	}
+
+	return true, nil
 }

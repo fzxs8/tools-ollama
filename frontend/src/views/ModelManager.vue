@@ -64,7 +64,7 @@
           :closable="false"
           style="margin-bottom: 20px;"
       >
-        请从 <el-link type="primary" href="https://ollama.com/library" target="_blank">Ollama Library</el-link> 复制模型名称 (例如: llama3:8b) 并粘贴到下方。
+        请从 <a href="#" @click.prevent="openOllamaLibrary" class="el-link el-link--primary">https://ollama.com/library</a> 复制模型名称 (例如: llama3:8b) 并粘贴到下方。
       </el-alert>
       <el-input v-model="modelNameToDownload" placeholder="请输入要下载的模型名称"></el-input>
       <template #footer>
@@ -151,8 +151,8 @@
 
         <div style="margin-top: 20px">
           <el-button v-if="!selectedModel.is_running" type="primary" @click="runModel" :loading="isRunningModel" :disabled="isRunningModel">运行</el-button>
-          <el-button v-if="selectedModel.is_running" @click="stopModel" :loading="isStoppingModel" :disabled="isStoppingModel">停止</el-button>
           <el-button type="danger" @click="deleteModel(selectedModel)">删除</el-button>
+          <el-button v-if="selectedModel.is_running" @click="stopModel" :loading="isStoppingModel" :disabled="isStoppingModel">停止</el-button>
         </div>
 
         <el-divider />
@@ -211,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, reactive, ref, h} from 'vue'
+import {computed, onMounted, onUnmounted, reactive, ref} from 'vue'
 import {ElMessage, ElMessageBox, ElNotification} from 'element-plus'
 import * as runtime from '../../wailsjs/runtime/runtime.js'
 import {
@@ -223,6 +223,7 @@ import {
   GetOllamaServerConfig,
   GetRemoteServers,
   ListModelsByServer,
+  OpenInBrowser,
   RunModel,
   SearchModels,
   SetActiveServer,
@@ -230,7 +231,11 @@ import {
   StopModel,
   TestModel
 } from '../../wailsjs/go/main/App'
-import { Search } from '@element-plus/icons-vue'
+import {Search} from '@element-plus/icons-vue'
+
+const openOllamaLibrary = () => {
+  OpenInBrowser('https://ollama.com/library')
+}
 
 interface Model {
   name: string
@@ -500,6 +505,7 @@ const handleDownload = async () => {
 
   isDownloading.value = true
   downloadDialogVisible.value = false
+  downloadQueueDialogVisible.value = true
 
   DownloadModel(selectedServer.value, modelName)
   ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
@@ -572,46 +578,89 @@ const saveModelParams = async () => {
 }
 
 const setupDownloadListeners = () => {
-  runtime.EventsOn(`model:download:progress`, (data) => {
-    const { model, status, completed, total } = data
+  // 保存事件处理函数的引用，以便后续移除
+  const progressHandler = (data) => {
+    console.log('收到下载进度:', data);
+    const { model, status, completed, total, digest } = data;
+    
+    // 确保下载进度对象存在
     if (!downloadProgresses[model]) {
       downloadProgresses[model] = reactive({
         model: model,
         status: '',
         percentage: 0,
-      })
+      });
     }
-    const progress = total > 0 ? Math.round((completed / total) * 100) : 0
-    downloadProgresses[model].status = status
-    downloadProgresses[model].percentage = progress
-  })
-
-  runtime.EventsOn('model:download:done', (data) => {
-    const { model } = data
-    delete downloadProgresses[model]
+    
+    // 计算进度百分比
+    let progress = 0;
+    if (total && total > 0) {
+      progress = Math.round((completed / total) * 100);
+    } else if (status === "success" || status.includes("success")) {
+      progress = 100;
+    }
+    
+    // 更新状态和进度
+    downloadProgresses[model].status = status || '下载中';
+    downloadProgresses[model].percentage = progress;
+    
+    console.log(`模型 ${model} 下载进度: ${progress}%, 状态: ${status}`);
+  };
+  
+  const doneHandler = (data) => {
+    console.log('下载完成:', data);
+    const { model } = data;
+    
+    // 从下载进度中移除
+    if (downloadProgresses[model]) {
+      delete downloadProgresses[model];
+    }
+    
     ElNotification.success({
       title: '下载完成',
       message: `模型 "${model}" 已成功下载。`,
       duration: 3000
-    })
-    refreshModels()
-  })
-
-  runtime.EventsOn('model:download:error', (data) => {
-    const { model, error } = data
-    delete downloadProgresses[model]
+    });
+    
+    // 刷新模型列表
+    refreshModels();
+  };
+  
+  const errorHandler = (data) => {
+    console.error('下载出错:', data);
+    const { model, error } = data;
+    
+    // 从下载进度中移除
+    if (downloadProgresses[model]) {
+      delete downloadProgresses[model];
+    }
+    
     ElNotification.error({
       title: '下载失败',
       message: `模型 "${model}" 下载失败: ${error}`,
       duration: 0
-    })
-  })
+    });
+    
+    console.error(`模型 "${model}" 下载失败:`, error);
+  };
+  
+  // 添加事件监听器
+  runtime.EventsOn(`model:download:progress`, progressHandler);
+  runtime.EventsOn('model:download:done', doneHandler);
+  runtime.EventsOn('model:download:error', errorHandler);
+  
+  // 返回清理函数
+  return () => {
+    runtime.EventsOff(['model:download:progress', 'model:download:done', 'model:download:error'], progressHandler, doneHandler, errorHandler);
+  };
 }
+
+let cleanupDownloadListeners = null;
 
 onMounted(async () => {
   await loadAvailableServers()
   await getModels()
-  setupDownloadListeners()
+  cleanupDownloadListeners = setupDownloadListeners()
 })
 
 onUnmounted(() => {
@@ -620,9 +669,13 @@ onUnmounted(() => {
     if (downloadProgresses[modelName] && downloadProgresses[modelName].notification) {
       downloadProgresses[modelName].notification.close()
     }
-  })
-  runtime.EventsOff(['model:download:progress', 'model:download:done', 'model:download:error'])
-})
+  });
+  
+  // 调用清理函数移除事件监听器
+  if (cleanupDownloadListeners && typeof cleanupDownloadListeners === 'function') {
+    cleanupDownloadListeners();
+  }
+});
 
 </script>
 

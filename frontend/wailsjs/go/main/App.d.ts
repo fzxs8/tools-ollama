@@ -24,6 +24,8 @@ export function GetRemoteServers():Promise<Array<main.OllamaServerConfig>>;
 
 export function ListModelsByServer(arg1:string):Promise<Array<main.Model>>;
 
+export function OpenInBrowser(arg1:string):Promise<void>;
+
 export function RunModel(arg1:string,arg2:Record<string, any>):Promise<void>;
 
 export function SaveLocalServerTestStatus(arg1:string):Promise<void>;
@@ -39,6 +41,8 @@ export function SetModelParams(arg1:string,arg2:Record<string, any>):Promise<voi
 export function StopModel(arg1:string):Promise<void>;
 
 export function TestModel(arg1:string,arg2:string):Promise<string>;
+
+export function TestOllamaConnection():Promise<boolean>;
 
 export function TestOllamaServer(arg1:string):Promise<string>;
 

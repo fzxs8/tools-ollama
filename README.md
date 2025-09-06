@@ -67,6 +67,11 @@ docker run -it --rm \
 docker run -it --rm wails-dev-env:1.0.6  ls -l
 ```
 
+开放了对所有本地用户的访问权限 运行docker 访问 X server
+```shell
+sudo xhost +local:
+```
+
 ## 项目结构
 
 ```
