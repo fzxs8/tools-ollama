@@ -20,7 +20,6 @@
                   />
                 </el-select>
                 <el-button type="primary" @click="openDownloadDialog">下载模型</el-button>
-                <el-button type="success" @click="openSearchDrawer">搜索模型</el-button>
                 <el-button @click="openDownloadQueueDialog">下载队列</el-button>
                 <el-button @click="refreshModels">刷新</el-button>
               </div>
@@ -537,12 +536,6 @@ const handleDownload = async () => {
   DownloadModel(selectedServer.value, modelName)
   ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
   isDownloading.value = false
-}
-
-const openSearchDrawer = () => {
-  searchDrawerVisible.value = true
-  searchResults.value = []
-  searchQuery.value = ''
 }
 
 const handleSearch = async () => {
