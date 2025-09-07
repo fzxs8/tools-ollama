@@ -48,19 +48,23 @@ wails build
 docker 启动
 
 ```shell
-docker run -it --rm \
-  -v "$(pwd)":/tools-ollama \
-  -v "$(pwd)"/../duolasdk:/duolasdk:ro \
-  -v "$(pwd)"/../go.work:/go.work:ro \
-  -w /tools-ollama \
+sudo sysctl fs.inotify.max_user_watches=524288
+sudo sysctl fs.inotify.max_user_instances=512
+```
+```shell
+docker run --rm \
+  -v "/home/fzxs/workspaces/demo/duola/duola-desktop":/project \
+  -w /project/tools-ollama \
   -p 34115:34115 \
   -p 40000:40000 \
   -e DISPLAY=$DISPLAY \
   -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+  -e CHOKIDAR_USEPOLLING=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
   -v /tmp/logs:/tmp/logs \
-  wails-dev-env:1.0.6 \
-  wails dev
+  wails-dev-env:1.0.7 \
+  wails dev -debounce 2000 -reloaddirs ../duolasdk
+
 ``` 
 
 ```shell

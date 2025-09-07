@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/fzxs8/duolasdk"
@@ -351,7 +352,7 @@ func (a *App) GetModelParams(modelName string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// GetOllamaServerConfig 获取本地Ollama服务器配置
+// GetOllamaServerConfig 获取本地Ollama服务器配置1
 func (a *App) GetOllamaServerConfig() (string, error) {
 	config, err := a.configMgr.GetLocalConfig()
 	if err != nil {
@@ -370,7 +371,7 @@ func (a *App) SearchModels(query string) ([]interface{}, error) {
 	return a.modelManager.SearchModels(query)
 }
 
-// TestOllamaServer 测试与Ollama服务器的连接
+// TestOllamaServer 测试与Ollama服务器的连接133333
 func (a *App) TestOllamaServer(baseURL string) (string, error) {
 	client := core.NewHttp(core.NewLogger(&core.LoggerOption{
 		Type:   "console",
@@ -383,13 +384,13 @@ func (a *App) TestOllamaServer(baseURL string) (string, error) {
 
 	resp, err := client.Get("/", core.Options{})
 	if err != nil {
-		return "连接失败", err
+		return "连接失败：", err
 	}
 
 	if resp.StatusCode == http.StatusOK && resp.Body == "Ollama is running" {
 		return "连接成功", nil
 	}
-
+	log.Println("非预期的响应:", resp.Body)
 	return "连接失败", fmt.Errorf("非预期的响应: %s", resp.Body)
 }
 
@@ -437,7 +438,7 @@ func (a *App) GetLocalServerTestStatus() (string, error) {
 	return a.configMgr.GetLocalServerTestStatus()
 }
 
-// GetActiveServer 获取活动服务器
+// GetActiveServer 获取活动服务器1
 func (a *App) GetActiveServer() (*OllamaServerConfig, error) {
 	return a.configMgr.GetActiveServer()
 }
@@ -447,7 +448,7 @@ func (a *App) OpenInBrowser(url string) {
 	runtime.BrowserOpenURL(a.ctx, url)
 }
 
-// TestOllamaConnection 测试Ollama连接
+// TestOllamaConnection 测试Ollama连接1
 func (a *App) TestOllamaConnection() (bool, error) {
 	response, err := a.httpClient.Get("/api/tags", core.Options{})
 	if err != nil {
