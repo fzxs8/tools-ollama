@@ -32,7 +32,7 @@ export function SaveLocalServerTestStatus(arg1:string):Promise<void>;
 
 export function SaveOllamaServerConfig(arg1:string):Promise<void>;
 
-export function SearchModels(arg1:string):Promise<Array<any>>;
+export function SearchOnlineModels(arg1:string):Promise<Array<any>>;
 
 export function SetActiveServer(arg1:string):Promise<void>;
 

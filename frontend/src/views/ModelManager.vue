@@ -77,47 +77,6 @@
       </template>
     </el-dialog>
 
-    <!-- 搜索模型抽屉 -->
-    <el-drawer
-        v-model="searchDrawerVisible"
-        title="搜索在线模型"
-        direction="rtl"
-        size="50%"
-    >
-      <div class="search-drawer-content">
-        <el-input
-            v-model="searchQuery"
-            placeholder="输入模型名称进行搜索 (例如: llama3)"
-            clearable
-            @input="handleSearch"
-            style="margin-bottom: 20px;"
-        >
-          <template #prepend>
-            <el-button :icon="Search"/>
-          </template>
-        </el-input>
-
-        <el-table :data="searchResults" style="width: 100%" v-loading="isSearching">
-          <el-table-column prop="name" label="模型名称"/>
-          <el-table-column prop="pull_count" label="下载次数">
-            <template #default="scope">
-              {{ formatPullCount(scope.row.pull_count) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="updated_at" label="更新时间">
-            <template #default="scope">
-              {{ formatDate(scope.row.updated_at) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120">
-            <template #default="scope">
-              <el-button size="small" type="primary" @click="handleDownloadFromSearch(scope.row.name)">下载</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-    </el-drawer>
-
     <!-- 下载队列抽屉 -->
     <el-drawer
         v-model="downloadQueueDrawerVisible"
@@ -234,13 +193,11 @@ import {
   ListModelsByServer,
   OpenInBrowser,
   RunModel,
-  SearchModels,
   SetActiveServer,
   SetModelParams,
   StopModel,
   TestModel
 } from '../../wailsjs/go/main/App'
-import {Search} from '@element-plus/icons-vue'
 
 const openOllamaLibrary = () => {
   OpenInBrowser('https://ollama.com/library')
@@ -292,11 +249,6 @@ const downloadProgresses = reactive<Record<string, DownloadProgress>>({})
 const downloadQueueDrawerVisible = ref(false)  // 新增的抽屉可见性变量
 const downloadQueue = computed(() => Object.values(downloadProgresses))
 
-const searchDrawerVisible = ref(false)
-const searchQuery = ref('')
-const searchResults = ref<any[]>([])
-const isSearching = ref(false)
-
 const isRunningModel = ref(false)
 const isStoppingModel = ref(false)
 const isTestingModel = ref(false)
@@ -317,16 +269,6 @@ const formatSize = (size: number) => {
   if (size < 1024 * 1024) return (size / 1024).toFixed(2) + ' KB'
   if (size < 1024 * 1024 * 1024) return (size / (1024 * 1024)).toFixed(2) + ' MB'
   return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-}
-
-const formatPullCount = (count: number) => {
-  if (count > 1000000) {
-    return (count / 1000000).toFixed(1) + 'M'
-  }
-  if (count > 1000) {
-    return (count / 1000).toFixed(1) + 'K'
-  }
-  return count
 }
 
 const formatDate = (dateString: string) => {
@@ -536,45 +478,6 @@ const handleDownload = async () => {
   DownloadModel(selectedServer.value, modelName)
   ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
   isDownloading.value = false
-}
-
-const handleSearch = async () => {
-  if (!searchQuery.value.trim()) {
-    searchResults.value = []
-    return
-  }
-  isSearching.value = true
-  try {
-    const results = await SearchModels(searchQuery.value)
-    searchResults.value = results
-  } catch (error: any) {
-    ElMessage.error('搜索模型失败: ' + error.message)
-  } finally {
-    isSearching.value = false
-  }
-}
-
-const handleDownloadFromSearch = (modelName: string) => {
-  if (!modelName) {
-    ElMessage.warning('无效的模型名称')
-    return
-  }
-  if (downloadProgresses[modelName]) {
-    ElMessage.warning(`模型 "${modelName}" 已在下载队列中。`)
-    return
-  }
-
-  downloadProgresses[modelName] = reactive({
-    model: modelName,
-    status: '正在准备...',
-    percentage: 0,
-  }) as DownloadProgress
-
-  // 自动拉出下载队列抽屉
-  downloadQueueDrawerVisible.value = true
-
-  DownloadModel(selectedServer.value, modelName)
-  ElMessage.info(`已将模型 "${modelName}" 添加到下载队列。`)
 }
 
 // 修改打开下载队列的函数

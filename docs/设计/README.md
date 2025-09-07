@@ -16,6 +16,12 @@
 │   ├── 03.数据结构.md
 │   ├── 04.API接口.md
 │   └── 06.待办事项.md
+├── ModelMarket/              # ModelMarket模块相关文档
+│   ├── 01.功能需求.md
+│   ├── 02.界面设计.md
+│   ├── 03.数据结构.md
+│   ├── 04.API接口.md
+│   └── 06.待办事项.md
 └── OllamaSettings/           # OllamaSettings模块相关文档
     ├── 01.功能需求.md
     ├── 02.界面设计.md

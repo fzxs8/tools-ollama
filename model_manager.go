@@ -298,35 +298,3 @@ func (m *ModelManager) GetModelParams(modelName string) (ModelParams, error) {
 		RepeatPenalty: 1.1,
 	}, nil
 }
-
-// SearchModels 在 ollamadb.dev 上搜索模型
-func (m *ModelManager) SearchModels(query string) ([]interface{}, error) {
-	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "SearchClient"})
-	searchClient := core.NewHttp(logger)
-
-	resp, err := searchClient.Get("https://ollamadb.dev/api/v1/models", core.Options{
-		Query: map[string]string{
-			"search": query,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("搜索模型失败: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("搜索模型失败: 状态码 %d", resp.StatusCode)
-	}
-
-	var searchResult map[string]interface{}
-	err = json.Unmarshal([]byte(resp.Body), &searchResult)
-	if err != nil {
-		return nil, fmt.Errorf("解析搜索结果失败: %w", err)
-	}
-
-	models, ok := searchResult["models"].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("在搜索结果中找不到模型")
-	}
-
-	return models, nil
-}

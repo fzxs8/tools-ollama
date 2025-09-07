@@ -62,8 +62,8 @@ export function SaveOllamaServerConfig(arg1) {
   return window['go']['main']['App']['SaveOllamaServerConfig'](arg1);
 }
 
-export function SearchModels(arg1) {
-  return window['go']['main']['App']['SearchModels'](arg1);
+export function SearchOnlineModels(arg1) {
+  return window['go']['main']['App']['SearchOnlineModels'](arg1);
 }
 
 export function SetActiveServer(arg1) {

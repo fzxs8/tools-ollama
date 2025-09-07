@@ -69,6 +69,7 @@ type App struct {
 	httpClient   *core.HttpCli
 	store        *duolasdk.AppStore
 	modelManager *ModelManager
+	modelMarket  *ModelMarket
 	configMgr    *OllamaConfigManager
 }
 
@@ -110,8 +111,9 @@ func NewApp() *App {
 		BaseURL: activeServer.BaseURL,
 	})
 
-	// 初始化模型管理器
+	// 初始化模型管理器和模型市场
 	app.modelManager = NewModelManager(app)
+	app.modelMarket = NewModelMarket(app)
 
 	return app
 }
@@ -120,6 +122,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.modelManager.SetContext(ctx)
+	a.modelMarket.SetContext(ctx)
 }
 
 // ListModelsByServer 根据服务器获取模型列表
@@ -366,12 +369,12 @@ func (a *App) GetRemoteServers() ([]OllamaServerConfig, error) {
 	return a.configMgr.GetRemoteServers()
 }
 
-// SearchModels 在ollamadb.dev上搜索模型
-func (a *App) SearchModels(query string) ([]interface{}, error) {
-	return a.modelManager.SearchModels(query)
+// SearchOnlineModels 搜索在线模型
+func (a *App) SearchOnlineModels(query string) ([]interface{}, error) {
+	return a.modelMarket.SearchOnlineModels(query)
 }
 
-// TestOllamaServer 测试与Ollama服务器的连接133333
+// TestOllamaServer 测试与Ollama服务器的连接1
 func (a *App) TestOllamaServer(baseURL string) (string, error) {
 	client := core.NewHttp(core.NewLogger(&core.LoggerOption{
 		Type:   "console",
