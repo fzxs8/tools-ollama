@@ -42,6 +42,22 @@ export function GetRemoteServers() {
   return window['go']['main']['App']['GetRemoteServers']();
 }
 
+export function KVDelete(arg1) {
+  return window['go']['main']['App']['KVDelete'](arg1);
+}
+
+export function KVGet(arg1) {
+  return window['go']['main']['App']['KVGet'](arg1);
+}
+
+export function KVList(arg1) {
+  return window['go']['main']['App']['KVList'](arg1);
+}
+
+export function KVSet(arg1, arg2) {
+  return window['go']['main']['App']['KVSet'](arg1, arg2);
+}
+
 export function ListModelsByServer(arg1) {
   return window['go']['main']['App']['ListModelsByServer'](arg1);
 }

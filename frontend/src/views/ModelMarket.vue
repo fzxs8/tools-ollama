@@ -1,6 +1,6 @@
 <template>
   <div class="model-market">
-    <el-card>
+    <el-card class="market-card">
       <template #header>
         <div class="card-header">
           <span>模型市场</span>
@@ -155,12 +155,23 @@ onMounted(() => {
 <style scoped>
 .model-market {
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.market-card {
+  height: 100%;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.market-card :deep(.el-card__body) {
+  height: calc(100% - 60px);
+  overflow-y: auto;
 }
 
 .drawer-content {

@@ -22,6 +22,14 @@ export function GetOllamaServerConfig():Promise<string>;
 
 export function GetRemoteServers():Promise<Array<main.OllamaServerConfig>>;
 
+export function KVDelete(arg1:string):Promise<void>;
+
+export function KVGet(arg1:string):Promise<string>;
+
+export function KVList(arg1:string):Promise<string>;
+
+export function KVSet(arg1:string,arg2:string):Promise<void>;
+
 export function ListModelsByServer(arg1:string):Promise<Array<main.Model>>;
 
 export function OpenInBrowser(arg1:string):Promise<void>;

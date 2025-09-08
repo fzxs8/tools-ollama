@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <el-container style="height: 100vh">
-      <el-header style="background-color: #409eff; color: white; padding: 0">
+      <el-header style="background-color: #409eff; color: white; padding: 0; flex-shrink: 0;">
         <div class="header-content">
           <div class="logo">
             <img src="./assets/images/logo-universal.png" alt="Logo" class="logo-img" />
@@ -11,7 +11,7 @@
         </div>
       </el-header>
       
-      <el-container>
+      <el-container style="height: calc(100vh - 60px);">
         <el-aside width="200px" style="background-color: #f5f7fa">
           <el-menu
             :default-active="activeRoute"
@@ -41,7 +41,7 @@
           </el-menu>
         </el-aside>
         
-        <el-main style="padding: 0">
+        <el-main style="padding: 20px; overflow-y: auto;">
           <router-view />
         </el-main>
       </el-container>

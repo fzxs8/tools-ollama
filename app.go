@@ -71,6 +71,7 @@ type App struct {
 	modelManager *ModelManager
 	modelMarket  *ModelMarket
 	configMgr    *OllamaConfigManager
+	chatManager  *ChatManager
 }
 
 // NewApp 创建一个新的 App 应用
@@ -87,6 +88,9 @@ func NewApp() *App {
 
 	// 初始化配置管理器
 	app.configMgr = NewOllamaConfigManager(store)
+
+	// 初始化聊天管理器
+	app.chatManager = NewChatManager(context.Background(), store)
 
 	// 获取活动服务器配置
 	activeServer, err := app.configMgr.GetActiveServer()
@@ -123,6 +127,27 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.modelManager.SetContext(ctx)
 	a.modelMarket.SetContext(ctx)
+	a.chatManager.SetContext(ctx)
+}
+
+// KVSet 设置键值对
+func (a *App) KVSet(key, value string) error {
+	return a.chatManager.KVSet(key, value)
+}
+
+// KVGet 获取键值对
+func (a *App) KVGet(key string) (string, error) {
+	return a.chatManager.KVGet(key)
+}
+
+// KVList 获取键值对列表
+func (a *App) KVList(key string) (string, error) {
+	return a.chatManager.KVList(key)
+}
+
+// KVDelete 删除键值对
+func (a *App) KVDelete(key string) error {
+	return a.chatManager.KVDelete(key)
 }
 
 // ListModelsByServer 根据服务器获取模型列表
@@ -464,3 +489,5 @@ func (a *App) TestOllamaConnection() (bool, error) {
 
 	return true, nil
 }
+
+//

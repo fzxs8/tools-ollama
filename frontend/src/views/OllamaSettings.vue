@@ -1,357 +1,221 @@
 <template>
   <div class="ollama-settings">
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>Ollama 服务配置</span>
-              <div>
-                <el-button type="primary" @click="openAddDrawer">添加服务</el-button>
-              </div>
-            </div>
-          </template>
-          
-          <div class="server-config-content">
-            <!-- 服务列表 -->
-            <div class="server-list-section">
-              <h3>服务列表</h3>
-              <el-table :data="allServers" style="width: 100%" :fit="true">
-                <el-table-column prop="name" label="名称" :min-width="100" />
-                <el-table-column prop="base_url" label="服务地址" :min-width="150" />
-                <el-table-column prop="type" label="类型" :width="80">
-                  <template #default="scope">
-                    <el-tag :type="scope.row.type === 'local' ? 'primary' : 'success'">
-                      {{ scope.row.type === 'local' ? '本地' : '远程' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="test_status" label="测试状态" :width="120">
-                  <template #default="scope">
-                    <el-tag :type="scope.row.test_status === 'success' ? 'success' : 
-                             scope.row.test_status === 'failed' ? 'danger' : 'info'">
-                      {{ scope.row.test_status === 'success' ? '连接成功' : 
-                         scope.row.test_status === 'failed' ? '连接失败' : '未测试' }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" :width="120">
-                  <template #default="scope">
-                    <el-dropdown @command="handleCommand">
-                      <el-button size="small">
-                        操作<i class="el-icon-arrow-down el-icon--right"></i>
-                      </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item :command="{action: 'setActive', server: scope.row}">
-                            设置默认
-                          </el-dropdown-item>
-                          <el-dropdown-item :command="{action: 'edit', server: scope.row}">
-                            编辑
-                          </el-dropdown-item>
-                          <el-dropdown-item :command="{action: 'test', server: scope.row}">
-                            测试
-                          </el-dropdown-item>
-                          <el-dropdown-item 
-                            v-if="scope.row.type === 'local'"
-                            :command="{action: 'toggle', server: scope.row}">
-                            {{ scope.row.is_running ? '停止' : '启动' }}
-                          </el-dropdown-item>
-                          <el-dropdown-item 
-                            v-if="scope.row.type !== 'local'"
-                            :command="{action: 'remove', server: scope.row}"
-                            :disabled="scope.row.is_active">
-                            删除
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
+    <el-card class="settings-card">
+      <template #header>
+        <div class="card-header">
+          <span>Ollama 服务配置</span>
+        </div>
+      </template>
+
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="本地服务配置" name="local">
+          <el-form :model="localConfig" label-width="120px" style="max-width: 600px; margin-top: 20px;">
+            <el-form-item label="本地服务地址">
+              <el-input v-model="localConfig.baseUrl" placeholder="请输入本地 Ollama 服务地址"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveLocalConfig">保存配置</el-button>
+              <el-button @click="testLocalConnection" :loading="testingLocal">测试连接</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane label="远程服务管理" name="remote">
+          <div style="margin-bottom: 20px;">
+            <el-button type="primary" @click="openAddRemoteDialog">添加远程服务</el-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <!-- 添加/编辑服务抽屉 -->
-    <el-drawer
-      v-model="drawerVisible"
-      :title="editingServer ? '编辑服务' : '添加服务'"
-      direction="rtl"
-      size="40%"
-    >
-      <el-form :model="serverForm" label-width="100px">
-        <el-form-item label="服务类型">
-          <el-radio-group v-model="serverForm.type" :disabled="editingServer">
-            <el-radio label="local">本地服务</el-radio>
-            <el-radio label="remote">远程服务</el-radio>
-          </el-radio-group>
+
+          <el-table :data="remoteServers" style="width: 100%" empty-text="暂无数据">
+            <el-table-column prop="name" label="服务名称"/>
+            <el-table-column prop="base_url" label="服务地址"/>
+            <el-table-column prop="test_status" label="连接状态">
+              <template #default="scope">
+                <el-tag v-if="scope.row.test_status === 'success'" type="success">连接成功</el-tag>
+                <el-tag v-else-if="scope.row.test_status === 'failed'" type="danger">连接失败</el-tag>
+                <el-tag v-else type="info">未知</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作">
+              <template #default="scope">
+                <el-button size="small" @click="testRemoteConnection(scope.row)">测试</el-button>
+                <el-button size="small" @click="editRemoteServer(scope.row)">编辑</el-button>
+                <el-button size="small" type="danger" @click="deleteRemoteServer(scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+
+    <!-- 添加/编辑远程服务对话框 -->
+    <el-dialog v-model="remoteDialogVisible" :title="editingRemoteServer ? '编辑远程服务' : '添加远程服务'"
+               width="500px">
+      <el-form :model="remoteForm" label-width="100px">
+        <el-form-item label="服务名称" required>
+          <el-input v-model="remoteForm.name" placeholder="请输入服务名称"></el-input>
         </el-form-item>
-        
-        <el-form-item label="名称">
-          <el-input v-model="serverForm.name" placeholder="例如：开发环境" />
+        <el-form-item label="服务地址" required>
+          <el-input v-model="remoteForm.base_url"
+                    placeholder="请输入服务地址，例如：http://192.168.1.100:11434"></el-input>
         </el-form-item>
-        
-        <el-form-item label="服务地址">
-          <el-input v-model="serverForm.base_url" placeholder="http://example.com:11434" />
-        </el-form-item>
-        
-        <el-form-item label="API密钥" v-if="serverForm.type === 'remote'">
-          <el-input v-model="serverForm.api_key" type="password" placeholder="可选" show-password />
-        </el-form-item>
-        
-        <el-form-item v-if="serverForm.type === 'local'">
-          <el-checkbox v-model="serverForm.autoStart">自动启动</el-checkbox>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            @click="saveServer" 
-            :loading="isTestingConnection"
-          >
-            {{ editingServer ? '更新' : '添加' }}
-          </el-button>
-          <el-button @click="cancelEdit">取消</el-button>
+        <el-form-item label="API Key">
+          <el-input v-model="remoteForm.api_key" placeholder="请输入 API Key（可选）" type="password"></el-input>
         </el-form-item>
       </el-form>
-    </el-drawer>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="remoteDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveRemoteServer">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
+import {onMounted, reactive, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {
   AddRemoteServer,
   DeleteRemoteServer,
   GetOllamaServerConfig,
   GetRemoteServers,
-  GetLocalServerTestStatus,
-  SaveLocalServerTestStatus,
   SaveOllamaServerConfig,
-  SetActiveServer,
   TestOllamaServer,
   UpdateRemoteServer
 } from '../../wailsjs/go/main/App'
 
-// 抽屉可见性
-const drawerVisible = ref(false)
+interface RemoteServer {
+  id: string
+  name: string
+  base_url: string
+  api_key: string
+  is_active: boolean
+  test_status: string
+}
 
 // 远程服务器列表
-const remoteServers = ref<any[]>([])
+const remoteServers = ref<RemoteServer[]>([])
 
-// 服务表单
-const serverForm = reactive({
+// 活动标签页
+const activeTab = ref('local')
+
+// 本地配置
+const localConfig = reactive({
+  baseUrl: 'http://localhost:11434'
+})
+
+// 远程服务器表单
+const remoteForm = reactive({
   id: '',
   name: '',
   base_url: '',
-  api_key: '',
-  is_active: false,
-  test_status: 'unknown',
-  type: 'local',
-  autoStart: true
+  api_key: ''
 })
 
-// 是否正在编辑服务器
-const editingServer = ref(false)
+// 是否正在编辑远程服务器
+const editingRemoteServer = ref(false)
 
-// 是否正在测试连接
-const isTestingConnection = ref(false)
+// 远程服务器对话框可见性
+const remoteDialogVisible = ref(false)
 
-// 本地服务状态
-const localServerState = reactive({
-  base_url: 'http://localhost:11434',
-  test_status: 'unknown' as 'unknown' | 'success' | 'failed',
-  is_running: false
-})
+// 是否正在测试本地连接
+const testingLocal = ref(false)
 
-// 计算属性：所有服务（包括本地服务）
-const allServers = computed(() => {
-  // 本地服务始终显示在列表中
-  const localServer = {
-    id: 'local',
-    name: '本地服务',
-    base_url: localServerState.base_url,
-    api_key: '',
-    is_active: false, // This will be updated later
-    test_status: localServerState.test_status,
-    type: 'local',
-    is_running: localServerState.is_running
-  }
-  
-  // 合并本地服务和远程服务
-  return [localServer, ...remoteServers.value]
-})
-
-// 打开添加抽屉
-const openAddDrawer = () => {
-  // 重置表单
-  serverForm.id = ''
-  serverForm.name = ''
-  serverForm.base_url = ''
-  serverForm.api_key = ''
-  serverForm.is_active = false
-  serverForm.test_status = 'unknown'
-  serverForm.type = 'local'
-  serverForm.autoStart = true
-  editingServer.value = false
-  drawerVisible.value = true
-}
-
-// 编辑服务器
-const editServer = (server: any) => {
-  serverForm.id = server.id
-  serverForm.name = server.name
-  serverForm.base_url = server.base_url
-  serverForm.api_key = server.api_key
-  serverForm.is_active = server.is_active
-  serverForm.test_status = server.test_status || 'unknown'
-  serverForm.type = server.type
-  serverForm.autoStart = server.autoStart || true
-  editingServer.value = true
-  drawerVisible.value = true
-}
-
-// 切换本地服务状态
-const toggleLocalService = (server: any) => {
-  ElMessage.info(server.is_running ? '正在停止本地Ollama服务...' : '正在启动本地Ollama服务...')
-  // 模拟状态切换
-  localServerState.is_running = !localServerState.is_running
-  setTimeout(() => {
-    ElMessage.success(localServerState.is_running ? '本地Ollama服务已启动' : '本地Ollama服务已停止')
-  }, 1000)
-}
-
-// 处理下拉菜单命令
-const handleCommand = (command: {action: string, server: any}) => {
-  switch (command.action) {
-    case 'setActive':
-      setActiveServer(command.server)
-      break
-    case 'edit':
-      editServer(command.server)
-      break
-    case 'test':
-      testConnection(command.server)
-      break
-    case 'toggle':
-      toggleLocalService(command.server)
-      break
-    case 'remove':
-      removeRemoteServer(command.server)
-      break
-  }
-}
-
-// 测试连接
-const testConnection = async (server: any, isAutoTest = false) => {
+// 加载本地配置
+const loadLocalConfig = async () => {
   try {
-    await TestOllamaServer(server.base_url)
-    
-    if (!isAutoTest) {
-      ElMessage.success(`${server.name} 连接测试成功`)
-    }
-    
-    if (server.type === 'local') {
-      localServerState.test_status = 'success'
-      await SaveLocalServerTestStatus('success')
-    } else {
-      const index = remoteServers.value.findIndex((s: any) => s.id === server.id)
-      if (index !== -1) {
-        remoteServers.value[index].test_status = 'success'
-        await UpdateRemoteServer(remoteServers.value[index])
-      }
-    }
-    
-    return 'success'
+    const config = await GetOllamaServerConfig()
+    localConfig.baseUrl = config
   } catch (error) {
-    if (!isAutoTest) {
-      ElMessage.error(`${server.name} 连接测试失败: ${(error as Error).message}`)
-    }
-    
-    if (server.type === 'local') {
-      localServerState.test_status = 'failed'
-      await SaveLocalServerTestStatus('failed')
-    } else {
-      const index = remoteServers.value.findIndex((s: any) => s.id === server.id)
-      if (index !== -1) {
-        remoteServers.value[index].test_status = 'failed'
-        await UpdateRemoteServer(remoteServers.value[index])
-      }
-    }
-    
-    return 'failed'
+    console.error('加载本地配置失败:', error)
   }
 }
 
-// 保存服务器
-const saveServer = async () => {
-  if (!serverForm.name || !serverForm.base_url) {
-    ElMessage.warning('请填写名称和服务地址')
+// 保存本地配置
+const saveLocalConfig = async () => {
+  try {
+    await SaveOllamaServerConfig(localConfig.baseUrl)
+    ElMessage.success('本地配置已保存')
+  } catch (error) {
+    ElMessage.error('保存失败: ' + (error as Error).message)
+  }
+}
+
+// 测试本地连接
+const testLocalConnection = async () => {
+  testingLocal.value = true
+  try {
+    await TestOllamaServer(localConfig.baseUrl)
+    ElMessage.success('本地服务连接测试成功')
+  } catch (error) {
+    ElMessage.error('本地服务连接测试失败: ' + (error as Error).message)
+  } finally {
+    testingLocal.value = false
+  }
+}
+
+// 打开添加远程服务器对话框
+const openAddRemoteDialog = () => {
+  editingRemoteServer.value = false
+  remoteForm.id = ''
+  remoteForm.name = ''
+  remoteForm.base_url = ''
+  remoteForm.api_key = ''
+  remoteDialogVisible.value = true
+}
+
+// 编辑远程服务器
+const editRemoteServer = (server: RemoteServer) => {
+  editingRemoteServer.value = true
+  remoteForm.id = server.id
+  remoteForm.name = server.name
+  remoteForm.base_url = server.base_url
+  remoteForm.api_key = server.api_key
+  remoteDialogVisible.value = true
+}
+
+// 保存远程服务器
+const saveRemoteServer = async () => {
+  if (!remoteForm.name || !remoteForm.base_url) {
+    ElMessage.warning('请填写服务名称和服务地址')
     return
   }
 
   try {
-    // 在添加或更新服务器之前，先测试连接
-    isTestingConnection.value = true
-    await TestOllamaServer(serverForm.base_url)
-    isTestingConnection.value = false
-    
-    if (serverForm.type === 'local') {
-      // 保存本地配置
-      await SaveOllamaServerConfig(serverForm.base_url)
-      ElMessage.success('本地配置已保存')
-      // 更新本地服务测试状态
-      localServerState.test_status = 'success'
+    if (editingRemoteServer.value) {
+      // 更新现有服务器
+      await UpdateRemoteServer({
+        id: remoteForm.id,
+        name: remoteForm.name,
+        base_url: remoteForm.base_url,
+        api_key: remoteForm.api_key,
+        is_active: false,
+        test_status: 'unknown'
+      })
+      ElMessage.success('服务器已更新')
     } else {
-      // 处理远程服务器
-      if (editingServer.value) {
-        // 更新现有服务器
-        await UpdateRemoteServer({
-          id: serverForm.id,
-          name: serverForm.name,
-          base_url: serverForm.base_url,
-          api_key: serverForm.api_key,
-          is_active: serverForm.is_active,
-          test_status: 'success',
-          type: 'remote'
-        })
-        ElMessage.success('服务器已更新')
-      } else {
-        // 添加新服务器
-        await AddRemoteServer({
-          id: Date.now().toString(),
-          name: serverForm.name,
-          base_url: serverForm.base_url,
-          api_key: serverForm.api_key,
-          is_active: false,
-          test_status: 'success',
-          type: 'remote'
-        })
-        ElMessage.success('服务器已添加')
-      }
+      // 添加新服务器
+      await AddRemoteServer({
+        id: Date.now().toString(),
+        name: remoteForm.name,
+        base_url: remoteForm.base_url,
+        api_key: remoteForm.api_key,
+        is_active: false,
+        test_status: 'unknown'
+      })
+      ElMessage.success('服务器已添加')
     }
-    
-    // 关闭抽屉
-    drawerVisible.value = false
-    // 刷新服务器列表
-    loadData()
+
+    remoteDialogVisible.value = false
+    loadRemoteServers()
   } catch (error) {
-    isTestingConnection.value = false
-    ElMessage.error((editingServer.value ? '更新' : '添加') + '失败: ' + (error as Error).message)
-    
-    // 更新测试状态为失败
-    if (serverForm.type === 'local') {
-      localServerState.test_status = 'failed'
-    }
+    ElMessage.error((editingRemoteServer.value ? '更新' : '添加') + '失败: ' + (error as Error).message)
   }
 }
 
 // 删除远程服务器
-const removeRemoteServer = (server: any) => {
+const deleteRemoteServer = (server: RemoteServer) => {
   ElMessageBox.confirm(`确定要删除 ${server.name} 吗？`, '确认删除', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -360,70 +224,51 @@ const removeRemoteServer = (server: any) => {
     try {
       await DeleteRemoteServer(server.id)
       ElMessage.success('服务器已删除')
-      loadData()
+      loadRemoteServers()
     } catch (error) {
       ElMessage.error('删除失败: ' + (error as Error).message)
     }
   })
 }
 
-// 设置活动服务器
-const setActiveServer = async (server: any) => {
+// 测试远程连接
+const testRemoteConnection = async (server: RemoteServer) => {
   try {
-    // 如果是本地服务，直接保存本地配置
-    if (server.type === 'local') {
-      await SetActiveServer('local')
-      ElMessage.success('已设置本地服务为默认服务器')
-      loadData()
-      return
+    await TestOllamaServer(server.base_url)
+    ElMessage.success(`${server.name} 连接测试成功`)
+
+    // 更新测试状态
+    const index = remoteServers.value.findIndex(s => s.id === server.id)
+    if (index !== -1) {
+      remoteServers.value[index].test_status = 'success'
+      await UpdateRemoteServer(remoteServers.value[index])
     }
-    
-    await SetActiveServer(server.id)
-    ElMessage.success(`已设置 ${server.name} 为默认服务器`)
-    loadData()
   } catch (error) {
-    ElMessage.error('设置失败: ' + (error as Error).message)
+    ElMessage.error(`${server.name} 连接测试失败: ${(error as Error).message}`)
+
+    // 更新测试状态
+    const index = remoteServers.value.findIndex(s => s.id === server.id)
+    if (index !== -1) {
+      remoteServers.value[index].test_status = 'failed'
+      await UpdateRemoteServer(remoteServers.value[index])
+    }
   }
 }
 
-// 取消编辑
-const cancelEdit = () => {
-  drawerVisible.value = false
-}
-
-// 加载所有数据
-const loadData = async () => {
+// 加载远程服务器
+const loadRemoteServers = async () => {
   try {
-    // 加载本地服务器配置和状态
-    const localConf = await GetOllamaServerConfig()
-    const localStatus = await GetLocalServerTestStatus()
-    const localServerInList = allServers.value.find(s => s.id === 'local')
-    if (localServerInList) {
-      localServerInList.base_url = localConf
-      localServerState.test_status = localStatus as 'unknown' | 'success' | 'failed'
-    }
-
-    // 加载远程服务器
     const servers = await GetRemoteServers()
     remoteServers.value = servers
-
-    // 获取活动服务器并更新is_active状态
-    const activeServer = await GetActiveServer()
-    allServers.value.forEach(s => {
-        s.is_active = activeServer ? s.id === activeServer.id : s.id === 'local' && servers.length === 0
-    })
-    
-    // 自动测试所有服务的连接
-    setTimeout(async () => {
-      for (const server of allServers.value) {
-        if (server.test_status === 'unknown') {
-          await testConnection(server, true)
-        }
-      }
-    }, 100)
   } catch (error) {
-    console.error('加载服务器列表失败:', error)
+    console.error('加载远程服务器失败:', error)
   }
+}
+
+// 初始化数据
+const loadData = async () => {
+  await loadLocalConfig()
+  await loadRemoteServers()
 }
 
 onMounted(() => {
@@ -434,6 +279,12 @@ onMounted(() => {
 <style scoped>
 .ollama-settings {
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.settings-card {
+  height: 100%;
 }
 
 .card-header {
@@ -442,37 +293,8 @@ onMounted(() => {
   align-items: center;
 }
 
-.server-config-content {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-}
-
-.local-config-section,
-.server-list-section {
-  padding: 20px 0;
-}
-
-.local-config-section h3,
-.server-list-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
-  border-left: 4px solid #409eff;
-  padding-left: 10px;
-}
-
-.local-config-section {
-  border-bottom: 1px solid #ebeef5;
-}
-
-/* 表格操作按钮样式优化 */
-.el-table .el-button {
-  margin-right: 5px;
-  margin-bottom: 5px;
-}
-
-.el-table .el-button:last-child {
-  margin-right: 0;
+.settings-card :deep(.el-card__body) {
+  height: calc(100% - 60px);
+  overflow-y: auto;
 }
 </style>

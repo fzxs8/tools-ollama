@@ -2,7 +2,7 @@
   <div class="model-manager">
     <el-row :gutter="20">
       <el-col :span="24">
-        <el-card>
+        <el-card class="model-card">
           <template #header>
             <div class="card-header">
               <div>
@@ -612,11 +612,22 @@ onUnmounted(() => {
 <style scoped>
 .model-manager {
   padding: 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.model-card {
+  height: 100%;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.model-card :deep(.el-card__body) {
+  height: calc(100% - 60px);
+  overflow-y: auto;
 }
 </style>
