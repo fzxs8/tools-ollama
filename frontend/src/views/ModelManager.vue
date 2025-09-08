@@ -25,7 +25,7 @@
               </div>
             </div>
           </template>
-          <el-table :data="localModels" style="width: 100%" v-loading="loading">
+          <el-table :data="localModels" style="width: 100%" v-loading="loading" empty-text="暂无数据">
             <el-table-column type="index" label="#" width="60"/>
             <el-table-column prop="name" label="模型名称"/>
             <el-table-column prop="size" label="大小">
@@ -84,7 +84,7 @@
         direction="rtl"
         size="40%"
     >
-      <el-table :data="downloadQueue" style="width: 100%">
+      <el-table :data="downloadQueue" style="width: 100%" empty-text="暂无数据">
         <el-table-column prop="model" label="模型名称"/>
         <el-table-column prop="status" label="状态"/>
         <el-table-column label="进度">
