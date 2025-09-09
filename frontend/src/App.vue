@@ -4,7 +4,7 @@
       <el-header style="background-color: #409eff; color: white; padding: 0; flex-shrink: 0;">
         <div class="header-content">
           <div class="logo">
-            <img src="./assets/images/logo-universal.png" alt="Logo" class="logo-img" />
+            <img src="./assets/images/logo.png" alt="Logo" class="logo-img" />
             <span class="logo-text">Ollama 客户端</span>
           </div>
           <div class="header-title">Ollama 本地模型管理工具</div>
@@ -29,6 +29,10 @@
             <el-menu-item index="/chat">
               <el-icon><ChatDotRound /></el-icon>
               <span>聊天会话</span>
+            </el-menu-item>
+            <el-menu-item index="/prompt">
+              <el-icon><MagicStick /></el-icon>
+              <span>提示词工程</span>
             </el-menu-item>
             <el-menu-item index="/system">
               <el-icon><Monitor /></el-icon>
@@ -56,6 +60,7 @@ import {
   Collection,
   Shop,
   ChatDotRound,
+  MagicStick,
   Monitor,
   Setting
 } from '@element-plus/icons-vue'

@@ -1,11 +1,12 @@
-import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router'
-import ModelManager from '../views/ModelManager.vue'
-import ModelMarket from '../views/ModelMarket.vue'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import ChatManager from '../views/ChatManager.vue'
 import SystemMonitor from '../views/SystemMonitor.vue'
-import OllamaSettings from '../views/OllamaSettings.vue'
-import ChatManager from "../views/ChatManager.vue";
+import PromptPilot from '../views/PromptPilot/PromptPilot.vue'
+import ModelManager from "../views/ModelManager.vue";
+import ModelMarket from "../views/ModelMarket.vue";
+import OllamaSettings from "../views/OllamaSettings.vue";
 
-const routes: Array<RouteRecordRaw> = [
+const routes = [
   {
     path: '/',
     redirect: '/models'
@@ -22,8 +23,11 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/chat',
-    name: 'ChatManager',
     component: ChatManager
+  },
+  {
+    path: '/prompt',
+    component: PromptPilot
   },
   {
     path: '/system',
