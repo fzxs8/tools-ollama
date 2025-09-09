@@ -46,15 +46,18 @@ type OllamaServerConfig struct {
 
 // App struct
 type App struct {
-	ctx                 context.Context
-	configMgr           *OllamaConfigManager
-	chatManager         *ChatManager
-	conversationManager *ConversationManager // 添加ConversationManager
-	modelManager        *ModelManager
-	modelMarket         *ModelMarket
-	httpClient          *core.HttpCli
-	store               core.IStore // 明确使用 IStore 接口
-	aiProvider          interface {
+	ctx          context.Context
+	configMgr    *OllamaConfigManager
+	chatManager  *ChatManager
+	modelManager *ModelManager
+	modelMarket  *ModelMarket
+	httpClient   *core.HttpCli
+	store        interface {
+		Set(key, value string, persistent ...bool) error
+		Get(key string, persistent ...bool) (string, error)
+		Delete(key string, persistent ...bool) error
+	}
+	aiProvider interface {
 		Chat(model string, messages []core.Message) (string, error)
 		ChatStream(model string, messages []core.Message, callback func(string)) error
 	}
@@ -63,13 +66,10 @@ type App struct {
 // NewApp 创建一个新的 App 应用
 func NewApp() *App {
 	// 初始化存储
-	store, err := duolasdk.NewLocalStore(core.StoreOption{
-		FileName: "ollama-client.db",
-	})
-	if err != nil {
-		log.Fatalf("无法初始化存储: %v", err)
-	}
-
+	store := duolasdk.NewStore(
+		core.StoreOption{
+			FileName: "ollama-client.db",
+		})
 	// 创建应用实例
 	app := &App{
 		store: store,
@@ -78,9 +78,8 @@ func NewApp() *App {
 	// 初始化配置管理器
 	app.configMgr = NewOllamaConfigManager(store)
 
-	// 初始化聊天管理器和对话管理器
+	// 初始化聊天管理器
 	app.chatManager = NewChatManager(context.Background(), store)
-	app.conversationManager = NewConversationManager(store) // 初始化ConversationManager
 
 	// 获取活动服务器配置
 	activeServer, err := app.configMgr.GetActiveServer()
@@ -127,24 +126,6 @@ func (a *App) startup(ctx context.Context) {
 	a.modelManager.SetContext(ctx)
 	a.modelMarket.SetContext(ctx)
 	a.chatManager.SetContext(ctx)
-}
-
-// Conversation Methods
-
-func (a *App) ListConversations() ([]*Conversation, error) {
-	return a.conversationManager.ListConversations()
-}
-
-func (a *App) SaveConversation(conv *Conversation) error {
-	return a.conversationManager.SaveConversation(conv)
-}
-
-func (a *App) GetConversation(id string) (*Conversation, error) {
-	return a.conversationManager.GetConversation(id)
-}
-
-func (a *App) DeleteConversation(id string) error {
-	return a.conversationManager.DeleteConversation(id)
 }
 
 // KVSet 设置键值对

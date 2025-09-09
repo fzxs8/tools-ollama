@@ -259,9 +259,13 @@ const testRemoteConnection = async (server: RemoteServer) => {
 const loadRemoteServers = async () => {
   try {
     const servers = await GetRemoteServers()
-    remoteServers.value = servers
+    // FIX: Ensure the data from backend is correctly assigned.
+    // The backend returns an array of objects, which should be directly assigned.
+    remoteServers.value = servers || []
   } catch (error) {
     console.error('加载远程服务器失败:', error)
+    remoteServers.value = [] // Clear the list on error
+    ElMessage.error('加载远程服务器列表失败，请检查后端服务。')
   }
 }
 
