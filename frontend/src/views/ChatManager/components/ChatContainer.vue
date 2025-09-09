@@ -4,6 +4,8 @@
       <div class="card-header">
         <span>聊天界面{{ activeSystemPrompt ? ` - ${activeSystemPrompt.title}` : '' }}</span>
         <div>
+          <el-button @click="newConversation" style="margin-right: 10px;">新建对话</el-button>
+          <el-button @click="showConversationHistory = true" style="margin-right: 10px;">历史对话</el-button>
           <el-button @click="clearChat" style="margin-right: 10px;">清空聊天</el-button>
           <el-button @click="openSystemPromptDrawer">系统提示词</el-button>
         </div>
@@ -98,11 +100,22 @@
 
     <slot name="input"></slot>
   </el-card>
+  
+  <ConversationHistory 
+    v-model:visible="showConversationHistory"
+    :conversations="conversations"
+    :active-conversation-id="activeConversationId"
+    @load-conversation="handleLoadConversation"
+    @edit-title="handleEditConversationTitle"
+    @delete-conversation="handleDeleteConversation"
+  />
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue'
+import { ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import MarkdownIt from 'markdown-it'
+import ConversationHistory from './ConversationHistory.vue'
 
 // 初始化Markdown解析器
 const md = new MarkdownIt({
@@ -124,10 +137,22 @@ interface SystemPrompt {
   createdAt: number
 }
 
+interface Conversation {
+  id: string
+  title: string
+  messages: Message[]
+  modelName: string
+  systemPrompt: string
+  modelParams: string
+  timestamp: number
+}
+
 const props = defineProps<{
   messages: Message[]
   isThinking: boolean
   activeSystemPrompt: SystemPrompt | null
+  conversations: Conversation[]
+  activeConversationId: string
 }>()
 
 const emit = defineEmits<{
@@ -135,9 +160,14 @@ const emit = defineEmits<{
   (e: 'open-system-prompt'): void
   (e: 'copy-message', content: string): void
   (e: 'regenerate-message', index: number): void
+  (e: 'new-conversation'): void
+  (e: 'load-conversation', conversation: Conversation): void
+  (e: 'edit-conversation-title', conversation: Conversation): void
+  (e: 'delete-conversation', id: string): void
 }>()
 
 const chatHistoryRef = ref<HTMLElement | null>(null)
+const showConversationHistory = ref(false)
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
@@ -175,9 +205,30 @@ const clearChat = () => {
   emit('clear-chat')
 }
 
+// 新建对话
+const newConversation = () => {
+  emit('new-conversation')
+}
+
 // 重新生成消息
 const regenerateMessage = (index: number) => {
   emit('regenerate-message', index)
+}
+
+// 处理加载对话
+const handleLoadConversation = (conversation: Conversation) => {
+  showConversationHistory.value = false
+  emit('load-conversation', conversation)
+}
+
+// 处理编辑对话标题
+const handleEditConversationTitle = (conversation: Conversation) => {
+  emit('edit-conversation-title', conversation)
+}
+
+// 处理删除对话
+const handleDeleteConversation = (id: string) => {
+  emit('delete-conversation', id)
 }
 </script>
 

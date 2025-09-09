@@ -6,7 +6,7 @@
       </div>
     </template>
     <el-select 
-      :value="selectedServer" 
+      :model-value="selectedServer" 
       placeholder="选择服务" 
       style="width: 100%; margin-bottom: 10px;"
       @update:modelValue="updateSelectedServer"
@@ -19,7 +19,7 @@
       />
     </el-select>
     <el-select 
-      :value="selectedModel" 
+      :model-value="selectedModel" 
       placeholder="选择模型" 
       style="width: 100%"
       @update:modelValue="updateSelectedModel">

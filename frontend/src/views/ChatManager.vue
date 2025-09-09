@@ -20,10 +20,16 @@
           :messages="messages"
           :is-thinking="isThinking"
           :active-system-prompt="activeSystemPrompt"
+          :conversations="conversations"
+          :active-conversation-id="activeConversationId"
           @clear-chat="clearChat"
           @open-system-prompt="openSystemPromptDrawer"
           @copy-message="copyMessage"
           @regenerate-message="regenerateMessage"
+          @new-conversation="newConversation"
+          @load-conversation="loadConversation"
+          @edit-conversation-title="editConversationTitle"
+          @delete-conversation="deleteConversation"
         >
           <template #input>
             <ChatInput
@@ -52,28 +58,28 @@
 <script setup lang="ts">
 // 初始化Markdown解析器
 import {onMounted, ref} from 'vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import {
   ChatMessage,
+  DeleteConversation,
   GetActiveServer,
+  GetConversation,
   GetOllamaServerConfig,
   GetRemoteServers,
   KVDelete,
   KVGet,
   KVList,
   KVSet,
-  ListModelsByServer
+  ListConversations,
+  ListModelsByServer,
+  SaveConversation
 } from '../../wailsjs/go/main/App'
 import {EventsOff, EventsOn} from '../../wailsjs/runtime'
 import MarkdownIt from 'markdown-it'
 import SystemPromptDrawer from "./ChatManager/components/SystemPromptDrawer.vue";
 import ChatInput from "./ChatManager/components/ChatInput.vue";
-import ChatContainer from "./ChatManager/components/ChatContainer.vue";
 import ModelSelector from "./ChatManager/components/ModelSelector.vue";
-// import ModelSelector from './components/ModelSelector.vue'
-// import ChatContainer from './components/ChatContainer.vue'
-// import ChatInput from './components/ChatInput.vue'
-// import SystemPromptDrawer from './components/SystemPromptDrawer.vue'
+import ChatContainer from "./ChatManager/components/ChatContainer.vue";
 
 const md = new MarkdownIt({
   html: true,
@@ -122,6 +128,16 @@ interface ModelParams {
   outputMode: 'stream' | 'blocking' // 添加输出方式选项
 }
 
+interface Conversation {
+  id: string
+  title: string
+  messages: Message[]
+  modelName: string
+  systemPrompt: string
+  modelParams: string
+  timestamp: number
+}
+
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
 const availableServers = ref<Server[]>([])
@@ -134,6 +150,9 @@ const isThinking = ref(false)
 const systemPromptDrawerVisible = ref(false)
 const activeSystemPrompt = ref<SystemPrompt | null>(null)
 const systemPromptList = ref<SystemPrompt[]>([])
+const conversations = ref<Conversation[]>([])
+const activeConversationId = ref('')
+const currentConversation = ref<Conversation | null>(null)
 
 // 模型参数
 const modelParams = ref<ModelParams>({
@@ -460,6 +479,9 @@ const sendMessage = async () => {
         throw error
       }
     }
+    
+    // 保存对话
+    await saveCurrentConversation()
   } catch (error: any) {
     console.error('发送消息时出现错误:', error)
     let errorMessage = '抱歉，出现错误'
@@ -488,6 +510,122 @@ const clearChat = () => {
     content: '你好！我是Ollama助手，请选择一个模型开始对话。',
     timestamp: Date.now()
   }]
+}
+
+// 新建对话
+const newConversation = () => {
+  // 清空消息列表
+  messages.value = [{
+    role: 'assistant',
+    content: '你好！我是Ollama助手，请选择一个模型开始对话。',
+    timestamp: Date.now()
+  }]
+  
+  // 清空当前对话ID和对话对象
+  activeConversationId.value = ''
+  currentConversation.value = null
+}
+
+// 加载对话历史列表
+const loadConversations = async () => {
+  try {
+    conversations.value = await ListConversations()
+  } catch (error) {
+    ElMessage.error('加载对话列表失败: ' + (error as Error).message)
+  }
+}
+
+// 加载对话
+const loadConversation = async (conv: Conversation) => {
+  try {
+    const conversation = await GetConversation(conv.id)
+    // 加载对话到界面
+    messages.value = conversation.messages
+    selectedModel.value = conversation.modelName
+    activeConversationId.value = conversation.id
+    currentConversation.value = conversation
+  } catch (error) {
+    ElMessage.error('加载对话失败: ' + (error as Error).message)
+  }
+}
+
+// 编辑对话标题
+const editConversationTitle = async (conv: Conversation) => {
+  try {
+    const newTitle = await ElMessageBox.prompt('请输入新的对话标题', '编辑标题', {
+      inputValue: conv.title,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    })
+    
+    if (newTitle.value) {
+      const updatedConv = { ...conv, title: newTitle.value }
+      await SaveConversation(updatedConv)
+      ElMessage.success('标题更新成功')
+      loadConversations() // 重新加载列表
+    }
+  } catch (error) {
+    // 用户取消操作
+  }
+}
+
+// 删除对话
+const deleteConversation = async (id: string) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个对话吗？', '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    await DeleteConversation(id)
+    ElMessage.success('对话删除成功')
+    loadConversations() // 重新加载列表
+    
+    // 如果删除的是当前激活的对话，需要清除激活状态
+    if (activeConversationId.value === id) {
+      newConversation() // 创建新对话
+    }
+  } catch (error) {
+    if (!(error as Error).message?.includes('cancel')) {
+      ElMessage.error('删除对话失败: ' + (error as Error).message)
+    }
+  }
+}
+
+// 保存当前对话
+const saveCurrentConversation = async () => {
+  try {
+    // 构建对话对象
+    const conversation: any = {
+      messages: messages.value,
+      modelName: selectedModel.value,
+      systemPrompt: activeSystemPrompt.value ? JSON.stringify(activeSystemPrompt.value) : '',
+      modelParams: JSON.stringify(modelParams.value),
+      timestamp: Date.now()
+    }
+    
+    // 如果是新对话，生成标题
+    if (!activeConversationId.value) {
+      // 使用第一条用户消息作为标题
+      const firstUserMessage = messages.value.find(m => m.role === 'user')
+      conversation.title = firstUserMessage ? firstUserMessage.content.substring(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '') : '新对话'
+    } else {
+      // 如果是已有对话，获取原对话信息
+      conversation.id = activeConversationId.value
+      conversation.title = currentConversation.value?.title || '新对话'
+    }
+    
+    // 保存对话
+    const savedConversation = await SaveConversation(conversation)
+    activeConversationId.value = savedConversation.id
+    currentConversation.value = savedConversation
+    
+    // 重新加载对话列表
+    loadConversations()
+  } catch (error) {
+    console.error('保存对话失败:', error)
+  }
 }
 
 // 重新生成消息
@@ -534,6 +672,9 @@ const regenerateMessage = async (index: number) => {
       if (messages.value && messages.value[assistantMessageIndex]) {
         messages.value[assistantMessageIndex].content = response
       }
+      
+      // 保存对话
+      await saveCurrentConversation()
     } catch (error) {
       messages.value.push({
         role: 'assistant',
@@ -604,6 +745,7 @@ onMounted(async () => {
   await loadAvailableServers()
   await getModels()
   await loadSystemPrompts()
+  await loadConversations()
   
   // 监听流式传输事件
   if (window && (window as any).runtime) {
@@ -625,6 +767,6 @@ onMounted(async () => {
   background-color: #f0f4f9;
   padding: 0;
   height: 100%;
-  box-sizing: border-box;
+  box-sizing: border box;
 }
 </style>

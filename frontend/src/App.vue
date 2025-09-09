@@ -28,7 +28,7 @@
             </el-menu-item>
             <el-menu-item index="/chat">
               <el-icon><ChatDotRound /></el-icon>
-              <span>聊天测试</span>
+              <span>聊天会话</span>
             </el-menu-item>
             <el-menu-item index="/system">
               <el-icon><Monitor /></el-icon>
