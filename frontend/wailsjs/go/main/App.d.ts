@@ -4,7 +4,7 @@ import {main} from '../models';
 
 export function AddRemoteServer(arg1:main.OllamaServerConfig):Promise<void>;
 
-export function ChatMessage(arg1:string,arg2:Array<main.Message>,arg3:any):Promise<string>;
+export function ChatMessage(arg1:string,arg2:Array<main.Message>,arg3:boolean):Promise<string>;
 
 export function DeleteModel(arg1:string):Promise<void>;
 

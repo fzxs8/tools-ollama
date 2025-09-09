@@ -46,18 +46,15 @@ type OllamaServerConfig struct {
 
 // App struct
 type App struct {
-	ctx          context.Context
-	configMgr    *OllamaConfigManager
-	chatManager  *ChatManager
-	modelManager *ModelManager
-	modelMarket  *ModelMarket
-	httpClient   *core.HttpCli
-	store        interface {
-		Set(key, value string, persistent ...bool) error
-		Get(key string, persistent ...bool) (string, error)
-		Delete(key string, persistent ...bool) error
-	}
-	aiProvider interface {
+	ctx                 context.Context
+	configMgr           *OllamaConfigManager
+	chatManager         *ChatManager
+	conversationManager *ConversationManager // 添加ConversationManager
+	modelManager        *ModelManager
+	modelMarket         *ModelMarket
+	httpClient          *core.HttpCli
+	store               core.IStore // 明确使用 IStore 接口
+	aiProvider          interface {
 		Chat(model string, messages []core.Message) (string, error)
 		ChatStream(model string, messages []core.Message, callback func(string)) error
 	}
@@ -66,10 +63,13 @@ type App struct {
 // NewApp 创建一个新的 App 应用
 func NewApp() *App {
 	// 初始化存储
-	store := duolasdk.NewStore(
-		core.StoreOption{
-			FileName: "ollama-client.db",
-		})
+	store, err := duolasdk.NewLocalStore(core.StoreOption{
+		FileName: "ollama-client.db",
+	})
+	if err != nil {
+		log.Fatalf("无法初始化存储: %v", err)
+	}
+
 	// 创建应用实例
 	app := &App{
 		store: store,
@@ -78,8 +78,9 @@ func NewApp() *App {
 	// 初始化配置管理器
 	app.configMgr = NewOllamaConfigManager(store)
 
-	// 初始化聊天管理器
+	// 初始化聊天管理器和对话管理器
 	app.chatManager = NewChatManager(context.Background(), store)
+	app.conversationManager = NewConversationManager(store) // 初始化ConversationManager
 
 	// 获取活动服务器配置
 	activeServer, err := app.configMgr.GetActiveServer()
@@ -126,6 +127,24 @@ func (a *App) startup(ctx context.Context) {
 	a.modelManager.SetContext(ctx)
 	a.modelMarket.SetContext(ctx)
 	a.chatManager.SetContext(ctx)
+}
+
+// Conversation Methods
+
+func (a *App) ListConversations() ([]*Conversation, error) {
+	return a.conversationManager.ListConversations()
+}
+
+func (a *App) SaveConversation(conv *Conversation) error {
+	return a.conversationManager.SaveConversation(conv)
+}
+
+func (a *App) GetConversation(id string) (*Conversation, error) {
+	return a.conversationManager.GetConversation(id)
+}
+
+func (a *App) DeleteConversation(id string) error {
+	return a.conversationManager.DeleteConversation(id)
 }
 
 // KVSet 设置键值对
@@ -294,40 +313,66 @@ func (a *App) TestModel(modelName string, prompt string) (string, error) {
 }
 
 // ChatMessage 发送聊天消息到Ollama API
-func (a *App) ChatMessage(modelName string, messages []Message, callback func(string)) (string, error) {
+func (a *App) ChatMessage(modelName string, messages []Message, stream bool) (string, error) {
+	// 为此方法创建一个临时logger
+	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "ChatMessage"})
+
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("ChatMessage方法中发生恐慌: %v", r)
+			logger.Error("ChatMessage方法中发生恐慌: %v", r)
 		}
 	}()
 
-	log.Printf("ChatMessage调用: 模型=%s, 消息数量=%d, 是否流式=%t", modelName, len(messages), callback != nil)
+	logger.Debug("ChatMessage调用: 模型=%s, 消息数量=%d, 是否流式=%t", modelName, len(messages), stream)
 
-	// 如果提供了回调函数，则使用流式传输
-	if callback != nil {
-		log.Printf("使用流式传输")
-		// 使用聊天管理器发送流式消息
-		err := a.chatManager.ChatStream(modelName, messages, func(content string) {
-			log.Printf("App.ChatMessage流式回调，内容长度=%d", len(content))
-			callback(content)
-		})
-		// 流式传输不返回结果，结果通过回调传递
-		return "", err
+	// 如果是流式传输
+	if stream {
+		logger.Debug("使用流式传输")
+
+		// 使用channel来等待流式传输完成
+		done := make(chan error)
+
+		go func() {
+			defer close(done)
+			// 定义一个回调函数，通过Wails事件将数据发送到前端
+			streamCallback := func(content string) {
+				runtime.EventsEmit(a.ctx, "chat_stream_chunk", content)
+			}
+
+			// 使用聊天管理器发送流式消息
+			err := a.chatManager.ChatStream(modelName, messages, streamCallback)
+			done <- err
+		}()
+
+		// 阻塞并等待goroutine完成
+		err := <-done
+		if err != nil {
+			logger.Error("流式传输错误: %v", err)
+			return "", err
+		}
+
+		logger.Debug("流式传输成功完成")
+		return "", nil
+
 	} else {
-		log.Printf("使用阻塞式传输")
+		logger.Debug("使用阻塞式传输")
 		// 使用阻塞式传输
 		result, err := a.chatManager.Chat(modelName, messages)
 		if err != nil {
-			log.Printf("阻塞式传输错误: %v", err)
+			logger.Error("阻塞式传输错误: %v", err)
 			return "", err
 		}
-		log.Printf("阻塞式传输成功，结果长度=%d", len(result))
-		log.Printf("阻塞式传输返回结果前100个字符: %s", func() string {
-			if len(result) > 100 {
-				return result[:100] + "..."
-			}
-			return result
-		}())
+		logger.Debug("阻塞式传输成功，结果长度=%d", len(result))
+
+		// 安全获取前100个字符的预览
+		var preview string
+		if len(result) > 100 {
+			preview = string([]rune(result)[:100]) + "..."
+		} else {
+			preview = result
+		}
+		logger.Debug("阻塞式传输返回结果前100个字符: %s", preview)
+
 		return result, nil
 	}
 }

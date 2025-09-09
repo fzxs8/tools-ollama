@@ -272,6 +272,7 @@ import {
   KVSet,
   ListModelsByServer
 } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import MarkdownIt from 'markdown-it'
 
 // 初始化Markdown解析器
@@ -298,7 +299,7 @@ interface Server {
 }
 
 interface Message {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system'
   content: string
   timestamp?: number
 }
@@ -655,22 +656,22 @@ const sendMessage = async () => {
     scrollToBottom()
 
     // 构建包含系统提示词的消息
-    let messagesWithSystemPrompt = [
-      { role: "user", content: message }
+    let messagesWithSystemPrompt: Message[] = [
+      { role: "user", content: message, timestamp: Date.now() }
     ]
 
     // 如果有激活的系统提示词，添加到消息历史最前面
     if (activeSystemPrompt.value) {
       messagesWithSystemPrompt.unshift({
         role: "system",
-        content: activeSystemPrompt.value.prompt
+        content: activeSystemPrompt.value.prompt,
+        timestamp: Date.now()
       })
     }
 
     // 根据输出方式选择不同的处理方式
     if (modelParams.value.outputMode === 'stream') {
       // 流式输出
-      // 添加一个空的助手消息用于流式更新
       const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
@@ -678,30 +679,31 @@ const sendMessage = async () => {
         timestamp: Date.now()
       })
 
-      try {
-        // 调用后端API进行流式传输
-        await ChatMessage(selectedModel.value, messagesWithSystemPrompt, (chunk: string) => {
-          // 流式更新助手消息
-          try {
-            console.log('流式输出接收到数据块，长度:', chunk.length)
-            console.log('流式输出接收到数据块内容:', chunk)
-            // 确保消息仍然存在并且可以安全更新
-            if (messages.value && messages.value[assistantMessageIndex]) {
-              messages.value[assistantMessageIndex].content += chunk
-              // 使用setTimeout确保DOM更新不会阻塞
-              setTimeout(() => scrollToBottom(), 0)
-            }
-          } catch (e) {
-            console.error('更新消息时出错:', e)
+      // 定义事件监听器
+      const streamListener = (chunk: string) => {
+        try {
+          if (messages.value && messages.value[assistantMessageIndex]) {
+            messages.value[assistantMessageIndex].content += chunk
+            setTimeout(() => scrollToBottom(), 0)
           }
-        })
-      } catch (error) {
-        console.error('流式输出发生错误:', error)
-        throw error
+        } catch (e) {
+          console.error('更新消息时出错:', e)
+        }
       }
+
+      // 注册事件监听
+      EventsOn('chat_stream_chunk', streamListener)
+
+      try {
+        // 调用后端API进行流式传输，现在第三个参数是布尔值
+        await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
+      } finally {
+        // 确保无论成功还是失败都注销监听器
+        EventsOff('chat_stream_chunk', streamListener)
+      }
+
     } else {
       // 阻塞输出
-      // 添加一个空的助手消息用于更新
       const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
@@ -710,18 +712,15 @@ const sendMessage = async () => {
       })
       
       try {
-        const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, null)
-        console.log('阻塞式输出接收到响应，长度:', response.length)
-        console.log('阻塞式输出接收到响应，前100个字符:', response.substring(0, Math.min(100, response.length)))
-        // 更新助手消息
+        // 调用后端API，第三个参数为false
+        const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
         if (messages.value && messages.value[assistantMessageIndex]) {
           messages.value[assistantMessageIndex].content = response
-          // 确保滚动到底部以显示新内容
           setTimeout(() => scrollToBottom(), 0)
         }
       } catch (error) {
         console.error('阻塞式输出发生错误:', error)
-        throw error // 重新抛出错误以在下面的catch块中处理
+        throw error
       }
     }
   } catch (error: any) {
@@ -734,7 +733,6 @@ const sendMessage = async () => {
     } else {
       errorMessage += ': 未知错误'
     }
-    // 添加错误消息
     messages.value.push({
       role: 'assistant',
       content: errorMessage,
@@ -771,15 +769,16 @@ const regenerateMessage = async (index: number) => {
       scrollToBottom();
 
       // 构建包含系统提示词的消息
-      let messagesWithSystemPrompt = [
-        {role: "user", content: userMessage}
+      let messagesWithSystemPrompt: Message[] = [
+        {role: "user", content: userMessage, timestamp: Date.now()}
       ]
 
       // 如果有激活的系统提示词，添加到消息历史最前面
       if (activeSystemPrompt.value) {
         messagesWithSystemPrompt.unshift({
           role: "system",
-          content: activeSystemPrompt.value.prompt
+          content: activeSystemPrompt.value.prompt,
+          timestamp: Date.now()
         })
       }
 
@@ -791,8 +790,8 @@ const regenerateMessage = async (index: number) => {
         timestamp: Date.now()
       })
 
-      // 调用后端API
-      const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, null)
+      // 重新生成时，我们默认使用阻塞模式以简化逻辑
+      const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
 
       // 更新助手消息
       if (messages.value && messages.value[assistantMessageIndex]) {
@@ -862,7 +861,8 @@ const resetModelParams = () => {
     context: 2048,
     numPredict: 512,
     topK: 40,
-    repeatPenalty: 1.1
+    repeatPenalty: 1.1,
+    outputMode: 'stream'
   }
   ElMessage.info('参数已重置为默认值')
 }
@@ -876,13 +876,15 @@ onMounted(async () => {
 
 <style scoped>
 .chat-interface {
-  padding: 20px;
+  background-color: #f0f4f9;
+  padding: 0;
   height: 100%;
   box-sizing: border-box;
 }
 
 .model-selector {
   height: 100%;
+  border-right: 1px solid #e0e0e0;
 }
 
 .model-selector :deep(.el-card__body) {
@@ -894,6 +896,9 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border: none;
+  box-shadow: none;
+  width: 100%;
 }
 
 .chat-container :deep(.el-card__body) {
@@ -908,61 +913,79 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff;
 }
 
 .chat-history {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background-color: #f7f7f8;
+  background-color: #f0f4f9;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-message {
   display: flex;
-  padding: 24px 0;
-  border-bottom: 1px solid #e5e5e5;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  max-width: 85%;
+  width: -moz-fit-content;
+  width: fit-content;
 }
 
 .chat-message:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .user-message {
-  background-color: #ffffff;
+  align-self: flex-end;
+  flex-direction: row-reverse;
 }
 
 .assistant-message {
-  background-color: #f7f7f8;
+  align-self: flex-start;
+}
+
+.message-content-area {
+  padding: 12px 16px;
+  border-radius: 12px;
+}
+
+.user-message .message-content-area {
+  background-color: #cce5ff; /* A softer, more professional blue */
+}
+
+.assistant-message .message-content-area {
+  background-color: #ffffff;
 }
 
 .message-avatar {
   flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 2px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 20px;
 }
 
 .user-avatar {
-  background-color: #5436da;
-  border-radius: 2px;
+  background-color: #4a5568;
 }
 
 .assistant-avatar {
-  background-color: #19c37d;
-  border-radius: 2px;
+  background: linear-gradient(135deg, #4285f4, #9b59b6);
 }
 
-.message-content-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding-right: 30px;
+.user-message .message-avatar {
+  margin-left: 16px;
+}
+
+.assistant-message .message-avatar {
+  margin-right: 16px;
 }
 
 .message-header {
@@ -973,27 +996,37 @@ onMounted(async () => {
 
 .sender-name {
   font-weight: 600;
-  font-size: 14px;
-  color: #333;
-  margin-right: 12px;
+  font-size: 15px;
+  color: #2d3748;
 }
 
 .message-time {
   font-size: 12px;
-  color: #888;
+  color: #718096;
+  margin-left: 12px;
 }
 
 .message-content {
-  flex: 1;
+  /* No flex: 1 here to ensure height is adaptive */
 }
 
 .message-body {
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.6;
+  line-height: 1.7;
   font-size: 16px;
-  color: #333;
-  text-align: left;
+  color: #1a202c;
+  text-align: left !important;
+}
+
+/* Reset margin for the first element rendered by v-html */
+.message-body :deep(> *:first-child) {
+  margin-top: 0;
+}
+
+/* Reset margin for the last element rendered by v-html */
+.message-body :deep(> *:last-child) {
+  margin-bottom: 0;
 }
 
 .message-body :deep(p) {
@@ -1003,21 +1036,14 @@ onMounted(async () => {
 .message-body :deep(h1),
 .message-body :deep(h2),
 .message-body :deep(h3) {
-  margin: 18px 0 12px 0;
+  margin: 20px 0 12px 0;
   font-weight: 600;
+  color: #2d3748;
 }
 
-.message-body :deep(h1) {
-  font-size: 28px;
-}
-
-.message-body :deep(h2) {
-  font-size: 24px;
-}
-
-.message-body :deep(h3) {
-  font-size: 20px;
-}
+.message-body :deep(h1) { font-size: 26px; }
+.message-body :deep(h2) { font-size: 22px; }
+.message-body :deep(h3) { font-size: 18px; }
 
 .message-body :deep(ul),
 .message-body :deep(ol) {
@@ -1026,20 +1052,21 @@ onMounted(async () => {
 }
 
 .message-body :deep(li) {
-  margin: 6px 0;
+  margin: 8px 0;
 }
 
 .message-body :deep(code) {
-  background-color: rgba(0, 0, 0, 0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  background-color: #edf2f7;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
   font-size: 14px;
+  color: #2d3748;
 }
 
 .message-body :deep(pre) {
-  background-color: #2d2d2d;
-  color: #f8f8f2;
+  background-color: #1a202c; /* Dark background for code blocks */
+  color: #e2e8f0;
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
@@ -1054,55 +1081,48 @@ onMounted(async () => {
 }
 
 .message-body :deep(blockquote) {
-  border-left: 4px solid #19c37d;
+  border-left: 4px solid #a0aec0;
   padding-left: 16px;
-  margin: 12px 0;
-  color: #666;
-}
-
-.message-body :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
   margin: 16px 0;
+  color: #4a5568;
 }
 
-.message-body :deep(th),
-.message-body :deep(td) {
-  border: 1px solid #ddd;
-  padding: 10px 14px;
-  text-align: left;
+.message-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.message-body :deep(th) {
-  background-color: #f5f5f5;
-  font-weight: 600;
+.chat-message:hover .message-actions {
+  opacity: 1;
 }
 
-.message-body :deep(img) {
-  max-width: 100%;
-  height: auto;
-  margin: 12px 0;
+.message-actions .el-button {
+  font-size: 13px;
+  padding: 5px 10px;
+  margin-right: 10px;
+  color: #718096;
 }
 
-.message-body :deep(a) {
-  color: #19c37d;
-  text-decoration: none;
-}
-
-.message-body :deep(a:hover) {
-  text-decoration: underline;
+.input-area {
+  padding: 24px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #ffffff;
 }
 
 .thinking-indicator {
   display: flex;
   align-items: center;
   font-size: 16px;
+  color: #4a5568;
 }
 
 .thinking-indicator .dot {
   width: 8px;
   height: 8px;
-  background-color: #999;
+  background-color: #a0aec0;
   border-radius: 50%;
   margin: 0 4px;
   animation: bounce 1.5s infinite;
@@ -1117,30 +1137,8 @@ onMounted(async () => {
 }
 
 @keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-.message-actions {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 12px;
-}
-
-.message-actions .el-button {
-  font-size: 13px;
-  padding: 5px 10px;
-  margin-right: 10px;
-}
-
-.input-area {
-  padding: 24px;
-  border-top: 1px solid #e5e5e5;
-  background-color: white;
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 .system-prompt-content {
