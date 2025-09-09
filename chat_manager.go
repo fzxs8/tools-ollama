@@ -5,7 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/fzxs8/duolasdk/core"
 )
+
+// Message 聊天消息结构
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
 
 // ChatSystemPrompt 系统提示词结构
 type ChatSystemPrompt struct {
@@ -23,6 +31,11 @@ type ChatManager struct {
 		Get(key string, persistent ...bool) (string, error)
 		Delete(key string, persistent ...bool) error
 	}
+	aiProvider interface {
+		Chat(model string, messages []Message) (string, error)
+		ChatStream(model string, messages []Message, callback func(string)) error
+	}
+	logger *core.AppLog
 }
 
 // NewChatManager 创建聊天管理器实例
@@ -31,15 +44,25 @@ func NewChatManager(ctx context.Context, store interface {
 	Get(key string, persistent ...bool) (string, error)
 	Delete(key string, persistent ...bool) error
 }) *ChatManager {
+	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "ChatManager"})
 	return &ChatManager{
-		ctx:   ctx,
-		store: store,
+		ctx:    ctx,
+		store:  store,
+		logger: logger,
 	}
 }
 
 // SetContext 设置上下文
 func (cm *ChatManager) SetContext(ctx context.Context) {
 	cm.ctx = ctx
+}
+
+// SetAIProvider 设置AI提供者
+func (cm *ChatManager) SetAIProvider(provider interface {
+	Chat(model string, messages []Message) (string, error)
+	ChatStream(model string, messages []Message, callback func(string)) error
+}) {
+	cm.aiProvider = provider
 }
 
 // KVSet 设置键值对
@@ -233,7 +256,93 @@ func (cm *ChatManager) DeleteActiveSystemPrompt() error {
 	return cm.KVDelete("active_system_prompt")
 }
 
+// Chat 发送聊天消息
+func (cm *ChatManager) Chat(modelName string, messages []Message) (string, error) {
+	if cm.aiProvider == nil {
+		err := fmt.Errorf("AI提供者未设置")
+		cm.logger.Error(err.Error())
+		return "", err
+	}
+
+	cm.logger.Debug("开始阻塞式聊天: 模型=%s, 消息数量=%d", modelName, len(messages))
+
+	defer func() {
+		if r := recover(); r != nil {
+			cm.logger.Error("Chat方法中发生恐慌: %v", r)
+		}
+	}()
+
+	result, err := cm.aiProvider.Chat(modelName, messages)
+	if err != nil {
+		cm.logger.Error("聊天过程中发生错误: %v", err)
+		return "", err
+	}
+
+	cm.logger.Debug("阻塞式聊天完成，结果长度=%d", len(result))
+	cm.logger.Debug("阻塞式聊天返回结果前100个字符: %s", func() string {
+		if len(result) > 100 {
+			// 使用 rune 转换来正确处理 Unicode 字符
+			runes := []rune(result)
+			if len(runes) > 100 {
+				return string(runes[:100]) + "..."
+			}
+			return result
+		}
+		return result
+	}())
+	return result, nil
+}
+
+// ChatStream 发送聊天消息并流式返回结果
+func (cm *ChatManager) ChatStream(modelName string, messages []Message, callback func(string)) error {
+	if cm.aiProvider == nil {
+		err := fmt.Errorf("AI提供者未设置")
+		cm.logger.Error(err.Error())
+		return err
+	}
+
+	cm.logger.Debug("开始流式聊天: 模型=%s, 消息数量=%d", modelName, len(messages))
+
+	defer func() {
+		if r := recover(); r != nil {
+			cm.logger.Error("ChatStream方法中发生恐慌: %v", r)
+		}
+	}()
+
+	// 创建一个安全的回调函数包装器
+	safeCallback := func(content string) {
+		// recover任何可能的恐慌
+		defer func() {
+			if r := recover(); r != nil {
+				cm.logger.Error("流式回调函数中发生恐慌: %v", r)
+			}
+		}()
+
+		cm.logger.Debug("ChatStream回调接收到内容，长度=%d", len(content))
+		// 调用原始回调函数
+		if callback != nil {
+			callback(content)
+		}
+	}
+
+	return cm.aiProvider.ChatStream(modelName, messages, safeCallback)
+}
+
 // getCurrentTimestamp 获取当前时间戳
 func getCurrentTimestamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
+// safeTruncate 安全地截取字符串，避免在多字节字符中间截断
+func safeTruncate(s string, length int) string {
+	if len(s) <= length {
+		return s
+	}
+
+	runes := []rune(s)
+	if len(runes) <= length {
+		return s
+	}
+
+	return string(runes[:length]) + "..."
 }

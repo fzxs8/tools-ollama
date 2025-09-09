@@ -28,25 +28,6 @@ type ListModelsResponse struct {
 	Models []Model `json:"models"`
 }
 
-// Message 聊天消息
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-// ChatRequest 聊天请求
-type ChatRequest struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
-	Stream   bool      `json:"stream"`
-}
-
-// ChatResponse 聊天响应
-type ChatResponse struct {
-	Model   string  `json:"model"`
-	Message Message `json:"message"`
-}
-
 // PullModelRequest 拉取模型请求
 type PullModelRequest struct {
 	Name string `json:"name"`
@@ -63,15 +44,23 @@ type OllamaServerConfig struct {
 	Type       string `json:"type"`
 }
 
-// App 应用结构体
+// App struct
 type App struct {
 	ctx          context.Context
-	httpClient   *core.HttpCli
-	store        *duolasdk.AppStore
-	modelManager *ModelManager
-	modelMarket  *ModelMarket
 	configMgr    *OllamaConfigManager
 	chatManager  *ChatManager
+	modelManager *ModelManager
+	modelMarket  *ModelMarket
+	httpClient   *core.HttpCli
+	store        interface {
+		Set(key, value string, persistent ...bool) error
+		Get(key string, persistent ...bool) (string, error)
+		Delete(key string, persistent ...bool) error
+	}
+	aiProvider interface {
+		Chat(model string, messages []core.Message) (string, error)
+		ChatStream(model string, messages []core.Message, callback func(string)) error
+	}
 }
 
 // NewApp 创建一个新的 App 应用
@@ -114,6 +103,15 @@ func NewApp() *App {
 	app.httpClient.Create(&core.Config{
 		BaseURL: activeServer.BaseURL,
 	})
+
+	// 初始化AI提供者
+	ollamaProvider := core.NewOllamaProvider(activeServer.BaseURL)
+
+	// 创建适配器以解决Message类型不匹配问题
+	aiProviderAdapter := NewAIProviderAdapter(ollamaProvider)
+
+	app.aiProvider = ollamaProvider
+	app.chatManager.SetAIProvider(aiProviderAdapter)
 
 	// 初始化模型管理器和模型市场
 	app.modelManager = NewModelManager(app)
@@ -270,8 +268,8 @@ func (a *App) RunModel(modelName string, params map[string]interface{}) error {
 		modelParams.TopK = int(topK)
 	}
 
-	if context, ok := params["context"].(float64); ok {
-		modelParams.Context = int(context)
+	if ct, ok := params["context"].(float64); ok {
+		modelParams.Context = int(ct)
 	}
 
 	if numPredict, ok := params["num_predict"].(float64); ok {
@@ -296,32 +294,42 @@ func (a *App) TestModel(modelName string, prompt string) (string, error) {
 }
 
 // ChatMessage 发送聊天消息到Ollama API
-func (a *App) ChatMessage(modelName string, messages []Message) (string, error) {
-	requestBody := ChatRequest{
-		Model:    modelName,
-		Messages: messages,
-		Stream:   false,
-	}
+func (a *App) ChatMessage(modelName string, messages []Message, callback func(string)) (string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ChatMessage方法中发生恐慌: %v", r)
+		}
+	}()
 
-	response, err := a.httpClient.Post("/api/chat", core.Options{
-		Headers: map[string]string{"Content-Type": "application/json"},
-		Body:    requestBody,
-	})
-	if err != nil {
-		return "", fmt.Errorf("发送聊天消息失败: %w", err)
-	}
+	log.Printf("ChatMessage调用: 模型=%s, 消息数量=%d, 是否流式=%t", modelName, len(messages), callback != nil)
 
-	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("发送聊天消息失败: 状态码 %d", response.StatusCode)
+	// 如果提供了回调函数，则使用流式传输
+	if callback != nil {
+		log.Printf("使用流式传输")
+		// 使用聊天管理器发送流式消息
+		err := a.chatManager.ChatStream(modelName, messages, func(content string) {
+			log.Printf("App.ChatMessage流式回调，内容长度=%d", len(content))
+			callback(content)
+		})
+		// 流式传输不返回结果，结果通过回调传递
+		return "", err
+	} else {
+		log.Printf("使用阻塞式传输")
+		// 使用阻塞式传输
+		result, err := a.chatManager.Chat(modelName, messages)
+		if err != nil {
+			log.Printf("阻塞式传输错误: %v", err)
+			return "", err
+		}
+		log.Printf("阻塞式传输成功，结果长度=%d", len(result))
+		log.Printf("阻塞式传输返回结果前100个字符: %s", func() string {
+			if len(result) > 100 {
+				return result[:100] + "..."
+			}
+			return result
+		}())
+		return result, nil
 	}
-
-	var chatResponse ChatResponse
-	err = json.Unmarshal([]byte(response.Body), &chatResponse)
-	if err != nil {
-		return "", fmt.Errorf("解析聊天响应失败: %w", err)
-	}
-
-	return chatResponse.Message.Content, nil
 }
 
 // SetModelParams 设置模型参数
@@ -453,7 +461,32 @@ func (a *App) DeleteRemoteServer(serverID string) error {
 
 // SetActiveServer 设置活动服务器
 func (a *App) SetActiveServer(serverID string) error {
-	return a.configMgr.SetActiveServer(serverID)
+	err := a.configMgr.SetActiveServer(serverID)
+	if err != nil {
+		return err
+	}
+
+	// 获取新的活动服务器配置
+	activeServer, err := a.configMgr.GetActiveServer()
+	if err != nil {
+		return err
+	}
+
+	// 更新HTTP客户端配置
+	a.httpClient.Create(&core.Config{
+		BaseURL: activeServer.BaseURL,
+	})
+
+	// 更新AI提供者
+	ollamaProvider := core.NewOllamaProvider(activeServer.BaseURL)
+
+	// 创建适配器以解决Message类型不匹配问题
+	aiProviderAdapter := NewAIProviderAdapter(ollamaProvider)
+
+	a.aiProvider = ollamaProvider
+	a.chatManager.SetAIProvider(aiProviderAdapter)
+
+	return nil
 }
 
 // SaveLocalServerTestStatus 保存本地服务器的测试状态
@@ -490,4 +523,113 @@ func (a *App) TestOllamaConnection() (bool, error) {
 	return true, nil
 }
 
-//
+// AIProviderAdapter 适配器，用于解决core.Message和本地Message类型不匹配的问题
+type AIProviderAdapter struct {
+	provider *core.OllamaProvider
+	logger   *core.AppLog
+}
+
+// NewAIProviderAdapter 创建AI提供者适配器
+func NewAIProviderAdapter(provider *core.OllamaProvider) *AIProviderAdapter {
+	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "AIProviderAdapter"})
+	return &AIProviderAdapter{
+		provider: provider,
+		logger:   logger,
+	}
+}
+
+// Chat 适配Chat方法
+func (a *AIProviderAdapter) Chat(model string, messages []Message) (string, error) {
+	// 验证模型名称
+	if model == "" {
+		a.logger.Warn("模型名称不能为空")
+		return "", fmt.Errorf("模型名称不能为空")
+	}
+
+	// 验证消息数组
+	if len(messages) == 0 {
+		a.logger.Warn("消息列表不能为空")
+		return "", fmt.Errorf("消息列表不能为空")
+	}
+
+	// 将本地Message类型转换为core.Message类型
+	coreMessages := make([]core.Message, len(messages))
+	for i, msg := range messages {
+		if msg.Role == "" || msg.Content == "" {
+			a.logger.Warn("消息 %d 缺少必要字段: role 或 content", i)
+			return "", fmt.Errorf("消息 %d 缺少必要字段: role 或 content", i)
+		}
+		coreMessages[i] = core.Message{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	a.logger.Debug("开始阻塞式聊天请求: 模型=%s, 消息数量=%d", model, len(messages))
+
+	// 调用核心库的Chat方法，并处理可能的错误
+	response, err := a.provider.Chat(model, coreMessages)
+	if err != nil {
+		a.logger.Error("阻塞式聊天请求失败: %v", err)
+		return "", fmt.Errorf("调用Ollama服务失败: %w", err)
+	}
+
+	a.logger.Debug("阻塞式聊天请求成功，结果长度=%d", len(response))
+
+	// 安全获取前100个字符
+	var preview string
+	if len(response) > 100 {
+		// 确保在字符串边界截断，避免截断多字节字符
+		preview = string([]rune(response)[:100]) + "..."
+	} else {
+		preview = response
+	}
+	a.logger.Debug("阻塞式聊天请求返回结果前100个字符: %s", preview)
+
+	return response, nil
+}
+
+// ChatStream 适配ChatStream方法
+func (a *AIProviderAdapter) ChatStream(model string, messages []Message, callback func(string)) error {
+	// 将本地Message类型转换为core.Message类型
+	coreMessages := make([]core.Message, len(messages))
+	for i, msg := range messages {
+		coreMessages[i] = core.Message{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+
+	a.logger.Debug("开始流式聊天请求: 模型=%s, 消息数量=%d", model, len(messages))
+
+	// 创建一个安全的回调函数包装器
+	safeCallback := func(content string) {
+		// recover任何可能的恐慌
+		defer func() {
+			if r := recover(); r != nil {
+				a.logger.Error("回调函数中发生恐慌: %v", r)
+			}
+		}()
+
+		// 记录接收到的内容长度和内容预览
+		a.logger.Debug("流式回调接收到内容，长度=%d，内容=%s", len(content), func() string {
+			if len(content) > 50 {
+				return content[:50] + "..."
+			}
+			return content
+		}())
+
+		// 调用原始回调函数
+		if callback != nil {
+			callback(content)
+		}
+	}
+
+	err := a.provider.ChatStream(model, coreMessages, safeCallback)
+	if err != nil {
+		a.logger.Error("流式聊天请求失败: %v", err)
+		return err
+	}
+	a.logger.Debug("流式聊天请求完成")
+	return nil
+}

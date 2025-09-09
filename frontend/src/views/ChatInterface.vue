@@ -51,6 +51,12 @@
               <el-form-item label="重复惩罚">
                 <el-input-number v-model="modelParams.repeatPenalty" :min="0.1" :max="2" :step="0.1"/>
               </el-form-item>
+              <el-form-item label="输出方式">
+                <el-select v-model="modelParams.outputMode" placeholder="选择输出方式">
+                  <el-option label="流式输出" value="stream"/>
+                  <el-option label="阻塞输出" value="blocking"/>
+                </el-select>
+              </el-form-item>
             </el-form>
             <div style="margin-top: 10px">
               <el-button @click="saveModelParams" type="primary" size="small">保存参数</el-button>
@@ -313,6 +319,7 @@ interface ModelParams {
   numPredict: number
   topK: number
   repeatPenalty: number
+  outputMode: 'stream' | 'blocking' // 添加输出方式选项
 }
 
 // 系统提示词表单
@@ -348,7 +355,8 @@ const modelParams = ref<ModelParams>({
   context: 2048,
   numPredict: 512,
   topK: 40,
-  repeatPenalty: 1.1
+  repeatPenalty: 1.1,
+  outputMode: 'stream' // 默认使用流式输出
 })
 
 // 格式化时间
@@ -648,7 +656,7 @@ const sendMessage = async () => {
 
     // 构建包含系统提示词的消息
     let messagesWithSystemPrompt = [
-      {role: "user", content: message}
+      { role: "user", content: message }
     ]
 
     // 如果有激活的系统提示词，添加到消息历史最前面
@@ -659,15 +667,63 @@ const sendMessage = async () => {
       })
     }
 
-    // 调用后端API
-    const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt)
+    // 根据输出方式选择不同的处理方式
+    if (modelParams.value.outputMode === 'stream') {
+      // 流式输出
+      // 添加一个空的助手消息用于流式更新
+      const assistantMessageIndex = messages.value.length
+      messages.value.push({
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now()
+      })
 
-    // 添加助手回复
-    messages.value.push({
-      role: 'assistant',
-      content: response,
-      timestamp: Date.now()
-    })
+      try {
+        // 调用后端API进行流式传输
+        await ChatMessage(selectedModel.value, messagesWithSystemPrompt, (chunk: string) => {
+          // 流式更新助手消息
+          try {
+            console.log('流式输出接收到数据块，长度:', chunk.length)
+            console.log('流式输出接收到数据块内容:', chunk)
+            // 确保消息仍然存在并且可以安全更新
+            if (messages.value && messages.value[assistantMessageIndex]) {
+              messages.value[assistantMessageIndex].content += chunk
+              // 使用setTimeout确保DOM更新不会阻塞
+              setTimeout(() => scrollToBottom(), 0)
+            }
+          } catch (e) {
+            console.error('更新消息时出错:', e)
+          }
+        })
+      } catch (error) {
+        console.error('流式输出发生错误:', error)
+        throw error
+      }
+    } else {
+      // 阻塞输出
+      // 添加一个空的助手消息用于更新
+      const assistantMessageIndex = messages.value.length
+      messages.value.push({
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now()
+      })
+      
+      try {
+        const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, null)
+        console.log('阻塞式输出接收到响应，长度:', response.length)
+        console.log('阻塞式输出接收到响应，前100个字符:', response.substring(0, Math.min(100, response.length)))
+        // 更新助手消息
+        if (messages.value && messages.value[assistantMessageIndex]) {
+          messages.value[assistantMessageIndex].content = response
+          // 确保滚动到底部以显示新内容
+          setTimeout(() => scrollToBottom(), 0)
+        }
+      } catch (error) {
+        console.error('阻塞式输出发生错误:', error)
+        throw error // 重新抛出错误以在下面的catch块中处理
+      }
+    }
   } catch (error: any) {
     console.error('发送消息时出现错误:', error)
     let errorMessage = '抱歉，出现错误'
@@ -678,6 +734,7 @@ const sendMessage = async () => {
     } else {
       errorMessage += ': 未知错误'
     }
+    // 添加错误消息
     messages.value.push({
       role: 'assistant',
       content: errorMessage,
@@ -726,15 +783,21 @@ const regenerateMessage = async (index: number) => {
         })
       }
 
-      // 调用后端API
-      const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt)
-
-      // 添加新的助手回复
+      // 添加一个空的助手消息用于更新
+      const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
-        content: response,
+        content: '',
         timestamp: Date.now()
       })
+
+      // 调用后端API
+      const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, null)
+
+      // 更新助手消息
+      if (messages.value && messages.value[assistantMessageIndex]) {
+        messages.value[assistantMessageIndex].content = response
+      }
     } catch (error) {
       messages.value.push({
         role: 'assistant',

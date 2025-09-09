@@ -6,8 +6,8 @@ export function AddRemoteServer(arg1) {
   return window['go']['main']['App']['AddRemoteServer'](arg1);
 }
 
-export function ChatMessage(arg1, arg2) {
-  return window['go']['main']['App']['ChatMessage'](arg1, arg2);
+export function ChatMessage(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ChatMessage'](arg1, arg2, arg3);
 }
 
 export function DeleteModel(arg1) {
