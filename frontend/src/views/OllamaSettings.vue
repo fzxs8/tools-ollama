@@ -186,6 +186,7 @@ const saveRemoteServer = async () => {
     if (editingRemoteServer.value) {
       // 更新现有服务器
       await UpdateRemoteServer({
+        type: "",
         id: remoteForm.id,
         name: remoteForm.name,
         base_url: remoteForm.base_url,
@@ -197,6 +198,7 @@ const saveRemoteServer = async () => {
     } else {
       // 添加新服务器
       await AddRemoteServer({
+        type: "",
         id: Date.now().toString(),
         name: remoteForm.name,
         base_url: remoteForm.base_url,

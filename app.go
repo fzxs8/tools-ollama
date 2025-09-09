@@ -23,6 +23,17 @@ type Model struct {
 	IsRunning  bool                   `json:"is_running"`
 }
 
+// Conversation 定义了一个完整的对话会话
+type Conversation struct {
+	ID           string    `json:"id"`
+	Title        string    `json:"title"`
+	Messages     []Message `json:"messages"`
+	ModelName    string    `json:"modelName"`
+	SystemPrompt string    `json:"systemPrompt"` // JSON string of the active system prompt
+	ModelParams  string    `json:"modelParams"`  // JSON string of the model parameters
+	Timestamp    int64     `json:"timestamp"`
+}
+
 // ListModelsResponse 模型列表响应
 type ListModelsResponse struct {
 	Models []Model `json:"models"`
@@ -52,12 +63,8 @@ type App struct {
 	modelManager *ModelManager
 	modelMarket  *ModelMarket
 	httpClient   *core.HttpCli
-	store        interface {
-		Set(key, value string, persistent ...bool) error
-		Get(key string, persistent ...bool) (string, error)
-		Delete(key string, persistent ...bool) error
-	}
-	aiProvider interface {
+	store        *duolasdk.AppStore
+	aiProvider   interface {
 		Chat(model string, messages []core.Message) (string, error)
 		ChatStream(model string, messages []core.Message, callback func(string)) error
 	}
@@ -295,65 +302,67 @@ func (a *App) TestModel(modelName string, prompt string) (string, error) {
 
 // ChatMessage 发送聊天消息到Ollama API
 func (a *App) ChatMessage(modelName string, messages []Message, stream bool) (string, error) {
-	// 为此方法创建一个临时logger
-	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "ChatMessage"})
-
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Error("ChatMessage方法中发生恐慌: %v", r)
+			log.Printf("ChatMessage方法中发生恐慌: %v", r)
 		}
 	}()
 
-	logger.Debug("ChatMessage调用: 模型=%s, 消息数量=%d, 是否流式=%t", modelName, len(messages), stream)
+	log.Printf("ChatMessage调用: 模型=%s, 消息数量=%d, 是否流式=%t", modelName, len(messages), stream)
 
-	// 如果是流式传输
+	// 如果使用流式传输
 	if stream {
-		logger.Debug("使用流式传输")
+		log.Printf("使用流式传输")
+		// 创建通道用于接收流式数据
+		chunkChan := make(chan string, 100)
+		errChan := make(chan error, 1)
 
-		// 使用channel来等待流式传输完成
-		done := make(chan error)
-
+		// 启动goroutine处理流式请求
 		go func() {
-			defer close(done)
-			// 定义一个回调函数，通过Wails事件将数据发送到前端
-			streamCallback := func(content string) {
-				runtime.EventsEmit(a.ctx, "chat_stream_chunk", content)
-			}
+			defer close(chunkChan)
+			defer close(errChan)
 
-			// 使用聊天管理器发送流式消息
-			err := a.chatManager.ChatStream(modelName, messages, streamCallback)
-			done <- err
+			err := a.chatManager.ChatStream(modelName, messages, func(content string) {
+				chunkChan <- content
+			})
+			errChan <- err
 		}()
 
-		// 阻塞并等待goroutine完成
-		err := <-done
-		if err != nil {
-			logger.Error("流式传输错误: %v", err)
-			return "", err
+		// 通过Wails Events发送数据块
+		result := ""
+		for {
+			select {
+			case chunk, ok := <-chunkChan:
+				if !ok {
+					// 通道关闭，流式传输结束
+					return result, nil
+				}
+				result += chunk
+				// 发送事件到前端
+				runtime.EventsEmit(a.ctx, "chat_stream_chunk", chunk)
+			case err := <-errChan:
+				if err != nil {
+					return "", err
+				}
+				// 正常结束
+				return result, nil
+			}
 		}
-
-		logger.Debug("流式传输成功完成")
-		return "", nil
-
 	} else {
-		logger.Debug("使用阻塞式传输")
+		log.Printf("使用阻塞式传输")
 		// 使用阻塞式传输
 		result, err := a.chatManager.Chat(modelName, messages)
 		if err != nil {
-			logger.Error("阻塞式传输错误: %v", err)
+			log.Printf("阻塞式传输错误: %v", err)
 			return "", err
 		}
-		logger.Debug("阻塞式传输成功，结果长度=%d", len(result))
-
-		// 安全获取前100个字符的预览
-		var preview string
-		if len(result) > 100 {
-			preview = string([]rune(result)[:100]) + "..."
-		} else {
-			preview = result
-		}
-		logger.Debug("阻塞式传输返回结果前100个字符: %s", preview)
-
+		log.Printf("阻塞式传输成功，结果长度=%d", len(result))
+		log.Printf("阻塞式传输返回结果前100个字符: %s", func() string {
+			if len(result) > 100 {
+				return result[:100] + "..."
+			}
+			return result
+		}())
 		return result, nil
 	}
 }
@@ -547,6 +556,26 @@ func (a *App) TestOllamaConnection() (bool, error) {
 	}
 
 	return true, nil
+}
+
+// ListConversations 获取所有已保存的对话列表，按时间倒序排列
+func (a *App) ListConversations() ([]*Conversation, error) {
+	return a.chatManager.ListConversations()
+}
+
+// SaveConversation 创建或更新一个对话
+func (a *App) SaveConversation(conv *Conversation) (*Conversation, error) {
+	return a.chatManager.SaveConversation(conv)
+}
+
+// GetConversation 获取指定ID的单个对话的完整内容
+func (a *App) GetConversation(id string) (*Conversation, error) {
+	return a.chatManager.GetConversation(id)
+}
+
+// DeleteConversation 删除指定ID的对话
+func (a *App) DeleteConversation(id string) error {
+	return a.chatManager.DeleteConversation(id)
 }
 
 // AIProviderAdapter 适配器，用于解决core.Message和本地Message类型不匹配的问题

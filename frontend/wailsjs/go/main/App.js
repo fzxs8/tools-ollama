@@ -10,6 +10,10 @@ export function ChatMessage(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChatMessage'](arg1, arg2, arg3);
 }
 
+export function DeleteConversation(arg1) {
+  return window['go']['main']['App']['DeleteConversation'](arg1);
+}
+
 export function DeleteModel(arg1) {
   return window['go']['main']['App']['DeleteModel'](arg1);
 }
@@ -24,6 +28,10 @@ export function DownloadModel(arg1, arg2) {
 
 export function GetActiveServer() {
   return window['go']['main']['App']['GetActiveServer']();
+}
+
+export function GetConversation(arg1) {
+  return window['go']['main']['App']['GetConversation'](arg1);
 }
 
 export function GetLocalServerTestStatus() {
@@ -58,6 +66,10 @@ export function KVSet(arg1, arg2) {
   return window['go']['main']['App']['KVSet'](arg1, arg2);
 }
 
+export function ListConversations() {
+  return window['go']['main']['App']['ListConversations']();
+}
+
 export function ListModelsByServer(arg1) {
   return window['go']['main']['App']['ListModelsByServer'](arg1);
 }
@@ -68,6 +80,10 @@ export function OpenInBrowser(arg1) {
 
 export function RunModel(arg1, arg2) {
   return window['go']['main']['App']['RunModel'](arg1, arg2);
+}
+
+export function SaveConversation(arg1) {
+  return window['go']['main']['App']['SaveConversation'](arg1);
 }
 
 export function SaveLocalServerTestStatus(arg1) {

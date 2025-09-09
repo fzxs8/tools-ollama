@@ -1,9 +1,9 @@
-import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router'
+import {createRouter, createWebHashHistory, RouteRecordRaw} from 'vue-router'
 import ModelManager from '../views/ModelManager.vue'
 import ModelMarket from '../views/ModelMarket.vue'
-import ChatInterface from '../views/ChatInterface.vue'
 import SystemMonitor from '../views/SystemMonitor.vue'
 import OllamaSettings from '../views/OllamaSettings.vue'
+import ChatManager from "../views/ChatManager.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -22,8 +22,8 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/chat',
-    name: 'ChatInterface',
-    component: ChatInterface
+    name: 'ChatManager',
+    component: ChatManager
   },
   {
     path: '/system',

@@ -6,6 +6,8 @@ export function AddRemoteServer(arg1:main.OllamaServerConfig):Promise<void>;
 
 export function ChatMessage(arg1:string,arg2:Array<main.Message>,arg3:boolean):Promise<string>;
 
+export function DeleteConversation(arg1:string):Promise<void>;
+
 export function DeleteModel(arg1:string):Promise<void>;
 
 export function DeleteRemoteServer(arg1:string):Promise<void>;
@@ -13,6 +15,8 @@ export function DeleteRemoteServer(arg1:string):Promise<void>;
 export function DownloadModel(arg1:string,arg2:string):Promise<void>;
 
 export function GetActiveServer():Promise<main.OllamaServerConfig>;
+
+export function GetConversation(arg1:string):Promise<main.Conversation>;
 
 export function GetLocalServerTestStatus():Promise<string>;
 
@@ -30,11 +34,15 @@ export function KVList(arg1:string):Promise<string>;
 
 export function KVSet(arg1:string,arg2:string):Promise<void>;
 
+export function ListConversations():Promise<Array<main.Conversation>>;
+
 export function ListModelsByServer(arg1:string):Promise<Array<main.Model>>;
 
 export function OpenInBrowser(arg1:string):Promise<void>;
 
 export function RunModel(arg1:string,arg2:Record<string, any>):Promise<void>;
+
+export function SaveConversation(arg1:main.Conversation):Promise<main.Conversation>;
 
 export function SaveLocalServerTestStatus(arg1:string):Promise<void>;
 
