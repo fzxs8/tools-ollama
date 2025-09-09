@@ -2,264 +2,56 @@
   <div class="chat-interface">
     <el-row :gutter="20" style="height: 100%;">
       <el-col :span="6" style="height: 100%;">
-        <el-card class="model-selector">
-          <template #header>
-            <div class="card-header">
-              <span>模型选择</span>
-            </div>
-          </template>
-          <el-select v-model="selectedServer" placeholder="选择服务" style="width: 100%; margin-bottom: 10px;"
-                     @change="onServerChange">
-            <el-option
-                v-for="server in availableServers"
-                :key="server.id"
-                :label="server.name"
-                :value="server.id"
-            />
-          </el-select>
-          <el-select v-model="selectedModel" placeholder="选择模型" style="width: 100%">
-            <el-option
-                v-for="model in localModels"
-                :key="model.name"
-                :label="model.name"
-                :value="model.name"
-            />
-          </el-select>
-
-          <div style="margin-top: 20px">
-            <el-button @click="loadModel" style="width: 100%">加载模型</el-button>
-          </div>
-
-          <div style="margin-top: 20px">
-            <h4>参数设置</h4>
-            <el-form :model="modelParams" label-width="80px" size="small">
-              <el-form-item label="温度">
-                <el-slider v-model="modelParams.temperature" :min="0" :max="1" :step="0.1"/>
-              </el-form-item>
-              <el-form-item label="Top P">
-                <el-slider v-model="modelParams.topP" :min="0" :max="1" :step="0.1"/>
-              </el-form-item>
-              <el-form-item label="上下文">
-                <el-input-number v-model="modelParams.context" :min="1" :max="32768"/>
-              </el-form-item>
-              <el-form-item label="预测数">
-                <el-input-number v-model="modelParams.numPredict" :min="1" :max="4096"/>
-              </el-form-item>
-              <el-form-item label="Top K">
-                <el-input-number v-model="modelParams.topK" :min="1" :max="100"/>
-              </el-form-item>
-              <el-form-item label="重复惩罚">
-                <el-input-number v-model="modelParams.repeatPenalty" :min="0.1" :max="2" :step="0.1"/>
-              </el-form-item>
-              <el-form-item label="输出方式">
-                <el-select v-model="modelParams.outputMode" placeholder="选择输出方式">
-                  <el-option label="流式输出" value="stream"/>
-                  <el-option label="阻塞输出" value="blocking"/>
-                </el-select>
-              </el-form-item>
-            </el-form>
-            <div style="margin-top: 10px">
-              <el-button @click="saveModelParams" type="primary" size="small">保存参数</el-button>
-              <el-button @click="resetModelParams" size="small">重置</el-button>
-            </div>
-          </div>
-        </el-card>
+        <ModelSelector
+          v-model:selectedModel="selectedModel"
+          v-model:selectedServer="selectedServer"
+          v-model:modelParams="modelParams"
+          :localModels="localModels"
+          :availableServers="availableServers"
+          @load-model="loadModel"
+          @save-model-params="saveModelParams"
+          @reset-model-params="resetModelParams"
+          @server-change="onServerChange"
+        />
       </el-col>
 
       <el-col :span="18" style="height: 100%; display: flex; flex-direction: column;">
-        <el-card class="chat-container" style="flex: 1; display: flex; flex-direction: column;">
-          <template #header>
-            <div class="card-header">
-              <span>聊天界面{{ activeSystemPrompt ? ` - ${activeSystemPrompt.title}` : '' }}</span>
-              <div>
-                <el-button @click="clearChat" style="margin-right: 10px;">清空聊天</el-button>
-                <el-button @click="openSystemPromptDrawer">系统提示词</el-button>
-              </div>
-            </div>
-          </template>
-
-          <div class="chat-history" ref="chatHistoryRef">
-            <div
-                v-for="(message, index) in messages"
-                :key="index"
-                class="chat-message"
-                :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant' }"
-            >
-              <div class="message-avatar">
-                <div v-if="message.role === 'user'" class="user-avatar">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z"
-                        fill="white"/>
-                    <path d="M6 20C6 12 12 12 12 12C12 12 18 12 18 20" stroke="white" stroke-width="2"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div v-else class="assistant-avatar">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="message-content-area">
-                <div class="message-header">
-                  <span class="sender-name">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
-                  <span class="message-time">{{ formatTime(message.timestamp || Date.now()) }}</span>
-                </div>
-                <div class="message-content">
-                  <div class="message-body" v-html="renderMarkdown(message.content)"></div>
-                  <div class="message-actions" v-if="message.role === 'assistant'">
-                    <el-button
-                        size="small"
-                        type="primary"
-                        @click="copyMessage(message.content)"
-                        link
-                    >
-                      复制
-                    </el-button>
-                    <el-button
-                        size="small"
-                        type="primary"
-                        @click="regenerateMessage(index)"
-                        link
-                    >
-                      重新生成
-                    </el-button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-if="isThinking" class="chat-message assistant-message">
-              <div class="message-avatar">
-                <div class="assistant-avatar">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round"
-                          stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="message-content-area">
-                <div class="message-header">
-                  <span class="sender-name">Assistant</span>
-                  <span class="message-time">{{ getCurrentTime() }}</span>
-                </div>
-                <div class="message-content">
-                  <div class="thinking-indicator">
-                    <span>正在思考</span>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="input-area">
-            <el-input
-                v-model="inputMessage"
-                type="textarea"
-                :rows="3"
-                placeholder="输入消息..."
-                @keydown="handleKeydown"
+        <ChatContainer
+          :messages="messages"
+          :is-thinking="isThinking"
+          :active-system-prompt="activeSystemPrompt"
+          @clear-chat="clearChat"
+          @open-system-prompt="openSystemPromptDrawer"
+          @copy-message="copyMessage"
+          @regenerate-message="regenerateMessage"
+        >
+          <template #input>
+            <ChatInput
+              v-model="inputMessage"
+              :disabled="isThinking"
+              @send="sendMessage"
+              @keydown="handleKeydown"
             />
-            <div style="margin-top: 10px; text-align: right">
-              <el-button type="primary" @click="sendMessage" :disabled="isThinking">
-                发送 (Enter)
-              </el-button>
-            </div>
-          </div>
-        </el-card>
+          </template>
+        </ChatContainer>
       </el-col>
     </el-row>
 
-    <!-- 系统提示词设置抽屉 -->
-    <el-drawer
-        v-model="systemPromptDrawerVisible"
-        title="系统提示词设置"
-        direction="rtl"
-        size="40%"
-    >
-      <div class="system-prompt-content">
-        <h3>添加/编辑提示词</h3>
-        <el-form :model="systemPromptForm" label-width="80px">
-          <el-form-item label="标题">
-            <el-input
-                v-model="systemPromptForm.title"
-                placeholder="请输入提示词标题"
-            />
-          </el-form-item>
-          <el-form-item label="提示词">
-            <el-input
-                v-model="systemPromptForm.prompt"
-                type="textarea"
-                :rows="6"
-                placeholder="请输入系统提示词，用于指导AI助手的行为"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary"
-                       @click="systemPromptForm.title && systemPromptList.some(p => p.title === systemPromptForm.title) ? updateSystemPrompt() : saveSystemPrompt()">
-              保存
-            </el-button>
-            <el-button @click="resetSystemPromptForm">重置</el-button>
-          </el-form-item>
-        </el-form>
-
-        <h3>提示词列表</h3>
-        <el-table :data="systemPromptList" style="width: 100%" empty-text="暂无提示词">
-          <el-table-column prop="title" label="标题"/>
-          <el-table-column prop="createdAt" label="创建时间">
-            <template #default="scope">
-              {{ new Date(scope.row.createdAt).toLocaleString() }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作">
-            <template #default="scope">
-              <el-button
-                  size="small"
-                  type="primary"
-                  @click="setActiveSystemPrompt(scope.row)"
-                  :disabled="activeSystemPrompt && activeSystemPrompt.id === scope.row.id"
-              >
-                {{ activeSystemPrompt && activeSystemPrompt.id === scope.row.id ? '已启用' : '启用' }}
-              </el-button>
-              <el-button size="small" @click="editSystemPrompt(scope.row)">修改</el-button>
-              <el-button size="small" type="danger" @click="deleteSystemPrompt(scope.row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <div class="prompt-examples" style="margin-top: 30px;">
-          <h4>提示词示例</h4>
-          <el-collapse>
-            <el-collapse-item title="通用助手" name="1">
-              <p>你是一个有用的助手，请以简洁明了的方式回答用户的问题。</p>
-            </el-collapse-item>
-            <el-collapse-item title="技术专家" name="2">
-              <p>你是一位技术专家，请以专业的角度回答用户的技术问题，并提供详细的解释。</p>
-            </el-collapse-item>
-            <el-collapse-item title="创意写作" name="3">
-              <p>你是一位创意写作专家，请帮助用户创作富有想象力和吸引力的内容。</p>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-      </div>
-    </el-drawer>
+    <SystemPromptDrawer
+      v-model:visible="systemPromptDrawerVisible"
+      :active-system-prompt="activeSystemPrompt"
+      :system-prompt-list="systemPromptList"
+      @update:active-system-prompt="updateActiveSystemPrompt"
+      @save-system-prompt="handleSaveSystemPrompt"
+      @update-system-prompt="handleUpdateSystemPrompt"
+      @delete-system-prompt="handleDeleteSystemPrompt"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, reactive, ref} from 'vue'
+// 初始化Markdown解析器
+import {onMounted, ref} from 'vue'
 import {ElMessage} from 'element-plus'
 import {
   ChatMessage,
@@ -272,10 +64,17 @@ import {
   KVSet,
   ListModelsByServer
 } from '../../wailsjs/go/main/App'
-import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
+import {EventsOff, EventsOn} from '../../wailsjs/runtime'
 import MarkdownIt from 'markdown-it'
+import SystemPromptDrawer from "./ChatManager/components/SystemPromptDrawer.vue";
+import ChatInput from "./ChatManager/components/ChatInput.vue";
+import ChatContainer from "./ChatManager/components/ChatContainer.vue";
+import ModelSelector from "./ChatManager/components/ModelSelector.vue";
+// import ModelSelector from './components/ModelSelector.vue'
+// import ChatContainer from './components/ChatContainer.vue'
+// import ChatInput from './components/ChatInput.vue'
+// import SystemPromptDrawer from './components/SystemPromptDrawer.vue'
 
-// 初始化Markdown解析器
 const md = new MarkdownIt({
   html: true,
   linkify: true,
@@ -323,12 +122,6 @@ interface ModelParams {
   outputMode: 'stream' | 'blocking' // 添加输出方式选项
 }
 
-// 系统提示词表单
-interface SystemPromptForm {
-  title: string
-  prompt: string
-}
-
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
 const availableServers = ref<Server[]>([])
@@ -338,16 +131,9 @@ const messages = ref<Message[]>([
   {role: 'assistant', content: '你好！我是Ollama助手，请选择一个模型开始对话。', timestamp: Date.now()}
 ])
 const isThinking = ref(false)
-const chatHistoryRef = ref<HTMLElement | null>(null)
 const systemPromptDrawerVisible = ref(false)
 const activeSystemPrompt = ref<SystemPrompt | null>(null)
 const systemPromptList = ref<SystemPrompt[]>([])
-
-// 系统提示词表单
-const systemPromptForm = reactive<SystemPromptForm>({
-  title: '',
-  prompt: ''
-})
 
 // 模型参数
 const modelParams = ref<ModelParams>({
@@ -417,64 +203,59 @@ const loadSystemPrompts = async () => {
   }
 }
 
+// 更新激活的系统提示词
+const updateActiveSystemPrompt = (prompt: SystemPrompt | null) => {
+  activeSystemPrompt.value = prompt
+}
+
 // 保存系统提示词
-const saveSystemPrompt = async () => {
-  if (!systemPromptForm.title.trim()) {
-    ElMessage.warning('请输入提示词标题')
-    return
-  }
-
-  if (!systemPromptForm.prompt.trim()) {
-    ElMessage.warning('请输入提示词内容')
-    return
-  }
-
+const handleSaveSystemPrompt = async (prompt: SystemPrompt) => {
   try {
-    const newPrompt: SystemPrompt = {
-      id: Date.now().toString(),
-      title: systemPromptForm.title,
-      prompt: systemPromptForm.prompt,
-      createdAt: Date.now()
-    }
-
     // 添加到列表
-    systemPromptList.value.push(newPrompt)
+    systemPromptList.value.push(prompt)
 
     // 保存到存储
     await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
 
     ElMessage.success('系统提示词已保存')
-    resetSystemPromptForm()
   } catch (error) {
     ElMessage.error('保存失败: ' + (error as Error).message)
   }
 }
 
-// 重置系统提示词表单
-const resetSystemPromptForm = () => {
-  systemPromptForm.title = ''
-  systemPromptForm.prompt = ''
-}
-
-// 设置激活的系统提示词
-const setActiveSystemPrompt = async (prompt: SystemPrompt) => {
+// 更新系统提示词
+const handleUpdateSystemPrompt = async (prompt: SystemPrompt) => {
   try {
-    activeSystemPrompt.value = prompt
-    await KVSet("active_system_prompt", JSON.stringify(prompt))
-    ElMessage.success(`已启用提示词: ${prompt.title}`)
+    // 查找并更新提示词
+    const index = systemPromptList.value.findIndex(p => p.id === prompt.id)
+
+    if (index !== -1) {
+      systemPromptList.value[index] = prompt
+
+      // 如果更新的是当前激活的提示词，则同步更新
+      if (activeSystemPrompt.value?.id === prompt.id) {
+        activeSystemPrompt.value = {...prompt}
+        await KVSet("active_system_prompt", JSON.stringify(activeSystemPrompt.value))
+      }
+
+      // 保存到存储
+      await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
+
+      ElMessage.success('系统提示词已更新')
+    }
   } catch (error) {
-    ElMessage.error('设置失败: ' + (error as Error).message)
+    ElMessage.error('更新失败: ' + (error as Error).message)
   }
 }
 
 // 删除系统提示词
-const deleteSystemPrompt = async (prompt: SystemPrompt) => {
+const handleDeleteSystemPrompt = async (id: string) => {
   try {
     // 从列表中移除
-    systemPromptList.value = systemPromptList.value.filter(p => p.id !== prompt.id)
+    systemPromptList.value = systemPromptList.value.filter(p => p.id !== id)
 
     // 如果删除的是当前激活的提示词，则清除激活状态
-    if (activeSystemPrompt.value?.id === prompt.id) {
+    if (activeSystemPrompt.value?.id === id) {
       activeSystemPrompt.value = null
       await KVDelete("active_system_prompt")
     }
@@ -485,50 +266,6 @@ const deleteSystemPrompt = async (prompt: SystemPrompt) => {
     ElMessage.success('提示词已删除')
   } catch (error) {
     ElMessage.error('删除失败: ' + (error as Error).message)
-  }
-}
-
-// 编辑系统提示词
-const editSystemPrompt = (prompt: SystemPrompt) => {
-  systemPromptForm.title = prompt.title
-  systemPromptForm.prompt = prompt.prompt
-}
-
-// 更新系统提示词
-const updateSystemPrompt = async () => {
-  if (!systemPromptForm.title.trim()) {
-    ElMessage.warning('请输入提示词标题')
-    return
-  }
-
-  if (!systemPromptForm.prompt.trim()) {
-    ElMessage.warning('请输入提示词内容')
-    return
-  }
-
-  try {
-    // 查找并更新提示词
-    const index = systemPromptList.value.findIndex(p =>
-        p.title === systemPromptForm.title && p.prompt !== systemPromptForm.prompt)
-
-    if (index !== -1) {
-      systemPromptList.value[index].prompt = systemPromptForm.prompt
-      systemPromptList.value[index].title = systemPromptForm.title
-
-      // 如果更新的是当前激活的提示词，则同步更新
-      if (activeSystemPrompt.value?.id === systemPromptList.value[index].id) {
-        activeSystemPrompt.value = {...systemPromptList.value[index]}
-        await KVSet("active_system_prompt", JSON.stringify(activeSystemPrompt.value))
-      }
-
-      // 保存到存储
-      await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
-
-      ElMessage.success('系统提示词已更新')
-      resetSystemPromptForm()
-    }
-  } catch (error) {
-    ElMessage.error('更新失败: ' + (error as Error).message)
   }
 }
 
@@ -812,11 +549,7 @@ const regenerateMessage = async (index: number) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  nextTick(() => {
-    if (chatHistoryRef.value) {
-      chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
-    }
-  })
+  // 这里需要实现滚动到底部的逻辑
 }
 
 // 处理键盘事件
@@ -871,6 +604,19 @@ onMounted(async () => {
   await loadAvailableServers()
   await getModels()
   await loadSystemPrompts()
+  
+  // 监听流式传输事件
+  if (window && (window as any).runtime) {
+    (window as any).runtime.EventsOn("chat_stream_chunk", (data: any) => {
+      // 更新最后一条助手消息
+      const lastMessageIndex = messages.value.length - 1
+      if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+        messages.value[lastMessageIndex].content += data
+        // 滚动到底部
+        scrollToBottom()
+      }
+    })
+  }
 })
 </script>
 
@@ -880,278 +626,5 @@ onMounted(async () => {
   padding: 0;
   height: 100%;
   box-sizing: border-box;
-}
-
-.model-selector {
-  height: 100%;
-  border-right: 1px solid #e0e0e0;
-}
-
-.model-selector :deep(.el-card__body) {
-  height: calc(100% - 60px);
-  overflow-y: auto;
-}
-
-.chat-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border: none;
-  box-shadow: none;
-  width: 100%;
-}
-
-.chat-container :deep(.el-card__body) {
-  height: calc(100% - 60px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 0;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #ffffff;
-}
-
-.chat-history {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  background-color: #f0f4f9;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-message {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  max-width: 85%;
-  width: -moz-fit-content;
-  width: fit-content;
-}
-
-.chat-message:last-child {
-  margin-bottom: 0;
-}
-
-.user-message {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.assistant-message {
-  align-self: flex-start;
-}
-
-.message-content-area {
-  padding: 12px 16px;
-  border-radius: 12px;
-}
-
-.user-message .message-content-area {
-  background-color: #cce5ff; /* A softer, more professional blue */
-}
-
-.assistant-message .message-content-area {
-  background-color: #ffffff;
-}
-
-.message-avatar {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-avatar {
-  background-color: #4a5568;
-}
-
-.assistant-avatar {
-  background: linear-gradient(135deg, #4285f4, #9b59b6);
-}
-
-.user-message .message-avatar {
-  margin-left: 16px;
-}
-
-.assistant-message .message-avatar {
-  margin-right: 16px;
-}
-
-.message-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.sender-name {
-  font-weight: 600;
-  font-size: 15px;
-  color: #2d3748;
-}
-
-.message-time {
-  font-size: 12px;
-  color: #718096;
-  margin-left: 12px;
-}
-
-.message-content {
-  /* No flex: 1 here to ensure height is adaptive */
-}
-
-.message-body {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.7;
-  font-size: 16px;
-  color: #1a202c;
-  text-align: left !important;
-}
-
-/* Reset margin for the first element rendered by v-html */
-.message-body :deep(> *:first-child) {
-  margin-top: 0;
-}
-
-/* Reset margin for the last element rendered by v-html */
-.message-body :deep(> *:last-child) {
-  margin-bottom: 0;
-}
-
-.message-body :deep(p) {
-  margin: 12px 0;
-}
-
-.message-body :deep(h1),
-.message-body :deep(h2),
-.message-body :deep(h3) {
-  margin: 20px 0 12px 0;
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.message-body :deep(h1) { font-size: 26px; }
-.message-body :deep(h2) { font-size: 22px; }
-.message-body :deep(h3) { font-size: 18px; }
-
-.message-body :deep(ul),
-.message-body :deep(ol) {
-  padding-left: 24px;
-  margin: 12px 0;
-}
-
-.message-body :deep(li) {
-  margin: 8px 0;
-}
-
-.message-body :deep(code) {
-  background-color: #edf2f7;
-  padding: 3px 6px;
-  border-radius: 6px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-  font-size: 14px;
-  color: #2d3748;
-}
-
-.message-body :deep(pre) {
-  background-color: #1a202c; /* Dark background for code blocks */
-  color: #e2e8f0;
-  padding: 16px;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 16px 0;
-}
-
-.message-body :deep(pre code) {
-  background-color: transparent;
-  padding: 0;
-  color: inherit;
-  font-size: 14px;
-}
-
-.message-body :deep(blockquote) {
-  border-left: 4px solid #a0aec0;
-  padding-left: 16px;
-  margin: 16px 0;
-  color: #4a5568;
-}
-
-.message-actions {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 12px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.chat-message:hover .message-actions {
-  opacity: 1;
-}
-
-.message-actions .el-button {
-  font-size: 13px;
-  padding: 5px 10px;
-  margin-right: 10px;
-  color: #718096;
-}
-
-.input-area {
-  padding: 24px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #ffffff;
-}
-
-.thinking-indicator {
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  color: #4a5568;
-}
-
-.thinking-indicator .dot {
-  width: 8px;
-  height: 8px;
-  background-color: #a0aec0;
-  border-radius: 50%;
-  margin: 0 4px;
-  animation: bounce 1.5s infinite;
-}
-
-.thinking-indicator .dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.thinking-indicator .dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.system-prompt-content {
-  padding: 20px;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.prompt-examples {
-  margin-top: 30px;
-}
-
-.prompt-examples h4 {
-  margin-bottom: 15px;
 }
 </style>
