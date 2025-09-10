@@ -1,3 +1,4 @@
+<!-- FORCE UPDATE: 2025-09-10 19:50 PM -->
 <template>
   <div class="prompt-pilot">
     <div class="main-content">
@@ -85,13 +86,13 @@
           </el-button>
           <el-button
             type="success"
-            @click="openSaveDrawer"
+            @click="openSaveDrawer(null)"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
             保存
           </el-button>
           <el-button @click="showSavedPrompts = true" :disabled="isGenerating">
-            已保存
+            我的提示词
           </el-button>
         </div>
       </div>
@@ -102,15 +103,42 @@
       <!-- ...抽屉内容... -->
     </el-drawer>
 
-    <el-drawer v-model="showSaveDrawer" title="保存Prompt" direction="rtl" size="40%">
-      <!-- ...抽屉内容... -->
+    <el-drawer v-model="showSaveDrawer" :title="promptToSave.id ? `编辑 “${promptToSave.name}”` : '保存Prompt'" direction="rtl" size="40%">
+      <div class="save-drawer-content">
+        <el-form :model="promptToSave" label-position="top" ref="saveFormRef">
+          <el-form-item label="标题" prop="name" :rules="[{ required: true, message: '标题不能为空', trigger: 'blur' }]">
+            <el-input v-model="promptToSave.name" placeholder="请输入Prompt标题"></el-input>
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="promptToSave.description" type="textarea" :rows="3" placeholder="请输入详细描述、使用场景等"></el-input>
+          </el-form-item>
+          <el-form-item label="标签">
+            <el-select v-model="promptToSave.tags" multiple filterable allow-create default-first-option placeholder="选择或创建标签" style="width: 100%;">
+              <el-option v-for="tag in existingTags" :key="tag" :label="tag" :value="tag"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="关联模型" class="left-aligned-item">
+            <div>
+              <el-tag v-for="model in promptToSave.models" :key="model" type="info" style="margin-right: 5px;">{{ model }}</el-tag>
+            </div>
+          </el-form-item>
+          <el-form-item label="Prompt内容 (只读预览)" class="left-aligned-item content-preview-item">
+            <el-input v-model="promptToSave.content" type="textarea" :rows="8" readonly></el-input>
+            <el-button class="content-copy-btn" type="primary" link @click="copySaveDrawerContent">复制</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="save-drawer-footer">
+          <el-button @click="showSaveDrawer = false">取消</el-button>
+          <el-button type="primary" @click="executeSaveFromDrawer" :loading="isSaving">确认保存</el-button>
+        </div>
+      </div>
     </el-drawer>
 
     <SavedPromptsDrawer
       v-model:visible="showSavedPrompts"
       :prompts="savedPrompts"
       @delete="handleDeletePrompt"
-      @save="handleSavePrompt"
+      @edit="handleEditPrompt"
       @preview="handlePreviewPrompt"
     />
 
@@ -118,8 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {computed, onMounted, ref, watch} from 'vue'
+import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
 import ModelSelector from './components/ModelSelector.vue'
 import SavedPromptsDrawer from './components/SavedPromptsDrawer.vue'
 import {EventsOn} from "../../../wailsjs/runtime";
@@ -141,21 +169,38 @@ const renderedPrompt = ref<Record<string, string>>({})
 const showOptimizeDrawer = ref(false)
 const showSaveDrawer = ref(false)
 const showSavedPrompts = ref(false)
+const isSaving = ref(false)
 
 const savedPrompts = ref<Prompt[]>([])
+const saveFormRef = ref<FormInstance>()
+const promptToSave = ref<Partial<Prompt>>({
+  id: undefined,
+  name: '',
+  description: '',
+  tags: [],
+  models: [],
+  content: ''
+});
+
+// 计算属性
+const existingTags = computed(() => {
+  const tags = new Set<string>();
+  savedPrompts.value.forEach(p => {
+    p.tags?.forEach(t => tags.add(t));
+  });
+  return Array.from(tags);
+});
 
 // --- 生命周期钩子 ---
 onMounted(() => {
   fetchPrompts();
 
-  // 监听后端的流式数据事件
   EventsOn('prompt_pilot_stream', (data: { model: string; chunk: string }) => {
     if (data && data.model && data.chunk) {
-      renderedPrompt.value[data.model] += data.chunk;
+      renderedPrompt.value[data.model] = (renderedPrompt.value[data.model] || '') + data.chunk;
     }
   });
 
-  // 监听后端的错误事件
   EventsOn('prompt_pilot_stream_error', (data: { model: string; error: string }) => {
     if (data && data.model) {
       ElMessage.error(`模型 ${data.model} 生成失败: ${data.error}`);
@@ -164,7 +209,6 @@ onMounted(() => {
     }
   });
 
-  // 监听后端的完成事件
   EventsOn('prompt_pilot_stream_done', (data: { model: string }) => {
     if (data && data.model) {
       generatingModels.value[data.model] = false;
@@ -175,7 +219,6 @@ onMounted(() => {
 
 // --- 逻辑方法 ---
 
-// 检查是否所有模型都已生成完毕
 const checkAllModelsFinished = () => {
   const allDone = Object.values(generatingModels.value).every(status => !status);
   if (allDone) {
@@ -183,7 +226,6 @@ const checkAllModelsFinished = () => {
   }
 };
 
-// 监视 selectedModels 的变化，以更新 activePromptTab
 watch(selectedModels, (newModels) => {
   if (newModels.length > 0 && !newModels.includes(activePromptTab.value)) {
     activePromptTab.value = newModels[0]
@@ -192,7 +234,6 @@ watch(selectedModels, (newModels) => {
   }
 });
 
-// 触发后端开始生成
 const performStreamGeneration = async (model: string) => {
   generatingModels.value[model] = true;
   renderedPrompt.value[model] = '';
@@ -205,7 +246,6 @@ const performStreamGeneration = async (model: string) => {
   }
 }
 
-// 点击主“生成”按钮的函数
 const generatePrompt = async () => {
   if (isGenerating.value) return;
   if (!userIdea.value.trim() || selectedModels.value.length === 0 || !selectedServerId.value) {
@@ -214,26 +254,23 @@ const generatePrompt = async () => {
   }
 
   isGenerating.value = true;
-  // 重置状态
   generatingModels.value = {};
   selectedModels.value.forEach(model => {
     generatingModels.value[model] = true;
   });
 
-  // 并行触发所有模型的生成
   selectedModels.value.forEach(model => {
     performStreamGeneration(model);
   });
 }
 
-// 点击“重新生成”按钮的函数
 const regenerateSinglePrompt = async (model: string) => {
   if (isGenerating.value) {
     ElMessage.warning('正在等待所有模型生成完成，请稍后再试。');
     return;
   }
   isGenerating.value = true;
-  generatingModels.value = { [model]: true };
+  generatingModels.value = {[model]: true};
   await performStreamGeneration(model);
 }
 
@@ -248,16 +285,37 @@ const copyPrompt = (model: string) => {
   }
 }
 
+const copySaveDrawerContent = () => {
+  if (promptToSave.value.content) {
+    navigator.clipboard.writeText(promptToSave.value.content).then(() => {
+      ElMessage.success('内容已复制到剪贴板')
+    }).catch(err => {
+      ElMessage.error('复制失败: ' + err)
+    })
+  }
+}
+
 const openOptimizeDrawer = () => {
   showOptimizeDrawer.value = true
 }
 
-const openSaveDrawer = () => {
-  // 这里可以预填一些保存表单的数据
-  showSaveDrawer.value = true
+const openSaveDrawer = (existingPrompt: Prompt | null) => {
+  if (existingPrompt) {
+    // 编辑模式: 深拷贝以避免意外修改原始列表中的数据
+    promptToSave.value = JSON.parse(JSON.stringify(existingPrompt));
+  } else {
+    // 新建模式
+    promptToSave.value = {
+      id: undefined,
+      name: userIdea.value.substring(0, 20) || '',
+      description: '',
+      tags: [],
+      models: [...selectedModels.value],
+      content: renderedPrompt.value[activePromptTab.value] || ''
+    };
+  }
+  showSaveDrawer.value = true;
 }
-
-// --- 已保存的Prompt相关逻辑 ---
 
 const fetchPrompts = async () => {
   try {
@@ -267,139 +325,130 @@ const fetchPrompts = async () => {
   }
 };
 
-const handleSavePrompt = async (promptToSave: Prompt) => {
-  try {
-    await SavePrompt(promptToSave);
-    ElMessage.success('Prompt保存成功');
-    await fetchPrompts(); // 刷新列表
-  } catch (error: any) {
-    ElMessage.error('保存Prompt失败: ' + error.message);
-  }
+const executeSaveFromDrawer = async () => {
+  if (!saveFormRef.value) return;
+  await saveFormRef.value.validate(async (valid) => {
+    if (valid) {
+      isSaving.value = true;
+      try {
+        await SavePrompt(promptToSave.value as Prompt);
+        ElMessage.success(promptToSave.value.id ? 'Prompt更新成功' : 'Prompt保存成功');
+        await fetchPrompts();
+        showSaveDrawer.value = false;
+      } catch (error: any) {
+        ElMessage.error('保存Prompt失败: ' + error.message);
+      } finally {
+        isSaving.value = false;
+      }
+    }
+  });
 };
 
-const handleDeletePrompt = async (id: string) => {
+const handleEditPrompt = (prompt: Prompt) => {
+  openSaveDrawer(prompt);
+  showSavedPrompts.value = false; // 关闭列表抽屉
+}
+
+const handleDeletePrompt = async (prompt: Prompt) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个Prompt吗？', '警告', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
-    await DeletePrompt(id);
+    await ElMessageBox.confirm(
+        `您确定要删除 “${prompt.name}” 吗？`, // <--- 修改在这里
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+    );
+    await DeletePrompt(prompt.id);
     ElMessage.success('Prompt删除成功');
-    await fetchPrompts(); // 刷新列表
+    await fetchPrompts();
   } catch (error) {
-    // 如果用户点击取消，会进入catch，但我们不需要显示错误信息
     if (error !== 'cancel') {
-      ElMessage.error('删除Prompt失败: ' + error);
+      ElMessage.error('删除Prompt失败: ' + String(error));
     }
   }
 };
 
 const handlePreviewPrompt = (prompt: Prompt) => {
-  // 将预览的Prompt内容填充到当前激活的tab中
   if (activePromptTab.value) {
     renderedPrompt.value[activePromptTab.value] = prompt.content;
     ElMessage.info(`已将Prompt“${prompt.name}”的内容加载到当前视图`);
   } else {
     ElMessage.warning('请先选择一个模型以加载Prompt内容');
   }
-  showSavedPrompts.value = false; // 关闭抽屉
+  showSavedPrompts.value = false;
 };
 
 </script>
 
 <style>
-/* Global style for the dropdown */
 .left-aligned-dropdown .el-select-dropdown__item {
   justify-content: flex-start !important;
 }
 </style>
 
 <style scoped>
+.prompt-pilot, .main-content, .prompt-display-section, .prompt-content-container, .prompt-tabs, .prompt-tab-pane, .prompt-content, .prompt-raw-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .prompt-pilot {
   height: 100%;
   padding: 20px;
   box-sizing: border-box;
   background-color: #f4f5f7;
-  display: flex;
-  flex-direction: column;
 }
-.main-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+
+.main-content, .prompt-display-section, .prompt-content-container, .prompt-tabs, .prompt-tab-pane, .prompt-content, .prompt-raw-content-wrapper {
   flex: 1;
-  min-height: 0;
 }
+
+.main-content {
+  gap: 20px;
+}
+
 .idea-input-section {
   background-color: #fff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
 }
+
 .controls-container {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* 实现左右对齐 */
+  justify-content: space-between;
   margin-top: 15px;
 }
+
 .prompt-display-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   background-color: #fff;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
-  min-height: 0;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
+
 .section-title {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 15px;
   color: #333;
 }
+
 .prompt-content-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  min-height: 0;
 }
-.prompt-tabs {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+
 .prompt-tabs > :deep(.el-tabs__content) {
   flex: 1;
   padding: 15px;
-  min-height: 0;
-}
-.prompt-tab-pane {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-.prompt-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.6;
-  min-height: 0;
-}
-.prompt-raw-content-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  min-height: 0;
-}
 pre.prompt-raw-content {
   white-space: pre-wrap;
   word-break: break-word;
@@ -410,10 +459,9 @@ pre.prompt-raw-content {
   border-radius: 4px;
   padding: 15px;
   margin: 0;
-  flex: 1;
   overflow-y: auto;
-  text-align: left;
 }
+
 .prompt-actions {
   position: absolute;
   top: 5px;
@@ -421,7 +469,8 @@ pre.prompt-raw-content {
   display: flex;
   gap: 8px;
 }
-.empty-state {
+
+.empty-state, .generating-indicator {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -429,31 +478,37 @@ pre.prompt-raw-content {
   color: #909399;
   font-size: 14px;
 }
-.action-buttons-footer {
-  margin-top: 15px;
+
+.action-buttons-footer, .save-drawer-footer {
   text-align: right;
+  margin-top: 15px;
   flex-shrink: 0;
 }
-.generating-indicator {
+
+.save-drawer-content {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  font-size: 16px;
-  color: #4a5568;
+  flex-direction: column;
+  height: 100%;
 }
-.generating-indicator .dot {
-  width: 8px;
-  height: 8px;
-  background-color: #a0aec0;
-  border-radius: 50%;
-  margin: 0 4px;
-  animation: bounce 1.5s infinite;
+
+.save-drawer-content .el-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px;
 }
-.generating-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
-.generating-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+.left-aligned-item :deep(.el-form-item__content) {
+  justify-content: flex-start;
 }
+
+.content-preview-item {
+  position: relative;
+}
+
+.content-copy-btn {
+  position: absolute;
+  top: 0px;
+  right: 5px;
+}
+
 </style>

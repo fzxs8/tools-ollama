@@ -1,12 +1,13 @@
 <template>
   <el-drawer
-    v-model="visible"
-    title="已保存的Prompt"
+    :model-value="props.visible"
+    title="我的提示词"
     direction="rtl"
     size="40%"
+    @update:modelValue="closeDrawer"
   >
     <div class="saved-prompts-container">
-      <el-empty v-if="prompts.length === 0" description="暂无保存的Prompt" />
+      <el-empty v-if="!prompts || prompts.length === 0" description="没有提示词呢" />
       
       <div v-else class="prompts-list">
         <div 
@@ -36,7 +37,7 @@
               <el-button 
                 type="danger" 
                 link 
-                @click="deletePrompt(prompt.id)"
+                @click="deletePrompt(prompt)"
                 size="small"
               >
                 删除
@@ -71,86 +72,26 @@
               </el-tag>
             </div>
             <div class="prompt-time">
-              创建于 {{ formatTime(prompt.createdAt) }}
+              更新于 {{ formatTime(prompt.updatedAt) }}
             </div>
           </div>
           
-          <div class="prompt-content-preview">
-            {{ truncateContent(prompt.content, 100) }}
+          <div class="prompt-content-preview-wrapper">
+            <pre class="prompt-content-preview">{{ truncateContent(prompt.content, 100) }}</pre>
+            <el-button class="preview-copy-btn" type="primary" link @click="copyPromptContent(prompt.content)">复制</el-button>
           </div>
         </div>
       </div>
     </div>
   </el-drawer>
-  
-  <!-- 编辑Prompt对话框 -->
-  <el-dialog
-    v-model="showEditDialog"
-    :title="editingPrompt ? '编辑Prompt' : '新增Prompt'"
-    width="600px"
-  >
-    <el-form :model="promptForm" label-width="80px">
-      <el-form-item label="名称">
-        <el-input v-model="promptForm.name" placeholder="请输入Prompt名称" />
-      </el-form-item>
-      <el-form-item label="描述">
-        <el-input 
-          v-model="promptForm.description" 
-          type="textarea" 
-          placeholder="请输入描述（可选）" 
-          :rows="2" />
-      </el-form-item>
-      <el-form-item label="标签">
-        <el-select
-          v-model="promptForm.tags"
-          multiple
-          filterable
-          allow-create
-          default-first-option
-          placeholder="请输入标签，可创建新标签"
-          style="width: 100%">
-          <el-option
-            v-for="tag in allTags"
-            :key="tag"
-            :label="tag"
-            :value="tag">
-          </el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="内容">
-        <el-input
-          v-model="promptForm.content"
-          type="textarea"
-          placeholder="请输入Prompt内容"
-          :rows="6"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="showEditDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveEditedPrompt">保存</el-button>
-      </span>
-    </template>
-  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { main } from "../../../../wailsjs/go/models";
+import {ElMessage} from "element-plus";
 
-interface Prompt {
-  id: string
-  name: string
-  content: string
-  description: string
-  createdAt: number
-  updatedAt: number
-  models: string[]
-  version: number
-  tags: string[]
-  createdBy: string
-}
+// 类型定义
+type Prompt = main.Prompt;
 
 const props = defineProps<{
   visible: boolean
@@ -161,40 +102,12 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'preview', prompt: Prompt): void
   (e: 'edit', prompt: Prompt): void
-  (e: 'delete', id: string): void
-  (e: 'save', prompt: Prompt): void
+  (e: 'delete', prompt: Prompt): void
 }>()
 
-// 响应式数据
-const visible = ref(false)
-const showEditDialog = ref(false)
-const editingPrompt = ref<Prompt | null>(null)
-
-const promptForm = ref({
-  name: '',
-  description: '',
-  tags: [] as string[],
-  content: ''
-})
-
-// 计算所有标签的集合
-const allTags = computed(() => {
-  const tagsSet = new Set<string>()
-  props.prompts.forEach(prompt => {
-    prompt.tags.forEach(tag => tagsSet.add(tag))
-  })
-  return Array.from(tagsSet)
-})
-
-// 监听visible属性变化
-watch(() => props.visible, (newVal) => {
-  visible.value = newVal
-})
-
-// 监听visible值变化并更新父组件
-watch(visible, (newVal) => {
-  emit('update:visible', newVal)
-})
+const closeDrawer = () => {
+  emit('update:visible', false);
+}
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
@@ -204,7 +117,18 @@ const formatTime = (timestamp: number) => {
 
 // 截断内容
 const truncateContent = (content: string, length: number) => {
+  if (!content) return '';
   return content.length > length ? content.substring(0, length) + '...' : content
+}
+
+const copyPromptContent = (content: string) => {
+  if (content) {
+    navigator.clipboard.writeText(content).then(() => {
+      ElMessage.success('内容已复制到剪贴板')
+    }).catch(err => {
+      ElMessage.error('复制失败: ' + err)
+    })
+  }
 }
 
 // 预览Prompt
@@ -214,50 +138,14 @@ const previewPrompt = (prompt: Prompt) => {
 
 // 编辑Prompt
 const editPrompt = (prompt: Prompt) => {
-  editingPrompt.value = prompt
-  promptForm.value = {
-    name: prompt.name,
-    description: prompt.description,
-    tags: [...prompt.tags],
-    content: prompt.content
-  }
-  showEditDialog.value = true
+  emit('edit', prompt)
 }
 
 // 删除Prompt
-const deletePrompt = (id: string) => {
-  emit('delete', id)
+const deletePrompt = (prompt: Prompt) => {
+  emit('delete', prompt)
 }
 
-// 保存编辑的Prompt
-const saveEditedPrompt = () => {
-  if (!promptForm.value.name.trim()) {
-    ElMessage.warning('请输入Prompt名称')
-    return
-  }
-  
-  if (!promptForm.value.content.trim()) {
-    ElMessage.warning('请输入Prompt内容')
-    return
-  }
-  
-  const updatedPrompt: Prompt = {
-    id: editingPrompt.value?.id || Date.now().toString(),
-    name: promptForm.value.name,
-    description: promptForm.value.description,
-    tags: [...promptForm.value.tags],
-    content: promptForm.value.content,
-    models: editingPrompt.value?.models || [],
-    createdAt: editingPrompt.value?.createdAt || Date.now(),
-    updatedAt: Date.now(),
-    version: editingPrompt.value?.version ? editingPrompt.value.version + 1 : 1,
-    createdBy: editingPrompt.value?.createdBy || 'user'
-  }
-  
-  emit('save', updatedPrompt)
-  showEditDialog.value = false
-  ElMessage.success(editingPrompt.value ? 'Prompt更新成功' : 'Prompt创建成功')
-}
 </script>
 
 <style scoped>
@@ -270,6 +158,7 @@ const saveEditedPrompt = () => {
 .prompts-list {
   flex: 1;
   overflow-y: auto;
+  padding-right: 10px; /* for scrollbar */
 }
 
 .prompt-item {
@@ -329,7 +218,11 @@ const saveEditedPrompt = () => {
   color: #999;
 }
 
-.prompt-content-preview {
+.prompt-content-preview-wrapper {
+  position: relative;
+}
+
+pre.prompt-content-preview {
   font-size: 13px;
   color: #555;
   background-color: #f8f9fa;
@@ -338,5 +231,14 @@ const saveEditedPrompt = () => {
   white-space: pre-wrap;
   line-height: 1.5;
   border: 1px solid #eee;
+  margin: 0;
+}
+
+.preview-copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px; /* Changed from left to right */
+  padding: 2px;
+  font-size: 12px;
 }
 </style>
