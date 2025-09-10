@@ -7,3 +7,4 @@ frontend/dist
 /duola.dat
 /ollama-client.db
 /tools-ollama
+/frontend/wailsjs/

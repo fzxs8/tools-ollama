@@ -18,12 +18,20 @@ export function DeleteModel(arg1) {
   return window['go']['main']['App']['DeleteModel'](arg1);
 }
 
+export function DeletePrompt(arg1) {
+  return window['go']['main']['App']['DeletePrompt'](arg1);
+}
+
 export function DeleteRemoteServer(arg1) {
   return window['go']['main']['App']['DeleteRemoteServer'](arg1);
 }
 
 export function DownloadModel(arg1, arg2) {
   return window['go']['main']['App']['DownloadModel'](arg1, arg2);
+}
+
+export function GeneratePromptStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GeneratePromptStream'](arg1, arg2, arg3);
 }
 
 export function GetActiveServer() {
@@ -44,6 +52,10 @@ export function GetModelParams(arg1) {
 
 export function GetOllamaServerConfig() {
   return window['go']['main']['App']['GetOllamaServerConfig']();
+}
+
+export function GetPrompt(arg1) {
+  return window['go']['main']['App']['GetPrompt'](arg1);
 }
 
 export function GetRemoteServers() {
@@ -74,8 +86,16 @@ export function ListModelsByServer(arg1) {
   return window['go']['main']['App']['ListModelsByServer'](arg1);
 }
 
+export function ListPrompts() {
+  return window['go']['main']['App']['ListPrompts']();
+}
+
 export function OpenInBrowser(arg1) {
   return window['go']['main']['App']['OpenInBrowser'](arg1);
+}
+
+export function OptimizePrompt(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['OptimizePrompt'](arg1, arg2, arg3, arg4);
 }
 
 export function RunModel(arg1, arg2) {
@@ -92,6 +112,10 @@ export function SaveLocalServerTestStatus(arg1) {
 
 export function SaveOllamaServerConfig(arg1) {
   return window['go']['main']['App']['SaveOllamaServerConfig'](arg1);
+}
+
+export function SavePrompt(arg1) {
+  return window['go']['main']['App']['SavePrompt'](arg1);
 }
 
 export function SearchOnlineModels(arg1) {

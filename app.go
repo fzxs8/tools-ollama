@@ -34,7 +34,7 @@ type Conversation struct {
 	Timestamp    int64     `json:"timestamp"`
 }
 
-// ListModelsResponse 模型列表响应
+// ListModelsResponse 模型列表响应1
 type ListModelsResponse struct {
 	Models []Model `json:"models"`
 }
@@ -62,6 +62,7 @@ type App struct {
 	chatManager  *ChatManager
 	modelManager *ModelManager
 	modelMarket  *ModelMarket
+	promptPilot  *PromptPilot // 添加 PromptPilot
 	httpClient   *core.HttpCli
 	store        *duolasdk.AppStore
 	aiProvider   interface {
@@ -87,6 +88,9 @@ func NewApp() *App {
 
 	// 初始化聊天管理器
 	app.chatManager = NewChatManager(context.Background(), store)
+
+	// 初始化 PromptPilot
+	app.promptPilot = NewPromptPilot(store, app.configMgr)
 
 	// 获取活动服务器配置
 	activeServer, err := app.configMgr.GetActiveServer()
@@ -133,7 +137,42 @@ func (a *App) startup(ctx context.Context) {
 	a.modelManager.SetContext(ctx)
 	a.modelMarket.SetContext(ctx)
 	a.chatManager.SetContext(ctx)
+	a.promptPilot.Startup(ctx) // 启动 PromptPilot
 }
+
+// --- PromptPilot Methods ---
+
+// GeneratePromptStream 异步流式生成一个提示词
+func (a *App) GeneratePromptStream(idea string, model string, serverId string) error {
+	return a.promptPilot.GeneratePromptStream(idea, model, serverId)
+}
+
+// OptimizePrompt 优化一个提示词
+func (a *App) OptimizePrompt(content string, feedback string, model string, serverId string) (string, error) {
+	return a.promptPilot.OptimizePrompt(content, feedback, model, serverId)
+}
+
+// SavePrompt 保存一个提示词到存储
+func (a *App) SavePrompt(prompt Prompt) error {
+	return a.promptPilot.SavePrompt(prompt)
+}
+
+// ListPrompts 返回所有已保存的提示词
+func (a *App) ListPrompts() ([]Prompt, error) {
+	return a.promptPilot.ListPrompts()
+}
+
+// GetPrompt 根据ID返回一个特定的提示词
+func (a *App) GetPrompt(id string) (Prompt, error) {
+	return a.promptPilot.GetPrompt(id)
+}
+
+// DeletePrompt 根据ID删除一个提示词
+func (a *App) DeletePrompt(id string) error {
+	return a.promptPilot.DeletePrompt(id)
+}
+
+// --- End PromptPilot Methods ---
 
 // KVSet 设置键值对
 func (a *App) KVSet(key, value string) error {

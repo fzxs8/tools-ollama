@@ -10,9 +10,13 @@ export function DeleteConversation(arg1:string):Promise<void>;
 
 export function DeleteModel(arg1:string):Promise<void>;
 
+export function DeletePrompt(arg1:string):Promise<void>;
+
 export function DeleteRemoteServer(arg1:string):Promise<void>;
 
 export function DownloadModel(arg1:string,arg2:string):Promise<void>;
+
+export function GeneratePromptStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function GetActiveServer():Promise<main.OllamaServerConfig>;
 
@@ -23,6 +27,8 @@ export function GetLocalServerTestStatus():Promise<string>;
 export function GetModelParams(arg1:string):Promise<Record<string, any>>;
 
 export function GetOllamaServerConfig():Promise<string>;
+
+export function GetPrompt(arg1:string):Promise<main.Prompt>;
 
 export function GetRemoteServers():Promise<Array<main.OllamaServerConfig>>;
 
@@ -38,7 +44,11 @@ export function ListConversations():Promise<Array<main.Conversation>>;
 
 export function ListModelsByServer(arg1:string):Promise<Array<main.Model>>;
 
+export function ListPrompts():Promise<Array<main.Prompt>>;
+
 export function OpenInBrowser(arg1:string):Promise<void>;
+
+export function OptimizePrompt(arg1:string,arg2:string,arg3:string,arg4:string):Promise<string>;
 
 export function RunModel(arg1:string,arg2:Record<string, any>):Promise<void>;
 
@@ -47,6 +57,8 @@ export function SaveConversation(arg1:main.Conversation):Promise<main.Conversati
 export function SaveLocalServerTestStatus(arg1:string):Promise<void>;
 
 export function SaveOllamaServerConfig(arg1:string):Promise<void>;
+
+export function SavePrompt(arg1:main.Prompt):Promise<void>;
 
 export function SearchOnlineModels(arg1:string):Promise<Array<any>>;
 

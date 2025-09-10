@@ -54,6 +54,31 @@ func (o *OllamaConfigManager) GetLocalConfig() (OllamaServerConfig, error) {
 	return config, nil
 }
 
+// GetLocalConfigPtr 获取本地配置的指针
+func (o *OllamaConfigManager) GetLocalConfigPtr() (*OllamaServerConfig, error) {
+	config, err := o.GetLocalConfig()
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+// GetRemoteServerByID 根据ID获取远程服务器配置
+func (o *OllamaConfigManager) GetRemoteServerByID(serverID string) (*OllamaServerConfig, error) {
+	servers, err := o.GetRemoteServers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, server := range servers {
+		if server.ID == serverID {
+			return &server, nil
+		}
+	}
+
+	return nil, fmt.Errorf("找不到ID为 %s 的远程服务器", serverID)
+}
+
 // SaveRemoteServers 保存远程服务器列表
 func (o *OllamaConfigManager) SaveRemoteServers(servers []OllamaServerConfig) error {
 	key := "ollama_config:remote_servers"

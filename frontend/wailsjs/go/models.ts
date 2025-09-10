@@ -1,40 +1,5 @@
-export namespace core {
-	
-	export class HttpCli {
-	
-	
-	    static createFrom(source: any = {}) {
-	        return new HttpCli(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	
-	    }
-	}
-
-}
-
 export namespace main {
 	
-	export class ChatSystemPrompt {
-	    id: string;
-	    title: string;
-	    prompt: string;
-	    createdAt: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new ChatSystemPrompt(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.title = source["title"];
-	        this.prompt = source["prompt"];
-	        this.createdAt = source["createdAt"];
-	    }
-	}
 	export class Message {
 	    role: string;
 	    content: string;
@@ -116,28 +81,6 @@ export namespace main {
 	        this.is_running = source["is_running"];
 	    }
 	}
-	export class ModelParams {
-	    temperature: number;
-	    top_p: number;
-	    top_k: number;
-	    context: number;
-	    num_predict: number;
-	    repeat_penalty: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new ModelParams(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.temperature = source["temperature"];
-	        this.top_p = source["top_p"];
-	        this.top_k = source["top_k"];
-	        this.context = source["context"];
-	        this.num_predict = source["num_predict"];
-	        this.repeat_penalty = source["repeat_penalty"];
-	    }
-	}
 	export class OllamaServerConfig {
 	    id: string;
 	    name: string;
@@ -190,30 +133,6 @@ export namespace main {
 	        this.version = source["version"];
 	        this.tags = source["tags"];
 	        this.createdBy = source["createdBy"];
-	    }
-	}
-	export class Server {
-	    id: string;
-	    name: string;
-	    base_url: string;
-	    api_key: string;
-	    is_active: boolean;
-	    test_status: string;
-	    type: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new Server(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.base_url = source["base_url"];
-	        this.api_key = source["api_key"];
-	        this.is_active = source["is_active"];
-	        this.test_status = source["test_status"];
-	        this.type = source["type"];
 	    }
 	}
 

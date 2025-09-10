@@ -6,7 +6,7 @@ PromptPilot是一个专门用于提示词工程的模块，帮助用户创建、
 ## 主要功能
 1. **提示词生成**：
    - 用户输入想法，系统基于选定模型和服务流式生成初始Prompt
-   - 支持实时展示生成过程
+   - 支持实时展示生成过程（通过Wails事件流式传输）
 
 2. **提示词调优**：
    - 提供快速优化功能
@@ -80,7 +80,7 @@ PromptPilot是一个专门用于提示词工程的模块，帮助用户创建、
 
 1. **Prompt处理**：
    - GeneratePrompt: 根据想法和模型生成Prompt
-   - GeneratePromptStream: 流式生成Prompt内容
+   - GeneratePromptStream: 流式生成Prompt内容（通过Wails事件发送数据块）
    - OptimizePrompt: 根据反馈优化Prompt
    - SavePrompt: 保存Prompt到存储
    - ListPrompts: 获取已保存的Prompt列表

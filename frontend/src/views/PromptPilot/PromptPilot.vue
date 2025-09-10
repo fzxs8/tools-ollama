@@ -19,7 +19,7 @@
             type="primary"
             @click="generatePrompt"
             :loading="isGenerating"
-            :disabled="selectedModels.length === 0 || !userIdea.trim() || !selectedServerId"
+            :disabled="isGenerating || selectedModels.length === 0 || !userIdea.trim() || !selectedServerId"
           >
             生成
           </el-button>
@@ -38,7 +38,7 @@
               :name="model"
             >
               <div class="prompt-content">
-                <div v-if="isGenerating && activePromptTab === model" class="generating-indicator">
+                <div v-if="generatingModels[model]" class="generating-indicator">
                   <span>正在生成</span>
                   <div class="dot"></div>
                   <div class="dot"></div>
@@ -52,8 +52,18 @@
                       link
                       @click="copyPrompt(model)"
                       size="small"
+                      :disabled="generatingModels[model] || !renderedPrompt[model]"
                     >
                       复制
+                    </el-button>
+                    <el-button
+                      type="primary"
+                      link
+                      @click="regenerateSinglePrompt(model)"
+                      size="small"
+                      :disabled="isGenerating"
+                    >
+                      重新生成
                     </el-button>
                   </div>
                 </div>
@@ -67,19 +77,19 @@
 
         <div class="action-buttons-footer">
           <el-button
-            @click="optimizePrompt"
+            @click="openOptimizeDrawer"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
             优化
           </el-button>
           <el-button
             type="success"
-            @click="savePrompt"
+            @click="openSaveDrawer"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
             保存
           </el-button>
-          <el-button @click="showSavedPrompts = true">
+          <el-button @click="showSavedPrompts = true" :disabled="isGenerating">
             已保存
           </el-button>
         </div>
@@ -95,22 +105,35 @@
       <!-- ...抽屉内容... -->
     </el-drawer>
 
-    <SavedPromptsDrawer v-model:visible="showSavedPrompts" />
+    <SavedPromptsDrawer
+      v-model:visible="showSavedPrompts"
+      :prompts="savedPrompts"
+      @delete="handleDeletePrompt"
+      @save="handleSavePrompt"
+      @preview="handlePreviewPrompt"
+    />
 
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import {onMounted, ref, watch} from 'vue'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import ModelSelector from './components/ModelSelector.vue'
 import SavedPromptsDrawer from './components/SavedPromptsDrawer.vue'
+import {EventsOn} from "../../../wailsjs/runtime";
+import {main} from "../../../wailsjs/go/models";
+import {DeletePrompt, GeneratePromptStream, ListPrompts, SavePrompt} from "../../../wailsjs/go/main/App";
+
+// 类型定义
+type Prompt = main.Prompt;
 
 // 响应式数据
 const selectedServerId = ref('')
 const selectedModels = ref<string[]>([])
 const userIdea = ref('')
 const isGenerating = ref(false)
+const generatingModels = ref<Record<string, boolean>>({})
 const activePromptTab = ref('')
 const renderedPrompt = ref<Record<string, string>>({})
 
@@ -118,8 +141,49 @@ const showOptimizeDrawer = ref(false)
 const showSaveDrawer = ref(false)
 const showSavedPrompts = ref(false)
 
+const savedPrompts = ref<Prompt[]>([])
+
+// --- 生命周期钩子 ---
+onMounted(() => {
+  fetchPrompts();
+
+  // 监听后端的流式数据事件
+  EventsOn('prompt_pilot_chunk', (data: { model: string; chunk: string }) => {
+    if (data && data.model && data.chunk) {
+      renderedPrompt.value[data.model] += data.chunk;
+    }
+  });
+
+  // 监听后端的错误事件
+  EventsOn('prompt_pilot_error', (data: { model: string; error: string }) => {
+    if (data && data.model) {
+      ElMessage.error(`模型 ${data.model} 生成失败: ${data.error}`);
+      generatingModels.value[data.model] = false;
+      checkAllModelsFinished();
+    }
+  });
+
+  // 监听后端的完成事件
+  EventsOn('prompt_pilot_done', (data: { model: string }) => {
+    if (data && data.model) {
+      generatingModels.value[data.model] = false;
+      checkAllModelsFinished();
+    }
+  });
+});
+
+// --- 逻辑方法 ---
+
+// 检查是否所有模型都已生成完毕
+const checkAllModelsFinished = () => {
+  const allDone = Object.values(generatingModels.value).every(status => !status);
+  if (allDone) {
+    isGenerating.value = false;
+  }
+};
+
 // 监视 selectedModels 的变化，以更新 activePromptTab
-watch(selectedModels, (newModels, oldModels) => {
+watch(selectedModels, (newModels) => {
   if (newModels.length > 0 && !newModels.includes(activePromptTab.value)) {
     activePromptTab.value = newModels[0]
   } else if (newModels.length === 0) {
@@ -127,36 +191,49 @@ watch(selectedModels, (newModels, oldModels) => {
   }
 });
 
+// 触发后端开始生成
+const performStreamGeneration = async (model: string) => {
+  generatingModels.value[model] = true;
+  renderedPrompt.value[model] = '';
+  try {
+    await GeneratePromptStream(userIdea.value, model, selectedServerId.value);
+  } catch (error: any) {
+    ElMessage.error(`调用模型 ${model} 失败: ${error.message || error}`);
+    generatingModels.value[model] = false;
+    checkAllModelsFinished();
+  }
+}
+
+// 点击主“生成”按钮的函数
 const generatePrompt = async () => {
+  if (isGenerating.value) return;
   if (!userIdea.value.trim() || selectedModels.value.length === 0 || !selectedServerId.value) {
-    ElMessage.warning('请输入想法，选择服务和至少一个模型')
-    return
+    ElMessage.warning('请输入想法，选择服务和至少一个模型');
+    return;
   }
 
-  isGenerating.value = true
-  renderedPrompt.value = {} // 清空之前的内容
-
-  // 模拟并行生成
-  const generationPromises = selectedModels.value.map(async (model) => {
-    renderedPrompt.value[model] = '' // 初始化为空
-    const samplePrompt = `作为 expert in prompt engineering, 请根据以下要求，为大语言模型（LLM）设计一个清晰、具体、结构化的 Prompt。\n\n## 原始需求\n${userIdea.value}\n\n## 设计要求\n1.  **角色（Role）**：明确定义 LLM 需要扮演的专家角色。\n2.  **任务（Task）**：清晰、分步骤地描述需要完成的核心任务。\n3.  **格式（Format）**：指定输出的格式，如 Markdown、JSON 等，并提供示例。\n4.  **约束（Constraint）**：提出明确的限制和要求，如内容风格、长度、禁止项等。\n5.  **示例（Example）**：提供一或两个输入/输出示例，帮助 LLM 理解期望。\n\n请只输出设计好的 Prompt 内容，不要包含任何额外的解释或对话。`
-    
-    // 模拟流式生成效果
-    for (let i = 0; i < samplePrompt.length; i++) {
-      renderedPrompt.value[model] += samplePrompt.charAt(i)
-      await new Promise(resolve => setTimeout(resolve, 5)) // 模拟打字效果
-    }
+  isGenerating.value = true;
+  // 重置状态
+  generatingModels.value = {};
+  selectedModels.value.forEach(model => {
+    generatingModels.value[model] = true;
   });
 
-  try {
-    await Promise.all(generationPromises);
-    ElMessage.success('Prompt生成完成')
-  } catch (error) {
-    ElMessage.error('生成过程中出现错误')
-    console.error(error)
-  } finally {
-    isGenerating.value = false
+  // 并行触发所有模型的生成
+  selectedModels.value.forEach(model => {
+    performStreamGeneration(model);
+  });
+}
+
+// 点击“重新生成”按钮的函数
+const regenerateSinglePrompt = async (model: string) => {
+  if (isGenerating.value) {
+    ElMessage.warning('正在等待所有模型生成完成，请稍后再试。');
+    return;
   }
+  isGenerating.value = true;
+  generatingModels.value = { [model]: true };
+  await performStreamGeneration(model);
 }
 
 const copyPrompt = (model: string) => {
@@ -170,15 +247,72 @@ const copyPrompt = (model: string) => {
   }
 }
 
-const optimizePrompt = () => {
+const openOptimizeDrawer = () => {
   showOptimizeDrawer.value = true
 }
 
-const savePrompt = () => {
+const openSaveDrawer = () => {
+  // 这里可以预填一些保存表单的数据
   showSaveDrawer.value = true
 }
 
+// --- 已保存的Prompt相关逻辑 ---
+
+const fetchPrompts = async () => {
+  try {
+    savedPrompts.value = await ListPrompts();
+  } catch (error: any) {
+    ElMessage.error('获取已保存的Prompt列表失败: ' + error.message);
+  }
+};
+
+const handleSavePrompt = async (promptToSave: Prompt) => {
+  try {
+    await SavePrompt(promptToSave);
+    ElMessage.success('Prompt保存成功');
+    await fetchPrompts(); // 刷新列表
+  } catch (error: any) {
+    ElMessage.error('保存Prompt失败: ' + error.message);
+  }
+};
+
+const handleDeletePrompt = async (id: string) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个Prompt吗？', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+    await DeletePrompt(id);
+    ElMessage.success('Prompt删除成功');
+    await fetchPrompts(); // 刷新列表
+  } catch (error) {
+    // 如果用户点击取消，会进入catch，但我们不需要显示错误信息
+    if (error !== 'cancel') {
+      ElMessage.error('删除Prompt失败: ' + error);
+    }
+  }
+};
+
+const handlePreviewPrompt = (prompt: Prompt) => {
+  // 将预览的Prompt内容填充到当前激活的tab中
+  if (activePromptTab.value) {
+    renderedPrompt.value[activePromptTab.value] = prompt.content;
+    ElMessage.info(`已将Prompt“${prompt.name}”的内容加载到当前视图`);
+  } else {
+    ElMessage.warning('请先选择一个模型以加载Prompt内容');
+  }
+  showSavedPrompts.value = false; // 关闭抽屉
+};
+
 </script>
+
+<style>
+/* Global style for the dropdown */
+.left-aligned-dropdown .el-select-dropdown__item {
+  justify-content: flex-start !important;
+}
+</style>
 
 <style scoped>
 .prompt-pilot {
@@ -269,6 +403,8 @@ pre.prompt-raw-content {
   position: absolute;
   top: 5px;
   right: 5px;
+  display: flex;
+  gap: 8px;
 }
 .empty-state {
   display: flex;
