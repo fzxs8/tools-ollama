@@ -165,11 +165,6 @@ const updateSelectedServer = (value: string) => {
   emit('update:selectedServer', value)
 }
 
-// 更新模型参数
-const updateModelParams = (value: ModelParams) => {
-  emit('update:modelParams', value)
-}
-
 // 更新温度参数
 const updateTemperature = (value: number) => {
   emit('update:modelParams', { ...props.modelParams, temperature: value })

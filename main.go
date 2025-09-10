@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/fzxs8/duolasdk"
+	"github.com/fzxs8/duolasdk/core"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -18,7 +21,21 @@ func main() {
 	// 设置信号处理，避免与GTK冲突
 	setupSignalHandling()
 
+	// Create an instance of the app structure
 	app := NewApp()
+
+	// Initialize storage
+	store := duolasdk.NewStore(
+		core.StoreOption{
+			FileName: "ollama-client.db",
+		})
+
+	// Create instances of other components
+	modelManager := NewModelManager(app)
+	chatManager := NewChatManager(app.ctx, store)
+	ollamaConfig := NewOllamaConfigManager(store)
+	modelMarket := NewModelMarket(app)
+	promptPilot := NewPromptPilot(store)
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -29,9 +46,28 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
+		OnStartup: func(ctx context.Context) {
+			app.startup(ctx)
+			modelManager.SetContext(ctx)
+			chatManager.SetContext(ctx)
+			//ollamaConfig.SetContext(ctx)
+			modelMarket.SetContext(ctx)
+			promptPilot.Startup(ctx)
+
+			// Set HTTP client for prompt pilot
+			promptPilot.SetHTTPClient(app.httpClient)
+
+			// 初始化日志
+			logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "main"})
+			logger.Info("Application started successfully")
+		},
 		Bind: []interface{}{
 			app,
+			modelManager,
+			chatManager,
+			ollamaConfig,
+			modelMarket,
+			promptPilot,
 		},
 	})
 

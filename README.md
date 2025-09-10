@@ -84,8 +84,8 @@ tools-ollama/
 
 1. [需求文档](docs/设计)
     - [通用文档](docs/设计/通用文档)
-    - [ModelManager 页面](docs/设计/ModelManager)
-    - [OllamaSettings 页面](docs/设计/OllamaSettings)
+    - [ModelManager 页面](docs/设计/mode_lmanager)
+    - [OllamaSettings 页面](docs/设计/ollama_settings)
 
 ## 许可证
 

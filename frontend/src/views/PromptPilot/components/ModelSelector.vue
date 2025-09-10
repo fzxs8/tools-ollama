@@ -1,97 +1,50 @@
 <template>
-  <el-card class="model-selector">
-    <template #header>
-      <div class="card-header">
-        <span>服务和模型选择</span>
-      </div>
-    </template>
-    
-    <!-- 服务选择 -->
-    <div class="server-selector">
-      <div class="section-title">选择服务</div>
-      <el-select 
-        v-model="selectedServerId" 
-        placeholder="请选择服务" 
-        style="width: 100%" 
-        @change="onServerChange"
-      >
-        <el-option
-          v-for="server in servers"
-          :key="server.id"
-          :label="server.name"
-          :value="server.id"
-        >
-          <span style="float: left">{{ server.name }}</span>
-          <span style="float: right; color: #8492a6; font-size: 13px">{{ server.baseUrl }}</span>
-        </el-option>
-      </el-select>
-    </div>
-    
-    <!-- 模型选择 -->
-    <div class="model-selector-section">
-      <div class="section-title">选择模型 (最多3个)</div>
-      <div v-if="isLoadingModels" class="loading-models">
-        <el-skeleton :rows="3" animated />
-      </div>
-      <div v-else>
-        <div 
-          v-for="model in models" 
-          :key="model.name"
-          class="model-item"
-          :class="{ selected: selectedModels.includes(model.name), disabled: selectedModels.length >= 3 && !selectedModels.includes(model.name) }"
-          @click="toggleModelSelection(model.name)"
-        >
-          <div class="model-info">
-            <div class="model-name">{{ model.name }}</div>
-            <div class="model-details">
-              <span class="model-size">{{ formatSize(model.size) }}</span>
-              <span class="model-date">{{ formatDate(model.modified_at) }}</span>
-            </div>
-          </div>
-          <div class="selection-indicator">
-            <el-icon v-if="selectedModels.includes(model.name)"><Check /></el-icon>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="selection-summary">
-      <el-tag 
-        v-for="model in selectedModels" 
-        :key="model" 
-        closable
-        @close="removeModel(model)"
-        style="margin-right: 5px; margin-bottom: 5px;"
-      >
-        {{ model }}
-      </el-tag>
-    </div>
-    
-    <div class="model-limit-tip">
-      最多可选择3个模型进行对比测试
-    </div>
-    
-    <!-- 超过限制时的提醒对话框 -->
-    <el-dialog
-      v-model="showLimitDialog"
-      title="提示"
-      width="300px"
+  <div class="model-selector-horizontal">
+    <el-select
+      v-model="props.selectedServer"
+      placeholder="选择服务"
+      class="selector-item"
+      popper-class="left-aligned-dropdown"
+      @change="onServerChange"
     >
-      <span>最多只能选择3个模型进行对比测试</span>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button type="primary" @click="showLimitDialog = false">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
-  </el-card>
+      <el-option
+        v-for="server in availableServers"
+        :key="server.id"
+        :label="server.name"
+        :value="server.id"
+      />
+    </el-select>
+    <el-select
+      v-model="props.selectedModels"
+      multiple
+      :multiple-limit="3"
+      collapse-tags
+      placeholder="选择模型 (最多3个)"
+      class="selector-item"
+      popper-class="left-aligned-dropdown"
+      @update:modelValue="updateSelectedModels"
+    >
+      <el-option
+        v-for="model in availableModels"
+        :key="model.name"
+        :label="model.name"
+        :value="model.name"
+      />
+    </el-select>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Check } from '@element-plus/icons-vue'
+import {
+  GetOllamaServerConfig,
+  GetRemoteServers,
+  GetActiveServer,
+  ListModelsByServer
+} from '../../../../wailsjs/go/main/App'
 
+// 定义接口
 interface Model {
   name: string
   size: number
@@ -101,193 +54,151 @@ interface Model {
 interface Server {
   id: string
   name: string
-  baseUrl: string
-  apiKey: string
-  isActive: boolean
-  testStatus: string
+  base_url: string
+  api_key: string
+  is_active: boolean
+  test_status: string
   type: string
 }
 
+// 定义 Props 和 Emits
 const props = defineProps<{
-  models: Model[]
-  servers: Server[]
+  selectedServer: string
   selectedModels: string[]
-  selectedServerId: string
-  isLoadingModels: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:selectedModels', models: string[]): void
-  (e: 'update:selectedServerId', serverId: string): void
-  (e: 'loadModels', serverId: string): void
+  (e: 'update:selectedServer', value: string): void
+  (e: 'update:selectedModels', value: string[]): void
 }>()
 
-// 响应式数据
-const showLimitDialog = ref(false)
-const selectedServerId = ref(props.selectedServerId)
+// 定义响应式状态
+const availableServers = ref<Server[]>([])
+const availableModels = ref<Model[]>([])
 
-// 格式化文件大小
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+// 更新选中的服务
+const updateSelectedServer = (value: string) => {
+  emit('update:selectedServer', value)
 }
 
-// 格式化日期
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN')
+// 更新选中的模型
+const updateSelectedModels = (value: string[]) => {
+  emit('update:selectedModels', value)
 }
 
-// 切换模型选择
-const toggleModelSelection = (modelName: string) => {
-  let newSelectedModels: string[]
-  
-  if (props.selectedModels.includes(modelName)) {
-    // 如果已选择，则移除
-    newSelectedModels = props.selectedModels.filter(name => name !== modelName)
-  } else {
-    // 如果未选择，检查是否已达到上限
-    if (props.selectedModels.length >= 3) {
-      // 达到上限时，显示提醒对话框
-      showLimitDialog.value = true
-      return
+// 加载可用服务
+const loadAvailableServers = async () => {
+  try {
+    const localBaseUrl = await GetOllamaServerConfig()
+    const localServer: Server = {
+      id: 'local',
+      name: '本地服务',
+      base_url: localBaseUrl,
+      api_key: '',
+      is_active: false, // 稍后会根据 GetActiveServer 更新
+      test_status: '',
+      type: 'local'
     }
-    // 未达到上限，直接添加
-    newSelectedModels = [...props.selectedModels, modelName]
+
+    let remoteServers: Server[] = []
+    try {
+      const remoteList: any[] = await GetRemoteServers()
+      if (remoteList) {
+        remoteServers = remoteList.map(server => ({
+          id: server.id || server.ID,
+          name: server.name || server.Name,
+          base_url: server.baseUrl || server.base_url || server.BaseURL,
+          api_key: server.apiKey || server.api_key || server.APIKey,
+          is_active: server.isActive !== undefined ? server.isActive : (server.is_active !== undefined ? server.is_active : server.IsActive),
+          test_status: server.testStatus || server.test_status || server.TestStatus || '',
+          type: server.type || server.Type || 'remote'
+        }))
+      }
+    } catch (remoteError) {
+      console.error('获取远程服务器列表失败:', remoteError)
+    }
+
+    const allServers = [localServer, ...remoteServers]
+    availableServers.value = allServers
+
+    try {
+      const activeServer = await GetActiveServer()
+      if (activeServer && activeServer.id && allServers.some(s => s.id === activeServer.id)) {
+        updateSelectedServer(activeServer.id)
+      } else {
+        updateSelectedServer('local')
+      }
+    } catch (e) {
+      updateSelectedServer('local')
+    }
+
+  } catch (error) {
+    console.error('加载服务配置失败:', error)
+    const localServer: Server = {
+      id: 'local',
+      name: '本地服务',
+      base_url: '',
+      api_key: '',
+      is_active: true,
+      test_status: '',
+      type: 'local'
+    };
+    availableServers.value = [localServer]
+    updateSelectedServer('local')
   }
-  
-  emit('update:selectedModels', newSelectedModels)
 }
 
-// 移除模型
-const removeModel = (modelName: string) => {
-  const newSelectedModels = props.selectedModels.filter(name => name !== modelName)
-  emit('update:selectedModels', newSelectedModels)
+// 根据服务加载模型
+const loadModelsForServer = async (serverId: string) => {
+  if (!serverId) return
+  try {
+    availableModels.value = await ListModelsByServer(serverId)
+  } catch (error: any) {
+    console.error(`获取模型列表失败 (服务ID: ${serverId}):`, error)
+    ElMessage.error('获取模型列表失败: ' + (error.message || error))
+    availableModels.value = []
+  }
 }
 
-// 服务变更处理
+// 当服务选择变化时
 const onServerChange = (serverId: string) => {
-  selectedServerId.value = serverId
-  emit('update:selectedServerId', serverId)
-  emit('loadModels', serverId)
+  updateSelectedServer(serverId)
+  // 清空已选模型
+  updateSelectedModels([])
+  loadModelsForServer(serverId)
 }
 
-onMounted(() => {
-  // 如果有选中的服务，加载模型
-  if (props.selectedServerId) {
-    emit('loadModels', props.selectedServerId)
+// 监视 selectedServer 的变化
+watch(() => props.selectedServer, (newServerId, oldServerId) => {
+  if (newServerId && newServerId !== oldServerId) {
+    loadModelsForServer(newServerId)
+  }
+})
+
+// 组件挂载时加载
+onMounted(async () => {
+  await loadAvailableServers()
+  // 如果初始有 selectedServer，则加载模型
+  if (props.selectedServer) {
+    await loadModelsForServer(props.selectedServer)
   }
 })
 </script>
 
+<!-- Global style for the dropdown, placed in the component file for better organization -->
+<style>
+.left-aligned-dropdown .el-select-dropdown__item {
+  justify-content: flex-start !important;
+}
+</style>
+
 <style scoped>
-.model-selector {
-  height: 100%;
-}
-
-.model-selector :deep(.el-card__body) {
-  height: calc(100% - 60px);
-  overflow-y: auto;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 10px;
-  color: #606266;
-}
-
-.server-selector {
-  margin-bottom: 20px;
-}
-
-.model-selector-section {
-  margin-bottom: 20px;
-}
-
-.model-item {
+.model-selector-horizontal {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
+  gap: 10px;
 }
 
-.model-item:hover {
-  border-color: #409eff;
-  background-color: #f5f9ff;
-}
-
-.model-item.selected {
-  border-color: #409eff;
-  background-color: #ecf5ff;
-}
-
-.model-item.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.model-item.disabled:hover {
-  border-color: #e0e0e0;
-  background-color: transparent;
-}
-
-.model-info {
-  flex: 1;
-}
-
-.model-name {
-  font-weight: 500;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.model-details {
-  display: flex;
-  font-size: 12px;
-  color: #666;
-}
-
-.model-size {
-  margin-right: 15px;
-}
-
-.selection-indicator {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #d0d0d0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.model-item.selected .selection-indicator {
-  background-color: #409eff;
-  border-color: #409eff;
-  color: white;
-}
-
-.selection-summary {
-  min-height: 30px;
-  margin-bottom: 15px;
-}
-
-.model-limit-tip {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-}
-
-.loading-models {
-  padding: 10px 0;
+.selector-item {
+  width: 220px; /* 设置固定宽度 */
 }
 </style>

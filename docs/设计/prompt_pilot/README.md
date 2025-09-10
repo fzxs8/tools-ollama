@@ -35,7 +35,6 @@ PromptPilot是一个专门用于提示词工程的模块，帮助用户创建、
 ## 技术实现
 - 前端：Vue3 + TypeScript + Element Plus
 - 后端：Go + Wails框架
-- 存储：duolasdk存储功能
 - 通信：通过Wails桥接前后端交互
 
 ## 架构设计
@@ -43,108 +42,47 @@ PromptPilot是一个专门用于提示词工程的模块，帮助用户创建、
 ### 前端架构
 前端采用组件化设计，主要包含以下组件：
 
-1. **主容器组件**：PromptPilot.vue
-   - 负责整体状态管理
-   - 协调各子组件间通信
-   - 处理核心业务逻辑
+1. **主容器组件 (PromptPilot.vue)**：
+   - 负责整体页面布局和状态管理。
+   - 集成想法输入、内容展示和所有操作按钮。
+   - 协调各子组件间通信。
 
-2. **服务选择组件**：ServerSelector.vue
-   - 提供已配置服务选择功能
-   - 支持动态加载模型列表
+2. **服务与模型选择组件 (ModelSelector.vue)**：
+   - 提供服务和模型选择功能，以水平布局的形式集成在主容器中。
+   - 支持从已配置的Ollama服务中选择。
+   - 支持动态加载并选择多个模型（最多3个）。
 
-3. **模型选择组件**：ModelSelector.vue
-   - 提供模型和服务选择功能
-   - 支持多模型选择
-
-4. **想法输入组件**：IdeaInput.vue
-   - 处理用户想法输入
-   - 提供生成按钮
-
-5. **Prompt展示组件**：PromptDisplay.vue
-   - 展示生成的Prompt内容
-   - 支持流式展示效果
-
-6. **优化组件**：PromptOptimizer.vue
-   - 提供Prompt优化功能
-   - 支持用户反馈输入
-
-7. **管理抽屉组件**：PromptManagerDrawer.vue
-   - 展示和管理已保存的Prompt
-   - 提供测试预览、编辑保存和删除功能
-   - 支持标签管理功能
+3. **管理抽屉组件 (SavedPromptsDrawer.vue, etc.)**：
+   - 用于展示和管理已保存的Prompt、进行优化等。
+   - 以抽屉（Drawer）的形式从侧边滑出，提供流畅的交互体验。
 
 ### 后端架构
-后端基于PromptPilot结构体实现，主要功能包括：
-
-1. **Prompt生成**：
-   - GeneratePrompt: 生成Prompt
-   - GeneratePromptStream: 流式生成Prompt
-
-2. **Prompt优化**：
-   - OptimizePrompt: 优化Prompt
-   - OptimizePromptBatch: 批量优化Prompt
-
-3. **Prompt管理**：
-   - ListPrompts: 获取Prompt列表
-   - GetPrompt: 获取Prompt详情
-   - SavePrompt: 保存Prompt
-   - UpdatePrompt: 更新Prompt
-   - DeletePrompt: 删除Prompt
-
-4. **模型与服务管理**：
-   - ListModelsByServer: 获取模型列表
-   - GetServers: 获取服务器列表
-   - TestServerConnection: 测试服务器连接
-   - GetActiveServer: 获取激活的服务器
-
-5. **标签管理**：
-   - ListTags: 获取标签列表
-   - CreateTag: 创建标签
-   - DeleteTag: 删除标签
-
-## 开发规范
-
-### 代码规范
-1. 遵循Vue和TypeScript最佳实践
-2. 使用Element Plus组件库
-3. 保持代码风格一致性
-4. 添加必要的注释说明
-
-### 测试规范
-1. 关键业务逻辑需要单元测试
-2. 组件需要进行功能测试
-3. 接口需要进行集成测试
-
-### 文档规范
-1. 及时更新相关文档
-2. 保持文档与代码同步
-3. 提供清晰的使用说明
-
-## 部署与维护
-
-### 部署要求
-1. 需要安装Wails开发环境
-2. 需要配置相应的AI服务
-3. 需要duolasdk运行环境
-
-### 维护建议
-1. 定期备份Prompt数据
-2. 监控系统性能和错误日志
-3. 及时更新依赖库版本
+后端基于`prompt_pilot.go`实现，主要功能包括Prompt的生成、优化和管理。对于服务和模型的管理，则统一调用由`main/App.go`提供的公共函数，以确保配置的统一性。
 
 ## 界面设计特点
 
+### 紧凑的单栏布局
+- 摒弃了原有的三栏式设计，采用从上至下的单栏垂直布局，操作流程更清晰。
+- 核心交互区域集成为“想法输入及控制区”和“Prompt展示及操作区”。
+
+### 内联式控件栏
+- 将服务选择、模型选择和生成按钮整合到想法输入框下方的同一行控件栏中。
+- **服务/模型选择器** 居左，由两个固定宽度的下拉框组成。
+- **“生成”按钮** 居右，实现了视觉上的平衡和功能上的聚焦。
+
 ### 抽屉式交互
-- 采用抽屉式设计替代传统弹窗，提供更流畅的用户体验
-- 优化、保存和已保存功能均通过右侧抽屉实现
-- 抽屉支持平滑的滑入滑出动画效果
+- “优化”、“保存”和“已保存”等非核心功能均通过从右侧滑出的抽屉（Drawer）实现，保持了主界面的整洁。
 
-### 按钮布局优化
-- 操作按钮区域布局合理，按钮文字简洁明了
-- 「优化」、「保存」和「已保存」按钮并排显示
-- 主操作按钮「生成Prompt」位于输入区域下方
+## 后端功能实现
 
-### 响应式设计
-- 界面采用响应式布局，适配不同屏幕尺寸
-- 左侧服务和模型选择区域、中间主内容区域和右侧抽屉区域合理分配空间
-- 在小屏幕设备上自动调整布局以保证可用性
+### PromptPilot.go
+后端核心功能已通过`prompt_pilot.go`文件实现，包含以下主要功能：
+
+1. **Prompt处理**：
+   - GeneratePrompt: 根据想法和模型生成Prompt
+   - GeneratePromptStream: 流式生成Prompt内容
+   - OptimizePrompt: 根据反馈优化Prompt
+   - SavePrompt: 保存Prompt到存储
+   - ListPrompts: 获取已保存的Prompt列表
+
+所有后端接口均已实现并绑定到Wails应用中，可直接通过前端调用。

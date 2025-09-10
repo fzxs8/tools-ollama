@@ -1,13 +1,20 @@
 {
-  "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "ollama",
-  "outputfilename": "ollama",
+  "name": "tools-ollama",
+  "outputfilename": "tools-ollama",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "xiao.qiang",
-    "email": "xiaoqiang.li2125@chancegiver.com"
+    "name": "fzxs",
+    "email": "fzxs8@163.com"
+  },
+  " Info": {
+    "name": "tools-ollama",
+    "bundle": "com.fzxs.tools-ollama",
+    "version": "1.0.0",
+    "description": "tools-ollama",
+    "copyright": "Copyright.........",
+    "license": "MIT"
   }
 }
