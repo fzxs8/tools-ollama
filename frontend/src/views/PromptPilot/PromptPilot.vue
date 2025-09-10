@@ -36,6 +36,7 @@
               :key="model"
               :label="model"
               :name="model"
+              class="prompt-tab-pane"
             >
               <div class="prompt-content">
                 <div v-if="generatingModels[model]" class="generating-indicator">
@@ -352,7 +353,7 @@ const handlePreviewPrompt = (prompt: Prompt) => {
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
-  min-height: 0; /* flexbox 溢出修复 */
+  min-height: 0;
 }
 .section-title {
   font-size: 18px;
@@ -372,14 +373,14 @@ const handlePreviewPrompt = (prompt: Prompt) => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 .prompt-tabs > :deep(.el-tabs__content) {
   flex: 1;
-  height: 100%;
-  overflow-y: auto;
   padding: 15px;
+  min-height: 0;
 }
-.prompt-tabs > :deep(.el-tabs__content) > :deep(.el-tab-pane) {
+.prompt-tab-pane {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -390,12 +391,14 @@ const handlePreviewPrompt = (prompt: Prompt) => {
   display: flex;
   flex-direction: column;
   line-height: 1.6;
+  min-height: 0;
 }
 .prompt-raw-content-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
+  min-height: 0;
 }
 pre.prompt-raw-content {
   white-space: pre-wrap;
