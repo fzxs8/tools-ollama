@@ -148,14 +148,14 @@ onMounted(() => {
   fetchPrompts();
 
   // 监听后端的流式数据事件
-  EventsOn('prompt_pilot_chunk', (data: { model: string; chunk: string }) => {
+  EventsOn('prompt_pilot_stream', (data: { model: string; chunk: string }) => {
     if (data && data.model && data.chunk) {
       renderedPrompt.value[data.model] += data.chunk;
     }
   });
 
   // 监听后端的错误事件
-  EventsOn('prompt_pilot_error', (data: { model: string; error: string }) => {
+  EventsOn('prompt_pilot_stream_error', (data: { model: string; error: string }) => {
     if (data && data.model) {
       ElMessage.error(`模型 ${data.model} 生成失败: ${data.error}`);
       generatingModels.value[data.model] = false;
@@ -164,7 +164,7 @@ onMounted(() => {
   });
 
   // 监听后端的完成事件
-  EventsOn('prompt_pilot_done', (data: { model: string }) => {
+  EventsOn('prompt_pilot_stream_done', (data: { model: string }) => {
     if (data && data.model) {
       generatingModels.value[data.model] = false;
       checkAllModelsFinished();
@@ -375,14 +375,26 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 }
 .prompt-tabs > :deep(.el-tabs__content) {
   flex: 1;
+  height: 100%;
   overflow-y: auto;
   padding: 15px;
 }
-.prompt-content {
+.prompt-tabs > :deep(.el-tabs__content) > :deep(.el-tab-pane) {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   line-height: 1.6;
 }
 .prompt-raw-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
 }
 pre.prompt-raw-content {
@@ -395,7 +407,7 @@ pre.prompt-raw-content {
   border-radius: 4px;
   padding: 15px;
   margin: 0;
-  max-height: calc(100vh - 500px); /* 需要根据实际情况微调 */
+  flex: 1;
   overflow-y: auto;
   text-align: left;
 }

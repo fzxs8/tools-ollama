@@ -133,8 +133,8 @@ func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId s
 
 	// 4. 定义流式回调函数
 	callback := func(chunk string) {
-		p.logger.Debug("收到流式数据块: %s", chunk)
-		runtime.EventsEmit(p.ctx, "prompt_pilot_stream", chunk)
+		p.logger.Debug("收到流式数据块: %s (模型: %s)", chunk, model)
+		runtime.EventsEmit(p.ctx, "prompt_pilot_stream", map[string]string{"model": model, "chunk": chunk})
 	}
 
 	// 5. 调用核心库的 ChatStream 方法
@@ -142,11 +142,11 @@ func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId s
 	err = provider.ChatStream(model, coreMessages, callback)
 	if err != nil {
 		p.logger.Error("流式生成提示词失败: %v", err)
-		runtime.EventsEmit(p.ctx, "prompt_pilot_stream_error", err.Error())
+		runtime.EventsEmit(p.ctx, "prompt_pilot_stream_error", map[string]string{"model": model, "error": err.Error()})
 		return fmt.Errorf("调用Ollama服务失败: %w", err)
 	}
 
-	runtime.EventsEmit(p.ctx, "prompt_pilot_stream_done", "done")
+	runtime.EventsEmit(p.ctx, "prompt_pilot_stream_done", map[string]string{"model": model})
 	p.logger.Debug("提示词流式生成完成")
 	return nil
 }
