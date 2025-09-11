@@ -1,4 +1,4 @@
-<!-- FORCE UPDATE: 2025-09-10 19:50 PM -->
+<!-- FORCE UPDATE: 2025-09-10 20:10 PM -->
 <template>
   <div class="prompt-pilot">
     <div class="main-content">
@@ -352,7 +352,7 @@ const handleEditPrompt = (prompt: Prompt) => {
 const handleDeletePrompt = async (prompt: Prompt) => {
   try {
     await ElMessageBox.confirm(
-        `您确定要删除 “${prompt.name}” 吗？`, // <--- 修改在这里
+        `您确定要删除 “${prompt.name}” 吗？`,
         '警告',
         {
           confirmButtonText: '确定',
@@ -389,25 +389,21 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 </style>
 
 <style scoped>
-.prompt-pilot, .main-content, .prompt-display-section, .prompt-content-container, .prompt-tabs, .prompt-tab-pane, .prompt-content, .prompt-raw-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 .prompt-pilot {
   height: 100%;
   padding: 20px;
   box-sizing: border-box;
   background-color: #f4f5f7;
-}
-
-.main-content, .prompt-display-section, .prompt-content-container, .prompt-tabs, .prompt-tab-pane, .prompt-content, .prompt-raw-content-wrapper {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
+  min-height: 0;
 }
 
 .idea-input-section {
@@ -426,10 +422,14 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 }
 
 .prompt-display-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background-color: #fff;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  min-height: 0;
 }
 
 .section-title {
@@ -440,13 +440,50 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 }
 
 .prompt-content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
+  min-height: 0;
+}
+
+.prompt-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .prompt-tabs > :deep(.el-tabs__content) {
   flex: 1;
   padding: 15px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-tab-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.prompt-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.6;
+  min-height: 0;
+}
+
+.prompt-raw-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
 }
 
 pre.prompt-raw-content {
@@ -459,7 +496,10 @@ pre.prompt-raw-content {
   border-radius: 4px;
   padding: 15px;
   margin: 0;
+  flex: 1;
   overflow-y: auto;
+  text-align: left;
+  min-height: 0;
 }
 
 .prompt-actions {
