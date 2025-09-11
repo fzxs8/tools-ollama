@@ -2,12 +2,12 @@
   <el-card class="chat-container" style="flex: 1; display: flex; flex-direction: column;">
     <template #header>
       <div class="card-header">
-        <span>聊天界面{{ activeSystemPrompt ? ` - ${activeSystemPrompt.title}` : '' }}</span>
+        <span>聊天界面{{ activeSystemPrompt ? ` - ${activeSystemPrompt.name}` : '' }}</span>
         <div>
           <el-button @click="newConversation" style="margin-right: 10px;">新建对话</el-button>
           <el-button @click="showConversationHistory = true" style="margin-right: 10px;">历史对话</el-button>
           <el-button @click="clearChat" style="margin-right: 10px;">清空聊天</el-button>
-          <el-button @click="openSystemPromptDrawer">系统提示词</el-button>
+          <el-button @click="openSystemPromptDrawer">我的提示词</el-button>
         </div>
       </div>
     </template>
@@ -113,9 +113,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import MarkdownIt from 'markdown-it'
 import ConversationHistory from './ConversationHistory.vue'
+import {main} from "../../../../wailsjs/go/models";
 
 // 初始化Markdown解析器
 const md = new MarkdownIt({
@@ -124,17 +124,12 @@ const md = new MarkdownIt({
   typographer: true
 })
 
+type Prompt = main.Prompt;
+
 interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp?: number
-}
-
-interface SystemPrompt {
-  id: string
-  title: string
-  prompt: string
-  createdAt: number
 }
 
 interface Conversation {
@@ -150,7 +145,7 @@ interface Conversation {
 const props = defineProps<{
   messages: Message[]
   isThinking: boolean
-  activeSystemPrompt: SystemPrompt | null
+  activeSystemPrompt: Prompt | null
   conversations: Conversation[]
   activeConversationId: string
 }>()

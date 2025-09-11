@@ -134,9 +134,10 @@
       </div>
     </el-drawer>
 
-    <SavedPromptsDrawer
+    <CommonPromptDrawer
       v-model:visible="showSavedPrompts"
       :prompts="savedPrompts"
+      mode="manage"
       @delete="handleDeletePrompt"
       @edit="handleEditPrompt"
       @preview="handlePreviewPrompt"
@@ -149,7 +150,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
 import ModelSelector from './components/ModelSelector.vue'
-import SavedPromptsDrawer from './components/SavedPromptsDrawer.vue'
+import CommonPromptDrawer from './components/CommonPromptDrawer.vue' // Changed from SavedPromptsDrawer
 import {EventsOn} from "../../../wailsjs/runtime";
 import {main} from "../../../wailsjs/go/models";
 import {DeletePrompt, GeneratePromptStream, ListPrompts, SavePrompt} from "../../../wailsjs/go/main/App";
@@ -346,7 +347,6 @@ const executeSaveFromDrawer = async () => {
 
 const handleEditPrompt = (prompt: Prompt) => {
   openSaveDrawer(prompt);
-  showSavedPrompts.value = false; // 关闭列表抽屉
 }
 
 const handleDeletePrompt = async (prompt: Prompt) => {

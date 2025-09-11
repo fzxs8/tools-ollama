@@ -43,20 +43,17 @@
       </el-col>
     </el-row>
 
-    <SystemPromptDrawer
+    <PromptListDrawer
       v-model:visible="systemPromptDrawerVisible"
-      :active-system-prompt="activeSystemPrompt"
-      :system-prompt-list="systemPromptList"
-      @update:active-system-prompt="updateActiveSystemPrompt"
-      @save-system-prompt="handleSaveSystemPrompt"
-      @update-system-prompt="handleUpdateSystemPrompt"
-      @delete-system-prompt="handleDeleteSystemPrompt"
+      :prompts="systemPromptList"
+      mode="select"
+      :selected-id="activeSystemPrompt?.id"
+      @select="handleApplySystemPrompt"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-// 初始化Markdown解析器
 import {onMounted, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {
@@ -66,26 +63,26 @@ import {
   GetConversation,
   GetOllamaServerConfig,
   GetRemoteServers,
-  KVDelete,
-  KVGet,
-  KVList,
-  KVSet,
   ListConversations,
   ListModelsByServer,
+  ListPrompts,
   SaveConversation
 } from '../../wailsjs/go/main/App'
 import {EventsOff, EventsOn} from '../../wailsjs/runtime'
 import MarkdownIt from 'markdown-it'
-import SystemPromptDrawer from "./ChatManager/components/SystemPromptDrawer.vue";
 import ChatInput from "./ChatManager/components/ChatInput.vue";
 import ModelSelector from "./ChatManager/components/ModelSelector.vue";
 import ChatContainer from "./ChatManager/components/ChatContainer.vue";
+import PromptListDrawer from "../components/commons/PromptListDrawer.vue";
+import {main} from "../../wailsjs/go/models";
 
 const md = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true
 })
+
+type Prompt = main.Prompt;
 
 interface Model {
   name: string
@@ -107,14 +104,6 @@ interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
   timestamp?: number
-}
-
-// 系统提示词接口
-interface SystemPrompt {
-  id: string
-  title: string
-  prompt: string
-  createdAt: number
 }
 
 // 模型参数接口
@@ -148,8 +137,8 @@ const messages = ref<Message[]>([
 ])
 const isThinking = ref(false)
 const systemPromptDrawerVisible = ref(false)
-const activeSystemPrompt = ref<SystemPrompt | null>(null)
-const systemPromptList = ref<SystemPrompt[]>([])
+const activeSystemPrompt = ref<Prompt | null>(null)
+const systemPromptList = ref<Prompt[]>([])
 const conversations = ref<Conversation[]>([])
 const activeConversationId = ref('')
 const currentConversation = ref<Conversation | null>(null)
@@ -204,89 +193,20 @@ const openSystemPromptDrawer = async () => {
 // 加载系统提示词列表
 const loadSystemPrompts = async () => {
   try {
-    const promptListStr = await KVList("system_prompts")
-    if (promptListStr) {
-      systemPromptList.value = JSON.parse(promptListStr)
-    } else {
-      systemPromptList.value = []
-    }
-
-    // 加载当前激活的提示词
-    const activePromptStr = await KVGet("active_system_prompt")
-    if (activePromptStr) {
-      activeSystemPrompt.value = JSON.parse(activePromptStr)
-    }
+    systemPromptList.value = await ListPrompts();
   } catch (error) {
     console.error('加载系统提示词失败:', error)
     systemPromptList.value = []
   }
 }
 
-// 更新激活的系统提示词
-const updateActiveSystemPrompt = (prompt: SystemPrompt | null) => {
-  activeSystemPrompt.value = prompt
+// 应用系统提示词
+const handleApplySystemPrompt = (prompt: Prompt) => {
+  activeSystemPrompt.value = prompt;
+  ElMessage.success(`已应用系统提示词: “${prompt.name}”`);
+  systemPromptDrawerVisible.value = false;
 }
 
-// 保存系统提示词
-const handleSaveSystemPrompt = async (prompt: SystemPrompt) => {
-  try {
-    // 添加到列表
-    systemPromptList.value.push(prompt)
-
-    // 保存到存储
-    await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
-
-    ElMessage.success('系统提示词已保存')
-  } catch (error) {
-    ElMessage.error('保存失败: ' + (error as Error).message)
-  }
-}
-
-// 更新系统提示词
-const handleUpdateSystemPrompt = async (prompt: SystemPrompt) => {
-  try {
-    // 查找并更新提示词
-    const index = systemPromptList.value.findIndex(p => p.id === prompt.id)
-
-    if (index !== -1) {
-      systemPromptList.value[index] = prompt
-
-      // 如果更新的是当前激活的提示词，则同步更新
-      if (activeSystemPrompt.value?.id === prompt.id) {
-        activeSystemPrompt.value = {...prompt}
-        await KVSet("active_system_prompt", JSON.stringify(activeSystemPrompt.value))
-      }
-
-      // 保存到存储
-      await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
-
-      ElMessage.success('系统提示词已更新')
-    }
-  } catch (error) {
-    ElMessage.error('更新失败: ' + (error as Error).message)
-  }
-}
-
-// 删除系统提示词
-const handleDeleteSystemPrompt = async (id: string) => {
-  try {
-    // 从列表中移除
-    systemPromptList.value = systemPromptList.value.filter(p => p.id !== id)
-
-    // 如果删除的是当前激活的提示词，则清除激活状态
-    if (activeSystemPrompt.value?.id === id) {
-      activeSystemPrompt.value = null
-      await KVDelete("active_system_prompt")
-    }
-
-    // 保存到存储
-    await KVSet("system_prompts", JSON.stringify(systemPromptList.value))
-
-    ElMessage.success('提示词已删除')
-  } catch (error) {
-    ElMessage.error('删除失败: ' + (error as Error).message)
-  }
-}
 
 const loadAvailableServers = async () => {
   try {
@@ -420,7 +340,7 @@ const sendMessage = async () => {
     if (activeSystemPrompt.value) {
       messagesWithSystemPrompt.unshift({
         role: "system",
-        content: activeSystemPrompt.value.prompt,
+        content: activeSystemPrompt.value.content,
         timestamp: Date.now()
       })
     }
@@ -652,7 +572,7 @@ const regenerateMessage = async (index: number) => {
       if (activeSystemPrompt.value) {
         messagesWithSystemPrompt.unshift({
           role: "system",
-          content: activeSystemPrompt.value.prompt,
+          content: activeSystemPrompt.value.content,
           timestamp: Date.now()
         })
       }
