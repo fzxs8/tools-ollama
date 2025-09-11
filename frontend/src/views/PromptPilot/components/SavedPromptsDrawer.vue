@@ -187,6 +187,7 @@ const deletePrompt = (prompt: Prompt) => {
   font-weight: 600;
   color: #333;
   flex: 1;
+  text-align: left;
 }
 
 .prompt-actions {
@@ -196,6 +197,7 @@ const deletePrompt = (prompt: Prompt) => {
 
 .prompt-meta {
   margin-bottom: 10px;
+  text-align: left;
 }
 
 .prompt-description {
@@ -232,6 +234,7 @@ pre.prompt-content-preview {
   line-height: 1.5;
   border: 1px solid #eee;
   margin: 0;
+  text-align: left;
 }
 
 .preview-copy-btn {
