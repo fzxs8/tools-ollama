@@ -98,20 +98,20 @@ func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId s
 	var serverConfig *OllamaServerConfig
 	var err error
 
-	if serverId == "local" {
-		localConfig, err := p.configMgr.GetLocalConfig()
-		if err != nil {
-			p.logger.Error("获取本地服务器配置失败: %v", err)
-			return fmt.Errorf("获取本地服务器配置失败: %w", err)
-		}
-		serverConfig = &localConfig
-	} else {
-		serverConfig, err = p.configMgr.GetRemoteServerByID(serverId)
-		if err != nil {
-			p.logger.Error("获取远程服务器配置失败 (ID: %s): %v", serverId, err)
-			return fmt.Errorf("找不到ID为 %s 的服务器: %w", serverId, err)
-		}
+	//if serverId == "local" {
+	//	localConfig, err := p.configMgr.GetLocalConfig()
+	//	if err != nil {
+	//		p.logger.Error("获取本地服务器配置失败: %v", err)
+	//		return fmt.Errorf("获取本地服务器配置失败: %w", err)
+	//	}
+	//	serverConfig = &localConfig
+	//} else {
+	serverConfig, err = p.configMgr.GetServerByID(serverId)
+	if err != nil {
+		p.logger.Error("获取远程服务器配置失败 (ID: %s): %v", serverId, err)
+		return fmt.Errorf("找不到ID为 %s 的服务器: %w", serverId, err)
 	}
+	//}
 
 	p.logger.Debug("使用服务器: %s (%s)", serverConfig.Name, serverConfig.BaseURL)
 

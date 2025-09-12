@@ -52,7 +52,6 @@ type OllamaServerConfig struct {
 	APIKey     string `json:"api_key"`
 	IsActive   bool   `json:"is_active"`
 	TestStatus string `json:"test_status"`
-	Type       string `json:"type"`
 }
 
 // App struct
@@ -95,14 +94,8 @@ func NewApp() *App {
 	// 获取活动服务器配置
 	activeServer, err := app.configMgr.GetActiveServer()
 	if err != nil {
-		// 如果没有活动服务器，尝试获取本地配置
-		localConfig, localErr := app.configMgr.GetLocalConfig()
-		if localErr != nil {
-			// 如果本地配置也没有，使用默认值
-			activeServer = &OllamaServerConfig{BaseURL: "http://localhost:11434"}
-		} else {
-			activeServer = &localConfig
-		}
+		//fmt.Errorf("找不到服务器: %s", err)
+		return nil
 	}
 
 	// 初始化HTTP客户端
@@ -199,32 +192,23 @@ func (a *App) ListModelsByServer(serverID string) ([]Model, error) {
 	// 获取服务器配置
 	var serverConfig *OllamaServerConfig
 
-	if serverID == "local" {
-		// 获取本地配置
-		localConfig, err := a.configMgr.GetLocalConfig()
-		if err != nil {
-			return nil, err
-		}
-		serverConfig = &localConfig
-	} else {
-		// 获取远程服务器配置
-		servers, err := a.configMgr.GetRemoteServers()
-		if err != nil {
-			return nil, err
-		}
+	// 获取远程服务器配置
+	servers, err := a.configMgr.GetServers()
+	if err != nil {
+		return nil, err
+	}
 
-		found := false
-		for _, server := range servers {
-			if server.ID == serverID {
-				serverConfig = &server
-				found = true
-				break
-			}
+	found := false
+	for _, server := range servers {
+		if server.ID == serverID {
+			serverConfig = &server
+			found = true
+			break
 		}
+	}
 
-		if !found {
-			return nil, fmt.Errorf("找不到服务器: %s", serverID)
-		}
+	if !found {
+		return nil, fmt.Errorf("找不到服务器: %s", serverID)
 	}
 
 	// 为特定服务器创建临时的HTTP客户端
@@ -462,18 +446,9 @@ func (a *App) GetModelParams(modelName string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// GetOllamaServerConfig 获取本地Ollama服务器配置1
-func (a *App) GetOllamaServerConfig() (string, error) {
-	config, err := a.configMgr.GetLocalConfig()
-	if err != nil {
-		return "http://localhost:11434", nil
-	}
-	return config.BaseURL, nil
-}
-
-// GetRemoteServers 获取远程Ollama服务器列表
-func (a *App) GetRemoteServers() ([]OllamaServerConfig, error) {
-	return a.configMgr.GetRemoteServers()
+// GetServers 获取远程Ollama服务器列表
+func (a *App) GetServers() ([]OllamaServerConfig, error) {
+	return a.configMgr.GetServers()
 }
 
 // SearchOnlineModels 搜索在线模型
@@ -505,32 +480,35 @@ func (a *App) TestOllamaServer(baseURL string) (string, error) {
 }
 
 // SaveOllamaServerConfig 保存本地Ollama服务器配置
-func (a *App) SaveOllamaServerConfig(baseURL string) error {
-	config, err := a.configMgr.GetLocalConfig()
-	if err != nil {
-		config = OllamaServerConfig{
-			ID:   "local",
-			Name: "本地服务",
-			Type: "local",
-		}
-	}
-	config.BaseURL = baseURL
-	return a.configMgr.SaveLocalConfig(config)
+//func (a *App) SaveOllamaServerConfig(config []OllamaServerConfig) error {
+//	//config, err := a.configMgr.GetConfig()
+//	//if err != nil {
+//	//	config = OllamaServerConfig{
+//	//		ID:   "local",
+//	//		Name: "本地服务",
+//	//		Type: "local",
+//	//	}
+//	//}
+//	//config.BaseURL = baseURL
+//	return a.configMgr.SaveServers(config)
+//}
+
+// AddServer 添加一个新的远程服务器
+func (a *App) AddServer(server OllamaServerConfig) error {
+	return a.configMgr.AddServer(server)
+}
+func (a *App) UpdateServerTestStatus(serverID string, status string) error {
+	return a.configMgr.UpdateServerTestStatus(serverID, status)
 }
 
-// AddRemoteServer 添加一个新的远程服务器
-func (a *App) AddRemoteServer(server OllamaServerConfig) error {
-	return a.configMgr.AddRemoteServer(server)
+// UpdateServer 更新一个已存在的远程服务器
+func (a *App) UpdateServer(server OllamaServerConfig) error {
+	return a.configMgr.UpdateServer(server)
 }
 
-// UpdateRemoteServer 更新一个已存在的远程服务器
-func (a *App) UpdateRemoteServer(server OllamaServerConfig) error {
-	return a.configMgr.UpdateRemoteServer(server)
-}
-
-// DeleteRemoteServer 删除一个远程服务器
-func (a *App) DeleteRemoteServer(serverID string) error {
-	return a.configMgr.DeleteRemoteServer(serverID)
+// DeleteServer 删除一个远程服务器
+func (a *App) DeleteServer(serverID string) error {
+	return a.configMgr.DeleteServer(serverID)
 }
 
 // SetActiveServer 设置活动服务器
@@ -563,15 +541,15 @@ func (a *App) SetActiveServer(serverID string) error {
 	return nil
 }
 
-// SaveLocalServerTestStatus 保存本地服务器的测试状态
-func (a *App) SaveLocalServerTestStatus(status string) error {
-	return a.configMgr.SaveLocalServerTestStatus(status)
-}
+//// SaveLocalServerTestStatus 保存本地服务器的测试状态
+//func (a *App) SaveLocalServerTestStatus(status string) error {
+//	return a.configMgr.SaveLocalServerTestStatus(status)
+//}
 
-// GetLocalServerTestStatus 获取本地服务器的测试状态
-func (a *App) GetLocalServerTestStatus() (string, error) {
-	return a.configMgr.GetLocalServerTestStatus()
-}
+//// GetLocalServerTestStatus 获取本地服务器的测试状态
+//func (a *App) GetLocalServerTestStatus() (string, error) {
+//	return a.configMgr.GetLocalServerTestStatus()
+//}
 
 // GetActiveServer 获取活动服务器1
 func (a *App) GetActiveServer() (*OllamaServerConfig, error) {

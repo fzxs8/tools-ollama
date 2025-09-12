@@ -147,36 +147,36 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 	logger.Infof("开始下载模型: %s, 服务器ID: %s", modelName, serverID)
 
 	var serverConfig *OllamaServerConfig
-	if serverID == "local" {
-		localConfig, err := m.app.configMgr.GetLocalConfig()
-		if err != nil {
-			// 如果获取配置失败，使用默认的本地服务器配置
-			localConfig = OllamaServerConfig{BaseURL: "http://localhost:11434"}
-			logger.Warnf("获取本地配置失败，使用默认配置: %v", err)
-		}
-		serverConfig = &localConfig
-	} else {
-		servers, err := m.app.configMgr.GetRemoteServers()
-		if err != nil {
-			logger.Errorf("获取远程服务器列表失败: %v", err)
-			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "获取远程服务器列表失败: " + err.Error()})
-			return
-		}
-		found := false
-		for _, server := range servers {
-			if server.ID == serverID {
-				serverConfig = &server
-				found = true
-				break
-			}
-		}
-		if !found {
-			err := fmt.Errorf("找不到指定的服务器: %s", serverID)
-			logger.Errorf("找不到指定的服务器: %s", serverID)
-			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": err.Error()})
-			return
+	//if serverID == "local" {
+	//	localConfig, err := m.app.configMgr.GetLocalConfig()
+	//	if err != nil {
+	//		// 如果获取配置失败，使用默认的本地服务器配置
+	//		localConfig = OllamaServerConfig{BaseURL: "http://localhost:11434"}
+	//		logger.Warnf("获取本地配置失败，使用默认配置: %v", err)
+	//	}
+	//	serverConfig = &localConfig
+	//} else {
+	servers, err := m.app.configMgr.GetServers()
+	if err != nil {
+		logger.Errorf("获取远程服务器列表失败: %v", err)
+		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "获取远程服务器列表失败: " + err.Error()})
+		return
+	}
+	found := false
+	for _, server := range servers {
+		if server.ID == serverID {
+			serverConfig = &server
+			found = true
+			break
 		}
 	}
+	if !found {
+		err := fmt.Errorf("找不到指定的服务器: %s", serverID)
+		logger.Errorf("找不到指定的服务器: %s", serverID)
+		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": err.Error()})
+		return
+	}
+	//}
 
 	logger.Infof("使用服务器配置: %+v", serverConfig)
 

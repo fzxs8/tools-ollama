@@ -3,40 +3,40 @@
     <el-row :gutter="20" style="height: 100%;">
       <el-col :span="6" style="height: 100%;">
         <ModelSelector
-          v-model:selectedModel="selectedModel"
-          v-model:selectedServer="selectedServer"
-          v-model:modelParams="modelParams"
-          :localModels="localModels"
-          :availableServers="availableServers"
-          @load-model="loadModel"
-          @save-model-params="saveModelParams"
-          @reset-model-params="resetModelParams"
-          @server-change="onServerChange"
+            v-model:selectedModel="selectedModel"
+            v-model:selectedServer="selectedServer"
+            v-model:modelParams="modelParams"
+            :localModels="localModels"
+            :availableServers="availableServers"
+            @load-model="loadModel"
+            @save-model-params="saveModelParams"
+            @reset-model-params="resetModelParams"
+            @server-change="onServerChange"
         />
       </el-col>
 
       <el-col :span="18" style="height: 100%; display: flex; flex-direction: column;">
         <ChatContainer
-          :messages="messages"
-          :is-thinking="isThinking"
-          :active-system-prompt="activeSystemPrompt"
-          :conversations="conversations"
-          :active-conversation-id="activeConversationId"
-          @clear-chat="clearChat"
-          @open-system-prompt="openSystemPromptDrawer"
-          @copy-message="copyMessage"
-          @regenerate-message="regenerateMessage"
-          @new-conversation="newConversation"
-          @load-conversation="loadConversation"
-          @edit-conversation-title="editConversationTitle"
-          @delete-conversation="deleteConversation"
+            :messages="messages"
+            :is-thinking="isThinking"
+            :active-system-prompt="activeSystemPrompt"
+            :conversations="conversations"
+            :active-conversation-id="activeConversationId"
+            @clear-chat="clearChat"
+            @open-system-prompt="openSystemPromptDrawer"
+            @copy-message="copyMessage"
+            @regenerate-message="regenerateMessage"
+            @new-conversation="newConversation"
+            @load-conversation="loadConversation"
+            @edit-conversation-title="editConversationTitle"
+            @delete-conversation="deleteConversation"
         >
           <template #input>
             <ChatInput
-              v-model="inputMessage"
-              :disabled="isThinking"
-              @send="sendMessage"
-              @keydown="handleKeydown"
+                v-model="inputMessage"
+                :disabled="isThinking"
+                @send="sendMessage"
+                @keydown="handleKeydown"
             />
           </template>
         </ChatContainer>
@@ -44,11 +44,11 @@
     </el-row>
 
     <PromptListDrawer
-      v-model:visible="systemPromptDrawerVisible"
-      :prompts="systemPromptList"
-      mode="select"
-      :selected-id="activeSystemPrompt?.id"
-      @select="handleApplySystemPrompt"
+        v-model:visible="systemPromptDrawerVisible"
+        :prompts="systemPromptList"
+        mode="select"
+        :selected-id="activeSystemPrompt?.id"
+        @select="handleApplySystemPrompt"
     />
   </div>
 </template>
@@ -61,8 +61,7 @@ import {
   DeleteConversation,
   GetActiveServer,
   GetConversation,
-  GetOllamaServerConfig,
-  GetRemoteServers,
+  GetServers,
   ListConversations,
   ListModelsByServer,
   ListPrompts,
@@ -76,11 +75,11 @@ import ChatContainer from "./ChatManager/components/ChatContainer.vue";
 import PromptListDrawer from "../components/commons/PromptListDrawer.vue";
 import {main} from "../../wailsjs/go/models";
 
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true
-})
+// const md = new MarkdownIt({
+//   html: true,
+//   linkify: true,
+//   typographer: true
+// })
 
 type Prompt = main.Prompt;
 
@@ -154,27 +153,6 @@ const modelParams = ref<ModelParams>({
   outputMode: 'stream' // 默认使用流式输出
 })
 
-// 格式化时间
-const formatTime = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
-}
-
-// 获取当前时间
-const getCurrentTime = () => {
-  const now = new Date()
-  const hours = now.getHours().toString().padStart(2, '0')
-  const minutes = now.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
-}
-
-// 渲染Markdown内容
-const renderMarkdown = (content: string) => {
-  return md.render(content)
-}
-
 // 复制消息内容
 const copyMessage = (content: string) => {
   navigator.clipboard.writeText(content).then(() => {
@@ -210,19 +188,19 @@ const handleApplySystemPrompt = (prompt: Prompt) => {
 
 const loadAvailableServers = async () => {
   try {
-    const localBaseUrl = await GetOllamaServerConfig()
-    const localServer = {
-      id: 'local',
-      name: '本地服务',
-      baseUrl: localBaseUrl,
-      apiKey: '',
-      isActive: true,
-      testStatus: '',
-      type: 'local'
-    }
+    // const localBaseUrl = await GetOllamaServerConfig()
+    // const localServer = {
+    //   id: 'local',
+    //   name: '本地服务',
+    //   baseUrl: localBaseUrl,
+    //   apiKey: '',
+    //   isActive: true,
+    //   testStatus: '',
+    //   type: 'local'
+    // }
     let remoteServers: Server[] = []
     try {
-      const remoteList: any[] = await GetRemoteServers()
+      const remoteList: any[] = await GetServers()
       remoteServers = remoteList.map(server => ({
         id: server.id || server.ID,
         name: server.name || server.Name,
@@ -235,7 +213,7 @@ const loadAvailableServers = async () => {
     } catch (remoteError) {
       console.error('获取远程服务器列表失败:', remoteError)
     }
-    availableServers.value = [localServer, ...remoteServers]
+    availableServers.value = [...remoteServers]
 
     try {
       const activeServer = await GetActiveServer()
@@ -333,7 +311,7 @@ const sendMessage = async () => {
 
     // 构建包含系统提示词的消息
     let messagesWithSystemPrompt: Message[] = [
-      { role: "user", content: message, timestamp: Date.now() }
+      {role: "user", content: message, timestamp: Date.now()}
     ]
 
     // 如果有激活的系统提示词，添加到消息历史最前面
@@ -386,7 +364,7 @@ const sendMessage = async () => {
         content: '',
         timestamp: Date.now()
       })
-      
+
       try {
         // 调用后端API，第三个参数为false
         const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
@@ -399,7 +377,7 @@ const sendMessage = async () => {
         throw error
       }
     }
-    
+
     // 保存对话
     await saveCurrentConversation()
   } catch (error: any) {
@@ -440,7 +418,7 @@ const newConversation = () => {
     content: '你好！我是Ollama助手，请选择一个模型开始对话。',
     timestamp: Date.now()
   }]
-  
+
   // 清空当前对话ID和对话对象
   activeConversationId.value = ''
   currentConversation.value = null
@@ -477,9 +455,9 @@ const editConversationTitle = async (conv: Conversation) => {
       confirmButtonText: '确定',
       cancelButtonText: '取消'
     })
-    
+
     if (newTitle.value) {
-      const updatedConv = { ...conv, title: newTitle.value }
+      const updatedConv = {...conv, title: newTitle.value}
       await SaveConversation(updatedConv)
       ElMessage.success('标题更新成功')
       loadConversations() // 重新加载列表
@@ -497,11 +475,11 @@ const deleteConversation = async (id: string) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     await DeleteConversation(id)
     ElMessage.success('对话删除成功')
     loadConversations() // 重新加载列表
-    
+
     // 如果删除的是当前激活的对话，需要清除激活状态
     if (activeConversationId.value === id) {
       newConversation() // 创建新对话
@@ -524,7 +502,7 @@ const saveCurrentConversation = async () => {
       modelParams: JSON.stringify(modelParams.value),
       timestamp: Date.now()
     }
-    
+
     // 如果是新对话，生成标题
     if (!activeConversationId.value) {
       // 使用第一条用户消息作为标题
@@ -535,12 +513,12 @@ const saveCurrentConversation = async () => {
       conversation.id = activeConversationId.value
       conversation.title = currentConversation.value?.title || '新对话'
     }
-    
+
     // 保存对话
     const savedConversation = await SaveConversation(conversation)
     activeConversationId.value = savedConversation.id
     currentConversation.value = savedConversation
-    
+
     // 重新加载对话列表
     loadConversations()
   } catch (error) {
@@ -592,7 +570,7 @@ const regenerateMessage = async (index: number) => {
       if (messages.value && messages.value[assistantMessageIndex]) {
         messages.value[assistantMessageIndex].content = response
       }
-      
+
       // 保存对话
       await saveCurrentConversation()
     } catch (error) {
@@ -666,7 +644,7 @@ onMounted(async () => {
   await getModels()
   await loadSystemPrompts()
   await loadConversations()
-  
+
   // 监听流式传输事件
   if (window && (window as any).runtime) {
     (window as any).runtime.EventsOn("chat_stream_chunk", (data: any) => {

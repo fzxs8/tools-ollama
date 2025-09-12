@@ -186,10 +186,7 @@ import {
   DeleteModel,
   DownloadModel,
   GetActiveServer,
-  GetLocalServerTestStatus,
-  GetModelParams,
-  GetOllamaServerConfig,
-  GetRemoteServers,
+  GetModelParams, GetServers,
   ListModelsByServer,
   OpenInBrowser,
   RunModel,
@@ -293,56 +290,33 @@ const resetModelParams = () => {
 
 const loadAvailableServers = async () => {
   try {
-    const localConfig = await GetOllamaServerConfig();
-    const remoteList = await GetRemoteServers();
-    const localTestStatus = await GetLocalServerTestStatus();
-    let activeServerId = 'local'; // 默认本地
+    const allServers = await GetServers();
+    availableServers.value = allServers as Server[];
 
-    // 正确映射 OllamaServerConfig 到 Server 结构
-    const allServersRaw = [
-      {id: 'local', name: '本地服务', baseUrl: localConfig, apiKey: '', isActive: false, test_status: localTestStatus},
-      ...remoteList.map(server => ({
-        id: server.id,
-        name: server.name,
-        baseUrl: server.base_url,
-        apiKey: server.api_key,
-        isActive: server.is_active,
-        test_status: server.test_status
-      }))
-    ];
-
-    const testedServers = allServersRaw.filter(s => s.test_status === 'success');
-
-    availableServers.value = testedServers as Server[];
-
-    try {
-      const activeServer = await GetActiveServer();
-      if (activeServer && activeServer.id && availableServers.value.some(s => s.id === activeServer.id)) {
-        activeServerId = activeServer.id;
-      } else if (availableServers.value.length > 0) {
-        activeServerId = availableServers.value[0].id
-        await SetActiveServer(activeServerId)
-      } else {
-        activeServerId = ''
-      }
-    } catch (e) {
-      console.error("无法获取活动服务器，将默认使用第一个可用服务器。", e)
-      if (availableServers.value.length > 0) {
-        activeServerId = availableServers.value[0].id
-      } else {
-        activeServerId = ''
-      }
+    if (allServers.length === 0) {
+      ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
+      localModels.value = [];
+      selectedServer.value = '';
+      return;
     }
 
-    // 更新 isActive 标志
-    availableServers.value.forEach(s => {
-      s.isActive = s.id === activeServerId;
-    });
+    const activeServer = await GetActiveServer();
+    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
 
-    selectedServer.value = activeServerId;
+    let serverToSelect = '';
+    if (activeServerExists) {
+      serverToSelect = activeServer.id;
+    } else {
+      serverToSelect = allServers[0].id;
+      // 如果默认的活动服务器不存在，则将列表中的第一个设置为活动状态
+      await SetActiveServer(serverToSelect);
+    }
+    
+    selectedServer.value = serverToSelect;
 
   } catch (error) {
     console.error('加载可用服务器列表失败:', error);
+    ElMessage.error('加载可用服务器列表失败: ' + (error as Error).message);
     availableServers.value = [];
     selectedServer.value = '';
   }

@@ -1,48 +1,43 @@
 <template>
   <div class="model-selector-horizontal">
     <el-select
-      v-model="props.selectedServer"
-      placeholder="选择服务"
-      class="selector-item"
-      popper-class="left-aligned-dropdown"
-      @change="onServerChange"
+        v-model="props.selectedServer"
+        placeholder="选择服务"
+        class="selector-item"
+        popper-class="left-aligned-dropdown"
+        @change="onServerChange"
     >
       <el-option
-        v-for="server in availableServers"
-        :key="server.id"
-        :label="server.name"
-        :value="server.id"
+          v-for="server in availableServers"
+          :key="server.id"
+          :label="server.name"
+          :value="server.id"
       />
     </el-select>
     <el-select
-      v-model="props.selectedModels"
-      multiple
-      :multiple-limit="3"
-      collapse-tags
-      placeholder="选择模型 (最多3个)"
-      class="selector-item"
-      popper-class="left-aligned-dropdown"
-      @update:modelValue="updateSelectedModels"
+        v-model="props.selectedModels"
+        multiple
+        :multiple-limit="3"
+        collapse-tags
+        placeholder="选择模型 (最多3个)"
+        class="selector-item"
+        popper-class="left-aligned-dropdown"
+        @update:modelValue="updateSelectedModels"
     >
       <el-option
-        v-for="model in availableModels"
-        :key="model.name"
-        :label="model.name"
-        :value="model.name"
+          v-for="model in availableModels"
+          :key="model.name"
+          :label="model.name"
+          :value="model.name"
       />
     </el-select>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import {
-  GetOllamaServerConfig,
-  GetRemoteServers,
-  GetActiveServer,
-  ListModelsByServer
-} from '../../../../wailsjs/go/main/App'
+import {onMounted, ref, watch} from 'vue'
+import {ElMessage} from 'element-plus'
+import {GetActiveServer, GetServers, ListModelsByServer} from '../../../../wailsjs/go/main/App'
 
 // 定义接口
 interface Model {
@@ -89,20 +84,20 @@ const updateSelectedModels = (value: string[]) => {
 // 加载可用服务
 const loadAvailableServers = async () => {
   try {
-    const localBaseUrl = await GetOllamaServerConfig()
-    const localServer: Server = {
-      id: 'local',
-      name: '本地服务',
-      base_url: localBaseUrl,
-      api_key: '',
-      is_active: false, // 稍后会根据 GetActiveServer 更新
-      test_status: '',
-      type: 'local'
-    }
-
+    // const localBaseUrl = await GetOllamaServerConfig()
+    // const localServer: Server = {
+    //   id: 'local',
+    //   name: '本地服务',
+    //   base_url: localBaseUrl,
+    //   api_key: '',
+    //   is_active: false, // 稍后会根据 GetActiveServer 更新
+    //   test_status: '',
+    //   type: 'local'
+    // }
+    //
     let remoteServers: Server[] = []
     try {
-      const remoteList: any[] = await GetRemoteServers()
+      const remoteList: any[] = await GetServers()
       if (remoteList) {
         remoteServers = remoteList.map(server => ({
           id: server.id || server.ID,
@@ -118,7 +113,7 @@ const loadAvailableServers = async () => {
       console.error('获取远程服务器列表失败:', remoteError)
     }
 
-    const allServers = [localServer, ...remoteServers]
+    const allServers = [...remoteServers]
     availableServers.value = allServers
 
     try {

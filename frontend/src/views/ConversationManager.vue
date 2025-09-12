@@ -43,14 +43,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, defineProps, defineEmits } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  ListConversations,
-  GetConversation,
-  DeleteConversation,
-  SaveConversation
-} from '../../wailsjs/go/main/App'
+import {defineEmits, onMounted, ref} from 'vue'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {DeleteConversation, GetConversation, ListConversations, SaveConversation} from '../../wailsjs/go/main/App'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
