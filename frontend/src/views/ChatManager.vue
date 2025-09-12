@@ -74,29 +74,11 @@ import ModelSelector from "./ChatManager/components/ModelSelector.vue";
 import ChatContainer from "./ChatManager/components/ChatContainer.vue";
 import PromptListDrawer from "../components/commons/PromptListDrawer.vue";
 import {types} from "../../wailsjs/go/models";
+import Conversation = types.Conversation;
+import Message = types.Message;
+import OllamaServerConfig = types.OllamaServerConfig;
+import Model = types.Model;
 import Prompt = types.Prompt;
-
-interface Model {
-  name: string
-  size: number
-  modifiedAt: string
-}
-
-interface Server {
-  id: string
-  name: string
-  baseUrl: string
-  apiKey: string
-  isActive: boolean
-  // testStatus: string
-  // type: string
-}
-
-interface Message {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp?: number
-}
 
 // 模型参数接口
 interface ModelParams {
@@ -109,19 +91,9 @@ interface ModelParams {
   outputMode: 'stream' | 'blocking' // 添加输出方式选项
 }
 
-interface Conversation {
-  id: string
-  title: string
-  messages: Message[]
-  modelName: string
-  systemPrompt: string
-  modelParams: string
-  timestamp: number
-}
-
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
-const availableServers = ref<Server[]>([])
+const availableServers = ref<OllamaServerConfig[]>([])
 const selectedServer = ref('')
 const inputMessage = ref('')
 const messages = ref<Message[]>([
@@ -180,15 +152,7 @@ const handleApplySystemPrompt = (prompt: Prompt) => {
 
 const loadAvailableServers = async () => {
   try {
-    const backendServers: types.OllamaServerConfig[] = await GetServers();
-
-    availableServers.value = backendServers.map(server => ({
-      id: server.id,
-      name: server.name,
-      baseUrl: server.baseUrl,
-      apiKey: server.apiKey,
-      isActive: server.isActive,
-    }));
+    availableServers.value = await GetServers();
 
     if (availableServers.value.length === 0) {
       ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
@@ -236,11 +200,10 @@ const getModels = async () => {
     return;
   }
   try {
-    const models: Model[] = await ListModelsByServer(selectedServer.value)
-    localModels.value = models
-    if (models.length > 0) {
-      selectedModel.value = models[0].name
-      loadModelParams(models[0].name)
+    localModels.value = await ListModelsByServer(selectedServer.value)
+    if (localModels.value.length > 0) {
+      selectedModel.value = localModels.value[0].name
+      loadModelParams(localModels.value[0].name)
     } else {
       selectedModel.value = ''
     }
@@ -400,7 +363,7 @@ const editConversationTitle = async (conv: Conversation) => {
       const updatedConv = {...conv, title: newTitle.value}
       await SaveConversation(updatedConv)
       ElMessage.success('标题更新成功')
-      loadConversations() // 重新加载列表
+      await loadConversations() // 重新加载列表
     }
   } catch (error) {
     // 用户取消操作
@@ -453,7 +416,7 @@ const saveCurrentConversation = async () => {
     activeConversationId.value = savedConversation.id
     currentConversation.value = savedConversation
 
-    loadConversations()
+    await loadConversations()
   } catch (error) {
     console.error('保存对话失败:', error)
   }
