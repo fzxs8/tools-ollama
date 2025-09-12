@@ -8,21 +8,32 @@
 需求/
 ├── README.md                  # 本文件
 ├── 通用文档/                  # 所有模块通用的文档
-│   ├── 开发规范.md           # 开发规范
-│   └── 开发规范_OllamaSettings.md  # OllamaSettings模块的开发规范
-├── ModelManager/             # ModelManager模块相关文档
+│   └── 开发规范.md           # 统一的开发规范
+├── ChatManager/              # 聊天管理器模块
 │   ├── 01.功能需求.md
 │   ├── 02.界面设计.md
 │   ├── 03.数据结构.md
 │   ├── 04.API接口.md
 │   └── 06.待办事项.md
-├── ModelMarket/              # ModelMarket模块相关文档
+├── ModelManager/             # 模型管理模块
 │   ├── 01.功能需求.md
 │   ├── 02.界面设计.md
 │   ├── 03.数据结构.md
 │   ├── 04.API接口.md
 │   └── 06.待办事项.md
-└── OllamaSettings/           # OllamaSettings模块相关文档
+├── ModelMarket/              # 模型市场模块
+│   ├── 01.功能需求.md
+│   ├── 02.界面设计.md
+│   ├── 03.数据结构.md
+│   ├── 04.API接口.md
+│   └── 06.待办事项.md
+├── OllamaSettings/           # 服务设置模块
+│   ├── 01.功能需求.md
+│   ├── 02.界面设计.md
+│   ├── 03.数据结构.md
+│   ├── 04.API接口.md
+│   └── 06.待办事项.md
+└── PromptPilot/              # 提示词工程模块
     ├── 01.功能需求.md
     ├── 02.界面设计.md
     ├── 03.数据结构.md
