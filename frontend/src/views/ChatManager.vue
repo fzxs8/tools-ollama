@@ -68,7 +68,7 @@ import {
   SaveConversation,
   SetActiveServer
 } from '../../wailsjs/go/main/App'
-import {EventsOff, EventsOn} from '../../wailsjs/runtime'
+import {EventsOn} from '../../wailsjs/runtime'
 import ChatInput from "./ChatManager/components/ChatInput.vue";
 import ModelSelector from "./ChatManager/components/ModelSelector.vue";
 import ChatContainer from "./ChatManager/components/ChatContainer.vue";
@@ -209,8 +209,17 @@ const loadAvailableServers = async () => {
   }
 };
 
-const onServerChange = () => {
-  getModels()
+const onServerChange = async () => {
+  if (!selectedServer.value) {
+    localModels.value = [];
+    return;
+  }
+  try {
+    await SetActiveServer(selectedServer.value);
+    await getModels();
+  } catch (error: any) {
+    ElMessage.error('切换服务失败: ' + error.message);
+  }
 }
 
 // 获取模型列表
@@ -268,9 +277,7 @@ const sendMessage = async () => {
     isThinking.value = true
     scrollToBottom()
 
-    let messagesWithSystemPrompt: Message[] = [
-      {role: "user", content: message, timestamp: Date.now()}
-    ]
+    let messagesWithSystemPrompt: Message[] = [...messages.value];
 
     if (activeSystemPrompt.value) {
       messagesWithSystemPrompt.unshift({
@@ -288,24 +295,7 @@ const sendMessage = async () => {
         timestamp: Date.now()
       })
 
-      const streamListener = (chunk: string) => {
-        try {
-          if (messages.value && messages.value[assistantMessageIndex]) {
-            messages.value[assistantMessageIndex].content += chunk
-            setTimeout(() => scrollToBottom(), 0)
-          }
-        } catch (e) {
-          console.error('更新消息时出错:', e)
-        }
-      }
-
-      EventsOn('chat_stream_chunk', streamListener)
-
-      try {
-        await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
-      } finally {
-        EventsOff('chat_stream_chunk', streamListener)
-      }
+      await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
 
     } else {
       const assistantMessageIndex = messages.value.length
@@ -466,16 +456,13 @@ const saveCurrentConversation = async () => {
 // 重新生成消息
 const regenerateMessage = async (index: number) => {
   if (index > 0 && messages.value[index].role === 'assistant' && messages.value[index - 1].role === 'user') {
-    const userMessage = messages.value[index - 1].content;
     messages.value.splice(index, 1);
 
     try {
       isThinking.value = true;
       scrollToBottom();
 
-      let messagesWithSystemPrompt: Message[] = [
-        {role: "user", content: userMessage, timestamp: Date.now()}
-      ]
+      let messagesWithSystemPrompt: Message[] = [...messages.value];
 
       if (activeSystemPrompt.value) {
         messagesWithSystemPrompt.unshift({
@@ -563,22 +550,30 @@ const resetModelParams = () => {
 }
 
 onMounted(async () => {
-  await loadAvailableServers()
-  await getModels()
-  await loadSystemPrompts()
-  await loadConversations()
+  await loadAvailableServers();
+  // 确保在加载模型或执行任何其他操作之前，后端的状态是同步的
+  if (selectedServer.value) {
+    try {
+      await SetActiveServer(selectedServer.value);
+    } catch (error: any) {
+      ElMessage.error(`同步活动服务器失败: ${error.message}`);
+      return; // 如果同步失败，则不继续
+    }
+  }
+
+  await getModels();
+  await loadSystemPrompts();
+  await loadConversations();
 
   // 监听流式传输事件
-  if (window && (window as any).runtime) {
-    (window as any).runtime.EventsOn("chat_stream_chunk", (data: any) => {
-      const lastMessageIndex = messages.value.length - 1
-      if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
-        messages.value[lastMessageIndex].content += data
-        scrollToBottom()
-      }
-    })
-  }
-})
+  EventsOn("chat_stream_chunk", (data: any) => {
+    const lastMessageIndex = messages.value.length - 1;
+    if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+      messages.value[lastMessageIndex].content += data;
+      scrollToBottom();
+    }
+  });
+});
 </script>
 
 <style scoped>
