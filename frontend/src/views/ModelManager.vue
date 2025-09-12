@@ -33,14 +33,14 @@
                 {{ formatSize(scope.row.size) }}
               </template>
             </el-table-column>
-            <el-table-column prop="modified_at" label="修改时间">
+            <el-table-column prop="modifiedAt" label="修改时间">
               <template #default="scope">
-                {{ formatDate(scope.row.modified_at) }}
+                {{ formatDate(scope.row.modifiedAt) }}
               </template>
             </el-table-column>
             <el-table-column label="运行状态" width="100">
               <template #default="scope">
-                <el-tag v-if="scope.row.is_running" type="success">运行中</el-tag>
+                <el-tag v-if="scope.row.isRunning" type="success">运行中</el-tag>
                 <el-tag v-else type="info">未运行</el-tag>
               </template>
             </el-table-column>
@@ -106,19 +106,19 @@
         <el-descriptions :column="1" border>
           <el-descriptions-item label="模型名称">{{ selectedModel.name }}</el-descriptions-item>
           <el-descriptions-item label="大小">{{ formatSize(selectedModel.size) }}</el-descriptions-item>
-          <el-descriptions-item label="修改时间">{{ formatDate(selectedModel.modified_at) }}</el-descriptions-item>
+          <el-descriptions-item label="修改时间">{{ formatDate(selectedModel.modifiedAt) }}</el-descriptions-item>
           <el-descriptions-item label="运行状态">
-            <el-tag v-if="selectedModel.is_running" type="success">运行中</el-tag>
+            <el-tag v-if="selectedModel.isRunning" type="success">运行中</el-tag>
             <el-tag v-else type="info">未运行</el-tag>
           </el-descriptions-item>
         </el-descriptions>
 
         <div style="margin-top: 20px">
-          <el-button v-if="!selectedModel.is_running" type="primary" @click="runModel" :loading="isRunningModel"
+          <el-button v-if="!selectedModel.isRunning" type="primary" @click="runModel" :loading="isRunningModel"
                      :disabled="isRunningModel">运行
           </el-button>
           <el-button type="danger" @click="deleteModel(selectedModel)">删除</el-button>
-          <el-button v-if="selectedModel.is_running" @click="stopModel" :loading="isStoppingModel"
+          <el-button v-if="selectedModel.isRunning" @click="stopModel" :loading="isStoppingModel"
                      :disabled="isStoppingModel">停止
           </el-button>
         </div>
@@ -203,8 +203,8 @@ const openOllamaLibrary = () => {
 interface Model {
   name: string
   size: number
-  modified_at: string
-  is_running?: boolean
+  modifiedAt: string
+  isRunning?: boolean
 }
 
 interface Server {
@@ -213,7 +213,7 @@ interface Server {
   baseUrl: string
   apiKey: string
   isActive: boolean
-  test_status?: 'unknown' | 'success' | 'failed' | string
+  testStatus?: 'unknown' | 'success' | 'failed' | string
 }
 
 interface ModelParams {
@@ -359,13 +359,13 @@ const runModel = async () => {
   ElMessage.info(`正在启动模型 "${selectedModel.value.name}"...`)
   try {
     await RunModel(selectedModel.value.name, modelParams)
-    selectedModel.value.is_running = true
+    selectedModel.value.isRunning = true
     const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) localModels.value[index].is_running = true
+    if (index !== -1) localModels.value[index].isRunning = true
     ElMessage.success(`模型 "${selectedModel.value.name}" 已启动`)
   } catch (error: any) {
     ElMessage.error('启动模型失败: ' + error.message)
-    if (selectedModel.value) selectedModel.value.is_running = false
+    if (selectedModel.value) selectedModel.value.isRunning = false
   } finally {
     isRunningModel.value = false
   }
@@ -377,9 +377,9 @@ const stopModel = async () => {
   ElMessage.info(`正在停止模型 "${selectedModel.value.name}"...`)
   try {
     await StopModel(selectedModel.value.name)
-    selectedModel.value.is_running = false
+    selectedModel.value.isRunning = false
     const index = localModels.value.findIndex(m => m.name === selectedModel.value!.name)
-    if (index !== -1) localModels.value[index].is_running = false
+    if (index !== -1) localModels.value[index].isRunning = false
     ElMessage.success(`模型 "${selectedModel.value.name}" 已停止`)
   } catch (error: any) {
     ElMessage.error('停止模型失败: ' + error.message)

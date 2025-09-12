@@ -60,11 +60,11 @@ export namespace types {
 	export class Model {
 	    name: string;
 	    model: string;
-	    modified_at: string;
+	    modifiedAt: string;
 	    size: number;
 	    digest: string;
 	    details: Record<string, any>;
-	    is_running: boolean;
+	    isRunning: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Model(source);
@@ -74,20 +74,20 @@ export namespace types {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.model = source["model"];
-	        this.modified_at = source["modified_at"];
+	        this.modifiedAt = source["modifiedAt"];
 	        this.size = source["size"];
 	        this.digest = source["digest"];
 	        this.details = source["details"];
-	        this.is_running = source["is_running"];
+	        this.isRunning = source["isRunning"];
 	    }
 	}
 	export class OllamaServerConfig {
 	    id: string;
 	    name: string;
-	    base_url: string;
-	    api_key: string;
-	    is_active: boolean;
-	    test_status: string;
+	    baseUrl: string;
+	    apiKey: string;
+	    isActive: boolean;
+	    testtatus: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OllamaServerConfig(source);
@@ -97,10 +97,10 @@ export namespace types {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
-	        this.base_url = source["base_url"];
-	        this.api_key = source["api_key"];
-	        this.is_active = source["is_active"];
-	        this.test_status = source["test_status"];
+	        this.baseUrl = source["baseUrl"];
+	        this.apiKey = source["apiKey"];
+	        this.isActive = source["isActive"];
+	        this.testtatus = source["testtatus"];
 	    }
 	}
 	export class Prompt {

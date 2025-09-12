@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+	"tools-ollama/types"
+
 	"github.com/fzxs8/duolasdk"
 	"github.com/fzxs8/duolasdk/core"
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"time"
-	"tools-ollama/types"
 )
 
 // ChatManager 聊天管理器

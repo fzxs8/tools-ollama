@@ -134,19 +134,19 @@ func (a *App) RunModel(modelName string, params map[string]interface{}) error {
 	if temp, ok := params["temperature"].(float64); ok {
 		modelParams.Temperature = temp
 	}
-	if topP, ok := params["top_p"].(float64); ok {
+	if topP, ok := params["topP"].(float64); ok {
 		modelParams.TopP = topP
 	}
-	if topK, ok := params["top_k"].(float64); ok {
+	if topK, ok := params["topK"].(float64); ok {
 		modelParams.TopK = int(topK)
 	}
 	if ct, ok := params["context"].(float64); ok {
 		modelParams.Context = int(ct)
 	}
-	if numPredict, ok := params["num_predict"].(float64); ok {
+	if numPredict, ok := params["numPredict"].(float64); ok {
 		modelParams.NumPredict = int(numPredict)
 	}
-	if repeatPenalty, ok := params["repeat_penalty"].(float64); ok {
+	if repeatPenalty, ok := params["repeatPenalty"].(float64); ok {
 		modelParams.RepeatPenalty = repeatPenalty
 	}
 
@@ -173,12 +173,12 @@ func (a *App) GetModelParams(modelName string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"temperature":    params.Temperature,
-		"top_p":          params.TopP,
-		"top_k":          params.TopK,
-		"context":        params.Context,
-		"num_predict":    params.NumPredict,
-		"repeat_penalty": params.RepeatPenalty,
+		"temperature":   params.Temperature,
+		"topP":          params.TopP,
+		"topK":          params.TopK,
+		"context":       params.Context,
+		"numPredict":    params.NumPredict,
+		"repeatPenalty": params.RepeatPenalty,
 	}, nil
 }
 

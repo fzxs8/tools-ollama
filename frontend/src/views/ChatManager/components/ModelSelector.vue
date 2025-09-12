@@ -106,7 +106,7 @@
 interface Model {
   name: string;
   size: number;
-  modified_at: string;
+  modifiedAt: string;
 }
 
 interface Server {

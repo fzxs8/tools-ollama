@@ -46,6 +46,7 @@ func (m *ModelManager) ListModelsByServer(serverID string) ([]types.Model, error
 	}
 
 	// 为特定服务器创建临时的HTTP客户端
+	m.logger.Debug("开始获取模型列表", "serverConfig", serverConfig)
 	tempClient := core.NewHttp(m.logger.WithPrefix("TempClient"))
 	tempClient.Create(&core.Config{
 		BaseURL: serverConfig.BaseURL,

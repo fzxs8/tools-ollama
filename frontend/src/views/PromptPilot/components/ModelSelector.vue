@@ -43,16 +43,16 @@ import {GetActiveServer, GetServers, ListModelsByServer, SetActiveServer} from '
 interface Model {
   name: string
   size: number
-  modified_at: string
+  modifiedAt: string
 }
 
 interface Server {
   id: string
   name: string
-  base_url: string
-  api_key: string
-  is_active: boolean
-  test_status: string
+  baseUrl: string
+  apiKey: string
+  isActive: boolean
+  testStatus: string
   type: string
 }
 

@@ -10,11 +10,11 @@
 
       <el-table :data="allServers" style="width: 100%" empty-text="暂无服务配置">
         <el-table-column prop="name" label="服务名称" width="180"/>
-        <el-table-column prop="base_url" label="服务地址"/>
-        <el-table-column prop="test_status" label="连接状态" width="120">
+        <el-table-column prop="baseUrl" label="服务地址"/>
+        <el-table-column prop="testStatus" label="连接状态" width="120">
           <template #default="scope">
-            <el-tag v-if="scope.row.test_status === 'success'" type="success">连接成功</el-tag>
-            <el-tag v-else-if="scope.row.test_status === 'failed'" type="danger">连接失败</el-tag>
+            <el-tag v-if="scope.row.testStatus === 'success'" type="success">连接成功</el-tag>
+            <el-tag v-else-if="scope.row.testStatus === 'failed'" type="danger">连接失败</el-tag>
             <el-tag v-else type="info">未知</el-tag>
           </template>
         </el-table-column>
@@ -37,12 +37,12 @@
                         :rules="[{ required: true, message: '服务名称不能为空', trigger: 'blur' }]">
             <el-input v-model="serviceForm.name" placeholder="请输入服务名称"></el-input>
           </el-form-item>
-          <el-form-item label="服务地址" prop="base_url"
+          <el-form-item label="服务地址" prop="baseUrl"
                         :rules="[{ required: true, message: '服务地址不能为空', trigger: 'blur' }]">
-            <el-input v-model="serviceForm.base_url" placeholder="例如: http://localhost:11434"></el-input>
+            <el-input v-model="serviceForm.baseUrl" placeholder="例如: http://localhost:11434"></el-input>
           </el-form-item>
           <el-form-item v-if="serviceForm.id !== 'local'" label="API Key">
-            <el-input v-model="serviceForm.api_key" placeholder="请输入 API Key（可选）" type="password"
+            <el-input v-model="serviceForm.apiKey" placeholder="请输入 API Key（可选）" type="password"
                       show-password></el-input>
           </el-form-item>
         </el-form>
@@ -78,9 +78,9 @@ const serviceFormRef = ref<FormInstance>()
 const serviceForm = reactive<Partial<OllamaServerConfig>>({
   id: '',
   name: '',
-  base_url: '',
-  api_key: '',
-  test_status: 'unknown'
+  baseUrl: '',
+  apiKey: '',
+  testStatus: 'unknown'
 });
 
 // --- 数据加载与处理 ---
@@ -107,9 +107,9 @@ const openServiceDrawer = (server: OllamaServerConfig | null) => {
     Object.assign(serviceForm, {
       id: '', // ID为空表示是新建远程服务
       name: '',
-      base_url: 'http://localhost:11434',
-      api_key: '',
-      test_status: 'unknown'
+      baseUrl: 'http://localhost:11434',
+      apiKey: '',
+      testStatus: 'unknown'
     });
   }
   serviceDrawerVisible.value = true;
@@ -145,7 +145,7 @@ const testConnection = async (server: OllamaServerConfig & { isTesting?: boolean
   server.isTesting = true;
   let newStatus: 'success' | 'failed' = 'failed';
   try {
-    await TestOllamaServer(server.base_url);
+    await TestOllamaServer(server.baseUrl);
     newStatus = 'success';
     ElMessage.success(`${server.name} 连接成功`);
   } catch (error) {
@@ -153,7 +153,7 @@ const testConnection = async (server: OllamaServerConfig & { isTesting?: boolean
     ElMessage.error(`${server.name} 连接失败: ${(error as Error).message}`);
   } finally {
     server.isTesting = false;
-    server.test_status = newStatus;
+    server.testStatus = newStatus;
     try {
       await UpdateServerTestStatus(server.id, newStatus)
     } catch (e) {

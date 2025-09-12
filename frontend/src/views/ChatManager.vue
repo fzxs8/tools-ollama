@@ -79,7 +79,7 @@ import Prompt = types.Prompt;
 interface Model {
   name: string
   size: number
-  modified_at: string
+  modifiedAt: string
 }
 
 interface Server {
@@ -88,8 +88,8 @@ interface Server {
   baseUrl: string
   apiKey: string
   isActive: boolean
-  testStatus: string
-  type: string
+  // testStatus: string
+  // type: string
 }
 
 interface Message {
@@ -180,23 +180,30 @@ const handleApplySystemPrompt = (prompt: Prompt) => {
 
 const loadAvailableServers = async () => {
   try {
-    const allServers = await GetServers();
-    availableServers.value = allServers as Server[];
+    const backendServers: types.OllamaServerConfig[] = await GetServers();
 
-    if (allServers.length === 0) {
+    availableServers.value = backendServers.map(server => ({
+      id: server.id,
+      name: server.name,
+      baseUrl: server.baseUrl,
+      apiKey: server.apiKey,
+      isActive: server.isActive,
+    }));
+
+    if (availableServers.value.length === 0) {
       ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
       selectedServer.value = '';
       return;
     }
 
     const activeServer = await GetActiveServer();
-    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
+    const activeServerExists = activeServer && availableServers.value.some(s => s.id === activeServer.id);
 
     let serverToSelect = '';
     if (activeServerExists) {
       serverToSelect = activeServer.id;
     } else {
-      serverToSelect = allServers[0].id;
+      serverToSelect = availableServers.value[0].id;
       await SetActiveServer(serverToSelect);
     }
     selectedServer.value = serverToSelect;
@@ -288,7 +295,6 @@ const sendMessage = async () => {
     }
 
     if (modelParams.value.outputMode === 'stream') {
-      const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
         content: '',
@@ -412,7 +418,7 @@ const deleteConversation = async (id: string) => {
 
     await DeleteConversation(id)
     ElMessage.success('对话删除成功')
-    loadConversations() // 重新加载列表
+    await loadConversations() // 重新加载列表
 
     if (activeConversationId.value === id) {
       newConversation() // 创建新对话
