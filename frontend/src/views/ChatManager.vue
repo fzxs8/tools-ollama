@@ -79,17 +79,7 @@ import Message = types.Message;
 import OllamaServerConfig = types.OllamaServerConfig;
 import Model = types.Model;
 import Prompt = types.Prompt;
-
-// 模型参数接口
-interface ModelParams {
-  temperature: number
-  topP: number
-  context: number
-  numPredict: number
-  topK: number
-  repeatPenalty: number
-  outputMode: 'stream' | 'blocking' // 添加输出方式选项
-}
+import {ModelParams} from "../classes/types";
 
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')

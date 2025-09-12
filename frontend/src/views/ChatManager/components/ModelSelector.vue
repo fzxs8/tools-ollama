@@ -105,29 +105,20 @@
 import {types} from "../../../../wailsjs/go/models";
 import Model = types.Model;
 import OllamaServerConfig = types.OllamaServerConfig;
-
-interface ModelParams {
-  temperature: number;
-  topP: number;
-  context: number;
-  numPredict: number;
-  topK: number;
-  repeatPenalty: number;
-  outputMode: 'stream' | 'blocking';
-}
+import {ModelParams} from "../../../classes/types";
 
 const props = defineProps<{
   localModels: Model[];
   selectedModel: string;
   availableServers: OllamaServerConfig[];
   selectedServer: string;
-  modelParams: ModelParams;
+  modelParams: ModelParams; // Use imported ModelParams
 }>();
 
 const emit = defineEmits<{
   (e: 'update:selectedModel', value: string): void;
   (e: 'update:selectedServer', value: string): void;
-  (e: 'update:modelParams', value: ModelParams): void;
+  (e: 'update:modelParams', value: ModelParams): void; // Use imported ModelParams
   (e: 'load-model'): void;
   (e: 'save-model-params'): void;
   (e: 'reset-model-params'): void;

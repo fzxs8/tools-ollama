@@ -75,21 +75,8 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { SearchOnlineModels } from '../../wailsjs/go/main/App'
 import { OpenInBrowser } from '../../wailsjs/go/main/App'
+import {OnlineModel} from "../classes/types";
 
-interface OnlineModel {
-  model_identifier: string
-  namespace: string | null
-  model_name: string
-  model_type: string
-  description: string
-  capability: string | null
-  labels: string[]
-  pulls: number
-  tags: number
-  last_updated: string
-  last_updated_str: string
-  url: string
-}
 
 const searchText = ref('')
 const onlineModels = ref<OnlineModel[]>([])

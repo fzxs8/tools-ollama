@@ -186,7 +186,8 @@ import {
   DeleteModel,
   DownloadModel,
   GetActiveServer,
-  GetModelParams, GetServers,
+  GetModelParams,
+  GetServers,
   ListModelsByServer,
   OpenInBrowser,
   RunModel,
@@ -196,26 +197,12 @@ import {
   TestModel
 } from '../../wailsjs/go/main/App'
 import {types} from "../../wailsjs/go/models";
+import {DownloadProgress, ModelParams} from "../classes/types";
 import OllamaServerConfig = types.OllamaServerConfig;
 import Model = types.Model;
 
 const openOllamaLibrary = () => {
   OpenInBrowser('https://ollama.com/library')
-}
-
-interface ModelParams {
-  temperature: number
-  topP: number
-  topK: number
-  context: number
-  numPredict: number
-  repeatPenalty: number
-}
-interface DownloadProgress {
-  model: string
-  status: string
-  percentage: number
-  notification?: any
 }
 
 const localModels = ref<Model[]>([])
@@ -239,6 +226,7 @@ const testPrompt = ref('你好，请用中文简单介绍一下自己。')
 const testResult = ref('')
 
 const modelParams = reactive<ModelParams>({
+  outputMode: 'stream',
   temperature: 0.8,
   topP: 0.9,
   topK: 40,
@@ -296,7 +284,7 @@ const loadAvailableServers = async () => {
       // 如果默认的活动服务器不存在，则将列表中的第一个设置为活动状态
       await SetActiveServer(serverToSelect);
     }
-    
+
     selectedServer.value = serverToSelect;
 
   } catch (error) {
