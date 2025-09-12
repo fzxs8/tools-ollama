@@ -38,10 +38,9 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { main } from "../../../../wailsjs/go/models";
+import {types} from "../../../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
-// 类型定义
-type Prompt = main.Prompt;
 
 const props = defineProps<{
   visible: boolean;

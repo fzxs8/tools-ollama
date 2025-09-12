@@ -65,23 +65,16 @@ import {
   ListConversations,
   ListModelsByServer,
   ListPrompts,
-  SaveConversation
+  SaveConversation,
+  SetActiveServer
 } from '../../wailsjs/go/main/App'
 import {EventsOff, EventsOn} from '../../wailsjs/runtime'
-import MarkdownIt from 'markdown-it'
 import ChatInput from "./ChatManager/components/ChatInput.vue";
 import ModelSelector from "./ChatManager/components/ModelSelector.vue";
 import ChatContainer from "./ChatManager/components/ChatContainer.vue";
 import PromptListDrawer from "../components/commons/PromptListDrawer.vue";
-import {main} from "../../wailsjs/go/models";
-
-// const md = new MarkdownIt({
-//   html: true,
-//   linkify: true,
-//   typographer: true
-// })
-
-type Prompt = main.Prompt;
+import {types} from "../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
 interface Model {
   name: string
@@ -129,7 +122,7 @@ interface Conversation {
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
 const availableServers = ref<Server[]>([])
-const selectedServer = ref<string>('local')
+const selectedServer = ref('')
 const inputMessage = ref('')
 const messages = ref<Message[]>([
   {role: 'assistant', content: '你好！我是Ollama助手，请选择一个模型开始对话。', timestamp: Date.now()}
@@ -185,61 +178,36 @@ const handleApplySystemPrompt = (prompt: Prompt) => {
   systemPromptDrawerVisible.value = false;
 }
 
-
 const loadAvailableServers = async () => {
   try {
-    // const localBaseUrl = await GetOllamaServerConfig()
-    // const localServer = {
-    //   id: 'local',
-    //   name: '本地服务',
-    //   baseUrl: localBaseUrl,
-    //   apiKey: '',
-    //   isActive: true,
-    //   testStatus: '',
-    //   type: 'local'
-    // }
-    let remoteServers: Server[] = []
-    try {
-      const remoteList: any[] = await GetServers()
-      remoteServers = remoteList.map(server => ({
-        id: server.id || server.ID,
-        name: server.name || server.Name,
-        baseUrl: server.baseUrl || server.base_url || server.BaseURL,
-        apiKey: server.apiKey || server.api_key || server.APIKey,
-        isActive: server.isActive !== undefined ? server.isActive : (server.is_active !== undefined ? server.is_active : server.IsActive),
-        testStatus: server.testStatus || server.test_status || server.TestStatus || '',
-        type: server.type || server.Type || ''
-      }))
-    } catch (remoteError) {
-      console.error('获取远程服务器列表失败:', remoteError)
-    }
-    availableServers.value = [...remoteServers]
+    const allServers = await GetServers();
+    availableServers.value = allServers as Server[];
 
-    try {
-      const activeServer = await GetActiveServer()
-      const activeServerExists = activeServer && activeServer.id && availableServers.value.some(s => s.id === activeServer.id)
-      if (activeServerExists) {
-        selectedServer.value = activeServer.id
-      } else {
-        selectedServer.value = 'local'
-      }
-    } catch (e) {
-      selectedServer.value = 'local'
+    if (allServers.length === 0) {
+      ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
+      selectedServer.value = '';
+      return;
     }
+
+    const activeServer = await GetActiveServer();
+    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
+
+    let serverToSelect = '';
+    if (activeServerExists) {
+      serverToSelect = activeServer.id;
+    } else {
+      serverToSelect = allServers[0].id;
+      await SetActiveServer(serverToSelect);
+    }
+    selectedServer.value = serverToSelect;
+
   } catch (error) {
-    const localServer = {
-      id: 'local',
-      name: '本地服务',
-      baseUrl: '',
-      apiKey: '',
-      isActive: true,
-      testStatus: '',
-      type: 'local'
-    };
-    availableServers.value = [localServer];
-    selectedServer.value = 'local'
+    console.error('加载可用服务器列表失败:', error);
+    ElMessage.error('加载可用服务器列表失败: ' + (error as Error).message);
+    availableServers.value = [];
+    selectedServer.value = '';
   }
-}
+};
 
 const onServerChange = () => {
   getModels()
@@ -247,27 +215,21 @@ const onServerChange = () => {
 
 // 获取模型列表
 const getModels = async () => {
+  if (!selectedServer.value) {
+    localModels.value = [];
+    return;
+  }
   try {
     const models: Model[] = await ListModelsByServer(selectedServer.value)
     localModels.value = models
     if (models.length > 0) {
       selectedModel.value = models[0].name
-      // 加载选中模型的参数设置
       loadModelParams(models[0].name)
     } else {
       selectedModel.value = ''
     }
   } catch (error: any) {
-    console.error('获取模型列表失败:', error)
-    let errorMessage = '获取模型列表失败'
-    if (error.message) {
-      errorMessage += ': ' + error.message
-    } else if (error.toString() !== '[object Object]') {
-      errorMessage += ': ' + error.toString()
-    } else {
-      errorMessage += ': 未知错误'
-    }
-    ElMessage.error(errorMessage)
+    ElMessage.error('获取模型列表失败: ' + error.message)
     localModels.value = [] // 清空模型列表
   }
 }
@@ -286,7 +248,6 @@ const sendMessage = async () => {
   const message = inputMessage.value.trim()
   if (!message || isThinking.value) return
 
-  // 检查是否选择了模型
   if (!selectedModel.value) {
     messages.value.push({
       role: 'assistant',
@@ -296,7 +257,6 @@ const sendMessage = async () => {
     return
   }
 
-  // 添加用户消息
   messages.value.push({
     role: 'user',
     content: message,
@@ -306,15 +266,12 @@ const sendMessage = async () => {
 
   try {
     isThinking.value = true
-    // 滚动到底部
     scrollToBottom()
 
-    // 构建包含系统提示词的消息
     let messagesWithSystemPrompt: Message[] = [
       {role: "user", content: message, timestamp: Date.now()}
     ]
 
-    // 如果有激活的系统提示词，添加到消息历史最前面
     if (activeSystemPrompt.value) {
       messagesWithSystemPrompt.unshift({
         role: "system",
@@ -323,9 +280,7 @@ const sendMessage = async () => {
       })
     }
 
-    // 根据输出方式选择不同的处理方式
     if (modelParams.value.outputMode === 'stream') {
-      // 流式输出
       const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
@@ -333,7 +288,6 @@ const sendMessage = async () => {
         timestamp: Date.now()
       })
 
-      // 定义事件监听器
       const streamListener = (chunk: string) => {
         try {
           if (messages.value && messages.value[assistantMessageIndex]) {
@@ -345,19 +299,15 @@ const sendMessage = async () => {
         }
       }
 
-      // 注册事件监听
       EventsOn('chat_stream_chunk', streamListener)
 
       try {
-        // 调用后端API进行流式传输，现在第三个参数是布尔值
         await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
       } finally {
-        // 确保无论成功还是失败都注销监听器
         EventsOff('chat_stream_chunk', streamListener)
       }
 
     } else {
-      // 阻塞输出
       const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
@@ -366,7 +316,6 @@ const sendMessage = async () => {
       })
 
       try {
-        // 调用后端API，第三个参数为false
         const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
         if (messages.value && messages.value[assistantMessageIndex]) {
           messages.value[assistantMessageIndex].content = response
@@ -378,7 +327,6 @@ const sendMessage = async () => {
       }
     }
 
-    // 保存对话
     await saveCurrentConversation()
   } catch (error: any) {
     console.error('发送消息时出现错误:', error)
@@ -412,14 +360,11 @@ const clearChat = () => {
 
 // 新建对话
 const newConversation = () => {
-  // 清空消息列表
   messages.value = [{
     role: 'assistant',
     content: '你好！我是Ollama助手，请选择一个模型开始对话。',
     timestamp: Date.now()
   }]
-
-  // 清空当前对话ID和对话对象
   activeConversationId.value = ''
   currentConversation.value = null
 }
@@ -437,7 +382,6 @@ const loadConversations = async () => {
 const loadConversation = async (conv: Conversation) => {
   try {
     const conversation = await GetConversation(conv.id)
-    // 加载对话到界面
     messages.value = conversation.messages
     selectedModel.value = conversation.modelName
     activeConversationId.value = conversation.id
@@ -480,7 +424,6 @@ const deleteConversation = async (id: string) => {
     ElMessage.success('对话删除成功')
     loadConversations() // 重新加载列表
 
-    // 如果删除的是当前激活的对话，需要清除激活状态
     if (activeConversationId.value === id) {
       newConversation() // 创建新对话
     }
@@ -494,7 +437,6 @@ const deleteConversation = async (id: string) => {
 // 保存当前对话
 const saveCurrentConversation = async () => {
   try {
-    // 构建对话对象
     const conversation: any = {
       messages: messages.value,
       modelName: selectedModel.value,
@@ -503,23 +445,18 @@ const saveCurrentConversation = async () => {
       timestamp: Date.now()
     }
 
-    // 如果是新对话，生成标题
     if (!activeConversationId.value) {
-      // 使用第一条用户消息作为标题
       const firstUserMessage = messages.value.find(m => m.role === 'user')
       conversation.title = firstUserMessage ? firstUserMessage.content.substring(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '') : '新对话'
     } else {
-      // 如果是已有对话，获取原对话信息
       conversation.id = activeConversationId.value
       conversation.title = currentConversation.value?.title || '新对话'
     }
 
-    // 保存对话
     const savedConversation = await SaveConversation(conversation)
     activeConversationId.value = savedConversation.id
     currentConversation.value = savedConversation
 
-    // 重新加载对话列表
     loadConversations()
   } catch (error) {
     console.error('保存对话失败:', error)
@@ -528,25 +465,18 @@ const saveCurrentConversation = async () => {
 
 // 重新生成消息
 const regenerateMessage = async (index: number) => {
-  // 确保这是助手消息，并且有前一条用户消息
   if (index > 0 && messages.value[index].role === 'assistant' && messages.value[index - 1].role === 'user') {
-    // 获取前一条用户消息
     const userMessage = messages.value[index - 1].content;
-
-    // 移除当前助手消息
     messages.value.splice(index, 1);
 
     try {
       isThinking.value = true;
-      // 滚动到底部
       scrollToBottom();
 
-      // 构建包含系统提示词的消息
       let messagesWithSystemPrompt: Message[] = [
         {role: "user", content: userMessage, timestamp: Date.now()}
       ]
 
-      // 如果有激活的系统提示词，添加到消息历史最前面
       if (activeSystemPrompt.value) {
         messagesWithSystemPrompt.unshift({
           role: "system",
@@ -555,7 +485,6 @@ const regenerateMessage = async (index: number) => {
         })
       }
 
-      // 添加一个空的助手消息用于更新
       const assistantMessageIndex = messages.value.length
       messages.value.push({
         role: 'assistant',
@@ -563,15 +492,12 @@ const regenerateMessage = async (index: number) => {
         timestamp: Date.now()
       })
 
-      // 重新生成时，我们默认使用阻塞模式以简化逻辑
       const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
 
-      // 更新助手消息
       if (messages.value && messages.value[assistantMessageIndex]) {
         messages.value[assistantMessageIndex].content = response
       }
 
-      // 保存对话
       await saveCurrentConversation()
     } catch (error) {
       messages.value.push({
@@ -602,8 +528,6 @@ const handleKeydown = (event: KeyboardEvent) => {
 // 加载模型参数
 const loadModelParams = async (modelName: string) => {
   try {
-    // 这里应该调用后端获取模型参数的接口
-    // 暂时使用默认参数
     console.log(`加载模型 ${modelName} 的参数设置`)
   } catch (error) {
     console.error('加载模型参数失败:', error)
@@ -618,7 +542,6 @@ const saveModelParams = async () => {
   }
 
   try {
-    // 这里应该调用后端保存模型参数的接口
     ElMessage.success('参数保存成功')
   } catch (error) {
     ElMessage.error('参数保存失败: ' + (error as Error).message)
@@ -648,11 +571,9 @@ onMounted(async () => {
   // 监听流式传输事件
   if (window && (window as any).runtime) {
     (window as any).runtime.EventsOn("chat_stream_chunk", (data: any) => {
-      // 更新最后一条助手消息
       const lastMessageIndex = messages.value.length - 1
       if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
         messages.value[lastMessageIndex].content += data
-        // 滚动到底部
         scrollToBottom()
       }
     })
@@ -665,6 +586,6 @@ onMounted(async () => {
   background-color: #f0f4f9;
   padding: 0;
   height: 100%;
-  box-sizing: border box;
+  box-sizing: border-box;
 }
 </style>

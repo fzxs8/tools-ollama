@@ -66,9 +66,8 @@ import {
   UpdateServer,
   UpdateServerTestStatus,
 } from '../../wailsjs/go/main/App'
-import {main} from "../../wailsjs/go/models";
-
-type OllamaServerConfig = main.OllamaServerConfig;
+import {types} from "../../wailsjs/go/models";
+import OllamaServerConfig = types.OllamaServerConfig;
 
 // 响应式数据
 const allServers = ref<(OllamaServerConfig & { isTesting?: boolean })[]>([])
@@ -108,7 +107,7 @@ const openServiceDrawer = (server: OllamaServerConfig | null) => {
     Object.assign(serviceForm, {
       id: '', // ID为空表示是新建远程服务
       name: '',
-      base_url: '',
+      base_url: 'http://localhost:11434',
       api_key: '',
       test_status: 'unknown'
     });

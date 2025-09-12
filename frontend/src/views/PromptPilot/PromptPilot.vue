@@ -152,11 +152,9 @@ import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
 import ModelSelector from './components/ModelSelector.vue'
 import CommonPromptDrawer from './components/CommonPromptDrawer.vue'
 import {EventsOn} from "../../../wailsjs/runtime";
-import {main} from "../../../wailsjs/go/models";
 import {DeletePrompt, GeneratePromptStream, ListPrompts, SavePrompt} from "../../../wailsjs/go/main/App";
-
-// 类型定义
-type Prompt = main.Prompt;
+import {types} from "../../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
 // 响应式数据
 const selectedServerId = ref('')

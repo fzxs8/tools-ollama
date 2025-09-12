@@ -87,7 +87,6 @@
 </template>
 
 <script setup lang="ts">
-import { main } from "../../../../wailsjs/go/models";
 import {ElMessage} from "element-plus";
 
 // 类型定义

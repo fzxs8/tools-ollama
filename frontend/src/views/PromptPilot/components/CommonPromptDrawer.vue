@@ -57,11 +57,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { main } from "../../../../wailsjs/go/models";
 import { ElMessage } from "element-plus";
+import {types} from "../../../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
-// 类型定义
-type Prompt = main.Prompt;
 
 const props = defineProps<{
   visible: boolean;

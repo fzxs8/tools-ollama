@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue'
 import {ElMessage} from 'element-plus'
-import {GetActiveServer, GetServers, ListModelsByServer} from '../../../../wailsjs/go/main/App'
+import {GetActiveServer, GetServers, ListModelsByServer, SetActiveServer} from '../../../../wailsjs/go/main/App'
 
 // 定义接口
 interface Model {
@@ -84,62 +84,34 @@ const updateSelectedModels = (value: string[]) => {
 // 加载可用服务
 const loadAvailableServers = async () => {
   try {
-    // const localBaseUrl = await GetOllamaServerConfig()
-    // const localServer: Server = {
-    //   id: 'local',
-    //   name: '本地服务',
-    //   base_url: localBaseUrl,
-    //   api_key: '',
-    //   is_active: false, // 稍后会根据 GetActiveServer 更新
-    //   test_status: '',
-    //   type: 'local'
-    // }
-    //
-    let remoteServers: Server[] = []
-    try {
-      const remoteList: any[] = await GetServers()
-      if (remoteList) {
-        remoteServers = remoteList.map(server => ({
-          id: server.id || server.ID,
-          name: server.name || server.Name,
-          base_url: server.baseUrl || server.base_url || server.BaseURL,
-          api_key: server.apiKey || server.api_key || server.APIKey,
-          is_active: server.isActive !== undefined ? server.isActive : (server.is_active !== undefined ? server.is_active : server.IsActive),
-          test_status: server.testStatus || server.test_status || server.TestStatus || '',
-          type: server.type || server.Type || 'remote'
-        }))
-      }
-    } catch (remoteError) {
-      console.error('获取远程服务器列表失败:', remoteError)
+    const allServers = await GetServers();
+    availableServers.value = allServers as Server[];
+
+    if (allServers.length === 0) {
+      ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
+      availableModels.value = [];
+      updateSelectedServer('');
+      return;
     }
 
-    const allServers = [...remoteServers]
-    availableServers.value = allServers
+    const activeServer = await GetActiveServer();
+    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
 
-    try {
-      const activeServer = await GetActiveServer()
-      if (activeServer && activeServer.id && allServers.some(s => s.id === activeServer.id)) {
-        updateSelectedServer(activeServer.id)
-      } else {
-        updateSelectedServer('local')
-      }
-    } catch (e) {
-      updateSelectedServer('local')
+    let serverToSelect = '';
+    if (activeServerExists) {
+      serverToSelect = activeServer.id;
+    } else {
+      // Default to the first server in the list if no active one is found
+      serverToSelect = allServers[0].id;
+      await SetActiveServer(serverToSelect);
     }
+    updateSelectedServer(serverToSelect);
 
   } catch (error) {
-    console.error('加载服务配置失败:', error)
-    const localServer: Server = {
-      id: 'local',
-      name: '本地服务',
-      base_url: '',
-      api_key: '',
-      is_active: true,
-      test_status: '',
-      type: 'local'
-    };
-    availableServers.value = [localServer]
-    updateSelectedServer('local')
+    console.error('加载服务配置失败:', error);
+    ElMessage.error('加载服务列表失败: ' + (error as Error).message);
+    availableServers.value = [];
+    updateSelectedServer('');
   }
 }
 

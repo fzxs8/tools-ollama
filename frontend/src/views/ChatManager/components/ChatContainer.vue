@@ -115,7 +115,8 @@
 import { ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import ConversationHistory from './ConversationHistory.vue'
-import {main} from "../../../../wailsjs/go/models";
+import {types} from "../../../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
 // 初始化Markdown解析器
 const md = new MarkdownIt({
@@ -123,8 +124,6 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true
 })
-
-type Prompt = main.Prompt;
 
 interface Message {
   role: 'user' | 'assistant' | 'system'

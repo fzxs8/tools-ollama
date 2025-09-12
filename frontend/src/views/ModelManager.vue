@@ -327,11 +327,17 @@ const onServerChange = () => {
 }
 
 const getModels = async () => {
+  if (!selectedServer.value) {
+    localModels.value = [];
+    loading.value = false;
+    return;
+  }
   try {
     loading.value = true
     localModels.value = await ListModelsByServer(selectedServer.value)
   } catch (error: any) {
     ElMessage.error('获取模型列表失败: ' + error.message)
+    localModels.value = [];
   } finally {
     loading.value = false
   }
