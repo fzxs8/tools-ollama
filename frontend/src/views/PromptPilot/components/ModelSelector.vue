@@ -38,23 +38,9 @@
 import {onMounted, ref, watch} from 'vue'
 import {ElMessage} from 'element-plus'
 import {GetActiveServer, GetServers, ListModelsByServer, SetActiveServer} from '../../../../wailsjs/go/main/App'
-
-// 定义接口
-interface Model {
-  name: string
-  size: number
-  modifiedAt: string
-}
-
-interface Server {
-  id: string
-  name: string
-  baseUrl: string
-  apiKey: string
-  isActive: boolean
-  testStatus: string
-  type: string
-}
+import {types} from "../../../../wailsjs/go/models";
+import Model = types.Model;
+import OllamaServerConfig = types.OllamaServerConfig;
 
 // 定义 Props 和 Emits
 const props = defineProps<{
@@ -68,7 +54,7 @@ const emit = defineEmits<{
 }>()
 
 // 定义响应式状态
-const availableServers = ref<Server[]>([])
+const availableServers = ref<OllamaServerConfig[]>([])
 const availableModels = ref<Model[]>([])
 
 // 更新选中的服务
@@ -84,10 +70,9 @@ const updateSelectedModels = (value: string[]) => {
 // 加载可用服务
 const loadAvailableServers = async () => {
   try {
-    const allServers = await GetServers();
-    availableServers.value = allServers as Server[];
+    availableServers.value = await GetServers();
 
-    if (allServers.length === 0) {
+    if (availableServers.value.length === 0) {
       ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
       availableModels.value = [];
       updateSelectedServer('');
@@ -95,14 +80,14 @@ const loadAvailableServers = async () => {
     }
 
     const activeServer = await GetActiveServer();
-    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
+    const activeServerExists = activeServer && availableServers.value.some(s => s.id === activeServer.id);
 
     let serverToSelect = '';
     if (activeServerExists) {
       serverToSelect = activeServer.id;
     } else {
       // Default to the first server in the list if no active one is found
-      serverToSelect = allServers[0].id;
+      serverToSelect = availableServers.value[0].id;
       await SetActiveServer(serverToSelect);
     }
     updateSelectedServer(serverToSelect);

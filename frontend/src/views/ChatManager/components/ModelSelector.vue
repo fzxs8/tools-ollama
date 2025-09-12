@@ -102,22 +102,9 @@
 </template>
 
 <script setup lang="ts">
-
-interface Model {
-  name: string;
-  size: number;
-  modifiedAt: string;
-}
-
-interface Server {
-  id: string;
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  isActive: boolean;
-  testStatus: string;
-  type: string;
-}
+import {types} from "../../../../wailsjs/go/models";
+import Model = types.Model;
+import OllamaServerConfig = types.OllamaServerConfig;
 
 interface ModelParams {
   temperature: number;
@@ -132,7 +119,7 @@ interface ModelParams {
 const props = defineProps<{
   localModels: Model[];
   selectedModel: string;
-  availableServers: Server[];
+  availableServers: OllamaServerConfig[];
   selectedServer: string;
   modelParams: ModelParams;
 }>();

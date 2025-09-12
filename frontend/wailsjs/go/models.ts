@@ -89,7 +89,7 @@ export namespace types {
 	    baseUrl: string;
 	    apiKey: string;
 	    isActive: boolean;
-	    testtatus: string;
+	    testStatus: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OllamaServerConfig(source);
@@ -102,7 +102,7 @@ export namespace types {
 	        this.baseUrl = source["baseUrl"];
 	        this.apiKey = source["apiKey"];
 	        this.isActive = source["isActive"];
-	        this.testtatus = source["testtatus"];
+	        this.testStatus = source["testStatus"];
 	    }
 	}
 	export class Prompt {

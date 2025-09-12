@@ -43,7 +43,7 @@ type OllamaServerConfig struct {
 	BaseURL    string `json:"baseUrl"`
 	APIKey     string `json:"apiKey"`
 	IsActive   bool   `json:"isActive"`
-	TestStatus string `json:"testtatus"`
+	TestStatus string `json:"testStatus"`
 }
 
 // Prompt 代表一个已保存的提示词

@@ -35,7 +35,7 @@
             </el-table-column>
             <el-table-column prop="modifiedAt" label="修改时间">
               <template #default="scope">
-                {{ formatDate(scope.row.modifiedAt) }} 
+                {{ formatDate(scope.row.modifiedAt) }}
               </template>
             </el-table-column>
             <el-table-column label="运行状态" width="100">
@@ -198,7 +198,6 @@ import {
 import {types} from "../../wailsjs/go/models";
 import OllamaServerConfig = types.OllamaServerConfig;
 import Model = types.Model;
-// import ModelParams = types.ModelParams;
 
 const openOllamaLibrary = () => {
   OpenInBrowser('https://ollama.com/library')

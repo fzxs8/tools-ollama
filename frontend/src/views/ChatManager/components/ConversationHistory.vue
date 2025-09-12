@@ -43,22 +43,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
-
-interface Message {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp?: number
-}
-
-interface Conversation {
-  id: string
-  title: string
-  messages: Message[]
-  modelName: string
-  systemPrompt: string
-  modelParams: string
-  timestamp: number
-}
+import {types} from "../../../../wailsjs/go/models";
+import Conversation = types.Conversation;
 
 const props = defineProps<{
   visible: boolean

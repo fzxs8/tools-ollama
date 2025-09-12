@@ -117,6 +117,8 @@ import MarkdownIt from 'markdown-it'
 import ConversationHistory from './ConversationHistory.vue'
 import {types} from "../../../../wailsjs/go/models";
 import Prompt = types.Prompt;
+import Conversation = types.Conversation;
+import Message = types.Message;
 
 // 初始化Markdown解析器
 const md = new MarkdownIt({
@@ -124,22 +126,6 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true
 })
-
-interface Message {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp?: number
-}
-
-interface Conversation {
-  id: string
-  title: string
-  messages: Message[]
-  modelName: string
-  systemPrompt: string
-  modelParams: string
-  timestamp: number
-}
 
 const props = defineProps<{
   messages: Message[]
