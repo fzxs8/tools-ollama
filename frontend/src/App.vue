@@ -34,10 +34,6 @@
               <el-icon><MagicStick /></el-icon>
               <span>提示词工程</span>
             </el-menu-item>
-            <el-menu-item index="/system">
-              <el-icon><Monitor /></el-icon>
-              <span>系统监控</span>
-            </el-menu-item>
             <el-menu-item index="/settings">
               <el-icon><Setting /></el-icon>
               <span>服务设置</span>
@@ -54,16 +50,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import {
-  Collection,
-  Shop,
-  ChatDotRound,
-  MagicStick,
-  Monitor,
-  Setting
-} from '@element-plus/icons-vue'
+import {ref, watch} from 'vue'
+import {useRoute} from 'vue-router'
+import {ChatDotRound, Collection, MagicStick, Setting, Shop} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeRoute = ref(route.path)
