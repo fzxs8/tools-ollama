@@ -3,6 +3,7 @@ export namespace types {
 	export class Message {
 	    role: string;
 	    content: string;
+	    timestamp: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Message(source);
@@ -12,6 +13,7 @@ export namespace types {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.role = source["role"];
 	        this.content = source["content"];
+	        this.timestamp = source["timestamp"];
 	    }
 	}
 	export class Conversation {

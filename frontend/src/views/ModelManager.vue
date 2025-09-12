@@ -35,7 +35,7 @@
             </el-table-column>
             <el-table-column prop="modifiedAt" label="修改时间">
               <template #default="scope">
-                {{ formatDate(scope.row.modifiedAt) }}
+                {{ formatDate(scope.row.modifiedAt) }} 
               </template>
             </el-table-column>
             <el-table-column label="运行状态" width="100">
@@ -195,25 +195,13 @@ import {
   StopModel,
   TestModel
 } from '../../wailsjs/go/main/App'
+import {types} from "../../wailsjs/go/models";
+import OllamaServerConfig = types.OllamaServerConfig;
+import Model = types.Model;
+// import ModelParams = types.ModelParams;
 
 const openOllamaLibrary = () => {
   OpenInBrowser('https://ollama.com/library')
-}
-
-interface Model {
-  name: string
-  size: number
-  modifiedAt: string
-  isRunning?: boolean
-}
-
-interface Server {
-  id: string
-  name: string
-  baseUrl: string
-  apiKey: string
-  isActive: boolean
-  testStatus?: 'unknown' | 'success' | 'failed' | string
 }
 
 interface ModelParams {
@@ -224,7 +212,6 @@ interface ModelParams {
   numPredict: number
   repeatPenalty: number
 }
-
 interface DownloadProgress {
   model: string
   status: string
@@ -235,7 +222,7 @@ interface DownloadProgress {
 const localModels = ref<Model[]>([])
 const selectedModel = ref<Model | null>(null)
 const loading = ref(false)
-const availableServers = ref<Server[]>([])
+const availableServers = ref<OllamaServerConfig[]>([])
 const selectedServer = ref<string>('local')
 const drawerVisible = ref(false)
 
@@ -290,10 +277,9 @@ const resetModelParams = () => {
 
 const loadAvailableServers = async () => {
   try {
-    const allServers = await GetServers();
-    availableServers.value = allServers as Server[];
+    availableServers.value = await GetServers();
 
-    if (allServers.length === 0) {
+    if (availableServers.value.length === 0) {
       ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
       localModels.value = [];
       selectedServer.value = '';
@@ -301,13 +287,13 @@ const loadAvailableServers = async () => {
     }
 
     const activeServer = await GetActiveServer();
-    const activeServerExists = activeServer && allServers.some(s => s.id === activeServer.id);
+    const activeServerExists = activeServer && availableServers.value.some(s => s.id === activeServer.id);
 
     let serverToSelect = '';
     if (activeServerExists) {
       serverToSelect = activeServer.id;
     } else {
-      serverToSelect = allServers[0].id;
+      serverToSelect = availableServers.value[0].id;
       // 如果默认的活动服务器不存在，则将列表中的第一个设置为活动状态
       await SetActiveServer(serverToSelect);
     }

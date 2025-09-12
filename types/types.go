@@ -26,8 +26,9 @@ type Conversation struct {
 
 // Message 聊天消息结构
 type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // ListModelsResponse 模型列表响应
