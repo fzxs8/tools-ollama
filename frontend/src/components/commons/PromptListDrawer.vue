@@ -57,12 +57,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { main } from "../../../../wailsjs/go/models";
 import { ElMessage } from "element-plus";
+import {types} from "../../../wailsjs/go/models";
+import Prompt = types.Prompt;
 
 // 类型定义
-type Prompt = main.Prompt;
-
 const props = defineProps<{
   visible: boolean;
   prompts: Prompt[];
@@ -167,6 +166,7 @@ const selectPrompt = (prompt: Prompt) => emit('select', prompt);
   font-weight: 600;
   color: #333;
   flex: 1;
+  text-align: left;
 }
 
 .prompt-actions {
@@ -183,15 +183,18 @@ const selectPrompt = (prompt: Prompt) => emit('select', prompt);
   color: #666;
   margin-bottom: 8px;
   line-height: 1.4;
+  text-align: left;
 }
 
 .prompt-tags, .prompt-models {
   margin-bottom: 8px;
+  text-align: left;
 }
 
 .prompt-time {
   font-size: 12px;
   color: #999;
+  text-align: left;
 }
 
 .prompt-content-preview-wrapper {
@@ -208,6 +211,7 @@ pre.prompt-content-preview {
   line-height: 1.5;
   border: 1px solid #eee;
   margin: 0;
+  text-align: left;
 }
 
 .preview-copy-btn {

@@ -150,7 +150,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
 import ModelSelector from './components/ModelSelector.vue'
-import CommonPromptDrawer from './components/CommonPromptDrawer.vue'
+import CommonPromptDrawer from '../../components/commons/PromptListDrawer.vue'
 import {EventsOn} from "../../../wailsjs/runtime";
 import {DeletePrompt, GeneratePromptStream, ListPrompts, SavePrompt} from "../../../wailsjs/go/main/App";
 import {types} from "../../../wailsjs/go/models";
