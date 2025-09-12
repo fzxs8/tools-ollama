@@ -54,22 +54,6 @@ export function GetServers() {
   return window['go']['main']['App']['GetServers']();
 }
 
-export function KVDelete(arg1) {
-  return window['go']['main']['App']['KVDelete'](arg1);
-}
-
-export function KVGet(arg1) {
-  return window['go']['main']['App']['KVGet'](arg1);
-}
-
-export function KVList(arg1) {
-  return window['go']['main']['App']['KVList'](arg1);
-}
-
-export function KVSet(arg1, arg2) {
-  return window['go']['main']['App']['KVSet'](arg1, arg2);
-}
-
 export function ListConversations() {
   return window['go']['main']['App']['ListConversations']();
 }
@@ -120,10 +104,6 @@ export function StopModel(arg1) {
 
 export function TestModel(arg1, arg2) {
   return window['go']['main']['App']['TestModel'](arg1, arg2);
-}
-
-export function TestOllamaConnection() {
-  return window['go']['main']['App']['TestOllamaConnection']();
 }
 
 export function TestOllamaServer(arg1) {

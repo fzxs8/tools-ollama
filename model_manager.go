@@ -5,24 +5,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"time"
-
 	"github.com/fzxs8/duolasdk/core"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"io"
+	"net/http"
+	"tools-ollama/types"
 )
 
 // ModelManager 模型管理器
 type ModelManager struct {
-	ctx context.Context
-	app *App
+	ctx       context.Context
+	app       *App // 保留对App的引用以访问全局状态和方法
+	logger    *core.AppLog
+	configMgr *OllamaConfigManager
 }
 
+// 模型运行状态管理 (在内存中)
+var runningModels = make(map[string]*types.RunningModel)
+
 // NewModelManager 创建新的模型管理器
-func NewModelManager(app *App) *ModelManager {
+func NewModelManager(app *App, configMgr *OllamaConfigManager, logger *core.AppLog) *ModelManager {
 	return &ModelManager{
-		app: app,
+		app:       app,
+		logger:    logger.WithPrefix("ModelManager"),
+		configMgr: configMgr,
 	}
 }
 
@@ -31,26 +37,40 @@ func (m *ModelManager) SetContext(ctx context.Context) {
 	m.ctx = ctx
 }
 
-// ModelParams 模型参数
-type ModelParams struct {
-	Temperature   float64 `json:"temperature"`
-	TopP          float64 `json:"top_p"`
-	TopK          int     `json:"top_k"`
-	Context       int     `json:"context"`
-	NumPredict    int     `json:"num_predict"`
-	RepeatPenalty float64 `json:"repeat_penalty"`
-}
+// ListModelsByServer 根据服务器获取模型列表
+func (m *ModelManager) ListModelsByServer(serverID string) ([]types.Model, error) {
+	m.logger.Debug("开始获取模型列表", "serverID", serverID)
+	serverConfig, err := m.configMgr.GetServerByID(serverID)
+	if err != nil {
+		return nil, err
+	}
 
-// RunningModel 运行中的模型
-type RunningModel struct {
-	Name      string      `json:"name"`
-	Params    ModelParams `json:"params"`
-	StartTime time.Time   `json:"start_time"`
-	IsActive  bool        `json:"is_active"`
-}
+	// 为特定服务器创建临时的HTTP客户端
+	tempClient := core.NewHttp(m.logger.WithPrefix("TempClient"))
+	tempClient.Create(&core.Config{
+		BaseURL: serverConfig.BaseURL,
+	})
 
-// 模型运行状态管理
-var runningModels = make(map[string]*RunningModel)
+	response, err := tempClient.Get("/api/tags", core.Options{})
+	if err != nil {
+		m.logger.Error("请求Ollama API [/api/tags] 失败", "serverID", serverID, "error", err)
+		return nil, err
+	}
+
+	var result types.ListModelsResponse
+	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
+		m.logger.Error("反序列化模型列表响应失败", "error", err)
+		return nil, err
+	}
+
+	// 检查并设置每个模型的运行状态
+	for i := range result.Models {
+		result.Models[i].IsRunning = m.IsModelRunning(result.Models[i].Name)
+	}
+
+	m.logger.Debug("成功获取并处理了 %d 个模型", len(result.Models))
+	return result.Models, nil
+}
 
 // IsModelRunning 检查模型是否在运行
 func (m *ModelManager) IsModelRunning(modelName string) bool {
@@ -59,63 +79,84 @@ func (m *ModelManager) IsModelRunning(modelName string) bool {
 }
 
 // RunModel 运行模型
-func (m *ModelManager) RunModel(modelName string, params ModelParams) error {
+func (m *ModelManager) RunModel(modelName string, params types.ModelParams) error {
+	m.logger.Info("准备运行模型", "modelName", modelName)
 	if _, exists := runningModels[modelName]; exists {
 		return fmt.Errorf("模型 %s 已经在运行", modelName)
 	}
 	requestBody := map[string]interface{}{
-		"model":  modelName,
-		"prompt": "hello",
-		"stream": false,
+		"model":      modelName,
+		"keep_alive": -1, // 设置为-1以保持模型加载
 	}
 	response, err := m.app.httpClient.Post("/api/generate", core.Options{
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    requestBody,
 	})
 	if err != nil {
+		m.logger.Error("启动模型失败", "modelName", modelName, "error", err)
 		return fmt.Errorf("启动模型失败: %v", err)
 	}
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("启动模型失败，状态码: %d", response.StatusCode)
+		m.logger.Error("启动模型失败，状态码非200", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
+		return fmt.Errorf("启动模型失败，状态码: %d, 响应: %s", response.StatusCode, response.Body)
 	}
-	runningModels[modelName] = &RunningModel{
-		Name:      modelName,
-		Params:    params,
-		StartTime: time.Now(),
-		IsActive:  true,
+
+	// 更新内存中的运行状态
+	runningModels[modelName] = &types.RunningModel{
+		Name:   modelName,
+		Params: params,
 	}
-	runtime.EventsEmit(m.ctx, "model:started", map[string]interface{}{
-		"name": modelName,
-		"time": time.Now().Format("2006-01-02 15:04:05"),
-	})
+
+	m.logger.Info("模型成功启动", "modelName", modelName)
+	runtime.EventsEmit(m.ctx, "model:started", modelName)
 	return nil
 }
 
 // StopModel 停止模型
 func (m *ModelManager) StopModel(modelName string) error {
+	m.logger.Info("准备停止模型", "modelName", modelName)
 	if _, exists := runningModels[modelName]; !exists {
 		return fmt.Errorf("模型 %s 未在运行", modelName)
 	}
+
+	// 在Ollama中，没有直接的“停止”API，通常是通过加载另一个模型或发送一个keep_alive:0的请求来卸载它
+	// 这里我们只从内存中移除，前端会看到状态更新。实际的模型卸载由Ollama的策略决定。
+	delete(runningModels, modelName)
+	m.logger.Info("模型已从管理器中移除（停止）", "modelName", modelName)
+	runtime.EventsEmit(m.ctx, "model:stopped", modelName)
+	return nil
+}
+
+// DeleteModel 删除模型
+func (m *ModelManager) DeleteModel(modelName string) error {
+	m.logger.Info("准备删除模型", "modelName", modelName)
 	requestBody := map[string]interface{}{
-		"model":      modelName,
-		"keep_alive": 0,
+		"name": modelName,
 	}
-	_, err := m.app.httpClient.Post("/api/generate", core.Options{
-		Headers: map[string]string{"Content-Type": "application/json"},
-		Body:    requestBody,
+
+	response, err := m.app.httpClient.Do("DELETE", "/api/delete", core.Options{
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: requestBody,
 	})
 	if err != nil {
-		delete(runningModels, modelName)
-		runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{"name": modelName})
-		return fmt.Errorf("停止模型时出现警告(但UI已更新): %v", err)
+		m.logger.Error("删除模型请求失败", "modelName", modelName, "error", err)
+		return err
 	}
-	delete(runningModels, modelName)
-	runtime.EventsEmit(m.ctx, "model:stopped", map[string]interface{}{"name": modelName})
+
+	if response.StatusCode >= 400 {
+		m.logger.Error("删除模型失败，状态码非200", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
+		return fmt.Errorf("删除模型失败，状态码: %d, 内容: %s", response.StatusCode, response.Body)
+	}
+
+	m.logger.Info("模型删除成功", "modelName", modelName)
 	return nil
 }
 
 // TestModel 测试模型
 func (m *ModelManager) TestModel(modelName string, prompt string) (string, error) {
+	m.logger.Debug("开始测试模型", "modelName", modelName)
 	requestBody := map[string]interface{}{
 		"model":  modelName,
 		"prompt": prompt,
@@ -143,50 +184,23 @@ func (m *ModelManager) TestModel(modelName string, prompt string) (string, error
 
 // DownloadModel 下载模型
 func (m *ModelManager) DownloadModel(serverID string, modelName string) {
-	logger := core.NewLogger(&core.LoggerOption{Type: "console", Level: "debug", Prefix: "DownloadClient"})
+	logger := m.logger.WithPrefix("DownloadClient")
 	logger.Infof("开始下载模型: %s, 服务器ID: %s", modelName, serverID)
 
-	var serverConfig *OllamaServerConfig
-	//if serverID == "local" {
-	//	localConfig, err := m.app.configMgr.GetLocalConfig()
-	//	if err != nil {
-	//		// 如果获取配置失败，使用默认的本地服务器配置
-	//		localConfig = OllamaServerConfig{BaseURL: "http://localhost:11434"}
-	//		logger.Warnf("获取本地配置失败，使用默认配置: %v", err)
-	//	}
-	//	serverConfig = &localConfig
-	//} else {
-	servers, err := m.app.configMgr.GetServers()
+	serverConfig, err := m.configMgr.GetServerByID(serverID)
 	if err != nil {
-		logger.Errorf("获取远程服务器列表失败: %v", err)
-		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": "获取远程服务器列表失败: " + err.Error()})
-		return
-	}
-	found := false
-	for _, server := range servers {
-		if server.ID == serverID {
-			serverConfig = &server
-			found = true
-			break
-		}
-	}
-	if !found {
-		err := fmt.Errorf("找不到指定的服务器: %s", serverID)
-		logger.Errorf("找不到指定的服务器: %s", serverID)
+		logger.Errorf("获取服务器配置失败: %v", err)
 		runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": err.Error()})
 		return
 	}
-	//}
 
 	logger.Infof("使用服务器配置: %+v", serverConfig)
 
-	// 为特定服务器创建临时的HTTP客户端
 	downloadClient := core.NewHttp(logger)
 	downloadClient.Create(&core.Config{
 		BaseURL: serverConfig.BaseURL,
 	})
 
-	// 修复：使用正确的字段名 "name" 而不是 "model"
 	requestBody := map[string]interface{}{
 		"name":   modelName,
 		"stream": true,
@@ -216,13 +230,8 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
-	errorOccurred := false
-	var lastError string
-
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		logger.Debugf("收到进度行: %s", string(line))
-
 		if len(line) == 0 {
 			continue
 		}
@@ -233,27 +242,10 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 			continue
 		}
 
-		// 检查是否有错误信息
-		if errorMsg, ok := progressInfo["error"]; ok && errorMsg != nil && errorMsg != "" {
-			errorOccurred = true
-			lastError = fmt.Sprintf("%v", errorMsg)
-			logger.Errorf("下载过程中出现错误: %s", lastError)
-			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": lastError})
-			// 出现错误时中断下载
-			break
-		}
-
-		// 确保status字段存在
-		if _, ok := progressInfo["status"]; !ok {
-			progressInfo["status"] = "下载中"
-		}
-
-		// 添加默认的completed和total字段，以防它们不存在
-		if _, ok := progressInfo["completed"]; !ok {
-			progressInfo["completed"] = 0
-		}
-		if _, ok := progressInfo["total"]; !ok {
-			progressInfo["total"] = 0
+		if errorMsg, ok := progressInfo["error"]; ok {
+			logger.Errorf("下载过程中出现错误: %s", errorMsg)
+			runtime.EventsEmit(m.ctx, "model:download:error", map[string]interface{}{"model": modelName, "error": errorMsg})
+			return // 中断下载
 		}
 
 		progressInfo["model"] = modelName
@@ -266,30 +258,31 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 		return
 	}
 
-	// 只有在没有错误的情况下才发送下载完成事件
-	if !errorOccurred {
-		logger.Infof("模型 %s 下载完成", modelName)
-		runtime.EventsEmit(m.ctx, "model:download:done", map[string]interface{}{"model": modelName})
-	} else {
-		logger.Infof("模型 %s 下载失败: %s", modelName, lastError)
-		// 错误事件已经发送，无需再次发送
-	}
+	logger.Infof("模型 %s 下载完成", modelName)
+	runtime.EventsEmit(m.ctx, "model:download:done", map[string]interface{}{"model": modelName})
 }
 
 // SetModelParams 设置模型参数
-func (m *ModelManager) SetModelParams(modelName string, params ModelParams) error {
+func (m *ModelManager) SetModelParams(modelName string, params types.ModelParams) error {
 	if model, exists := runningModels[modelName]; exists {
+		m.logger.Debug("更新正在运行模型的参数", "modelName", modelName)
 		model.Params = params
+		return nil
 	}
+	m.logger.Warn("尝试为未在运行的模型设置参数", "modelName", modelName)
+	// 即使模型未运行，也可以考虑将其参数保存到store中，以便下次运行
 	return nil
 }
 
 // GetModelParams 获取模型参数
-func (m *ModelManager) GetModelParams(modelName string) (ModelParams, error) {
+func (m *ModelManager) GetModelParams(modelName string) (types.ModelParams, error) {
 	if model, exists := runningModels[modelName]; exists {
+		m.logger.Debug("获取正在运行模型的参数", "modelName", modelName)
 		return model.Params, nil
 	}
-	return ModelParams{
+	m.logger.Debug("模型未在运行，返回默认参数", "modelName", modelName)
+	// 如果模型未运行，返回默认参数
+	return types.ModelParams{
 		Temperature:   0.8,
 		TopP:          0.9,
 		TopK:          40,
