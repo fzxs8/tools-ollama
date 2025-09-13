@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"tools-ollama/types"
 
 	"github.com/fzxs8/duolasdk"
 	"github.com/fzxs8/duolasdk/core"
+	"github.com/fzxs8/duolasdk/core/ai"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -77,7 +79,10 @@ func (a *App) rebuildDependencies() error {
 	})
 
 	// 更新AI提供者
-	ollamaProvider := core.NewOllamaProvider(activeServer.BaseURL)
+	cleanBaseURL := strings.TrimSuffix(activeServer.BaseURL, "/")
+	finalOllamaURL := cleanBaseURL + "/api/" // 修正：添加 /api/ 后缀
+	a.logger.Debug("app.go: Final Ollama Base URL being passed to NewOllamaProvider", "url", finalOllamaURL)
+	ollamaProvider := ai.NewOllamaProvider(a.logger, finalOllamaURL)
 	aiProviderAdapter := NewAIProviderAdapter(ollamaProvider, a.logger)
 	a.chatManager.SetAIProvider(aiProviderAdapter)
 
@@ -250,12 +255,12 @@ func (a *App) OpenInBrowser(url string) {
 
 // AIProviderAdapter 适配器，用于解决core.Message和本地Message类型不匹配的问题
 type AIProviderAdapter struct {
-	provider *core.OllamaProvider
+	provider AIProvider
 	logger   *core.AppLog
 }
 
 // NewAIProviderAdapter 创建AI提供者适配器
-func NewAIProviderAdapter(provider *core.OllamaProvider, logger *core.AppLog) *AIProviderAdapter {
+func NewAIProviderAdapter(provider AIProvider, logger *core.AppLog) *AIProviderAdapter {
 	return &AIProviderAdapter{
 		provider: provider,
 		logger:   logger.WithPrefix("AIAdapter"),

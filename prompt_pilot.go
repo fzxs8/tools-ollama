@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fzxs8/duolasdk"
-	"github.com/fzxs8/duolasdk/core"
-	"github.com/google/uuid"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"strings" // 导入 strings 包
 	"time"
 	"tools-ollama/types"
+
+	"github.com/fzxs8/duolasdk"
+	"github.com/fzxs8/duolasdk/core"
+	"github.com/fzxs8/duolasdk/core/ai" // 导入 ai 包
+	"github.com/google/uuid"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // PromptPilot 管理提示词工程功能
@@ -67,7 +70,10 @@ func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId s
 
 		p.logger.Debug("使用服务器", "serverName", serverConfig.Name, "baseURL", serverConfig.BaseURL)
 
-		provider := core.NewOllamaProvider(serverConfig.BaseURL)
+		cleanBaseURL := strings.TrimSuffix(serverConfig.BaseURL, "/")
+		finalOllamaURL := cleanBaseURL + "/api"
+		p.logger.Debug("prompt_pilot.go: Final Ollama Base URL being passed to NewOllamaProvider", "url", finalOllamaURL) // Added debug log
+		provider := ai.NewOllamaProvider(p.logger, finalOllamaURL)
 		messages := []types.Message{
 			{
 				Role:    "system",
