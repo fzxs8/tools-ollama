@@ -15,14 +15,15 @@ import (
 
 // App struct
 type App struct {
-	ctx          context.Context
-	logger       *core.AppLog
-	configMgr    *OllamaConfigManager
-	chatManager  *ChatManager
-	modelManager *ModelManager
-	modelMarket  *ModelMarket
-	promptPilot  *PromptPilot
-	httpClient   *core.HttpCli // 全局httpClient，主要给ModelManager用
+	ctx               context.Context
+	logger            *core.AppLog
+	configMgr         *OllamaConfigManager
+	chatManager       *ChatManager
+	modelManager      *ModelManager
+	modelMarket       *ModelMarket
+	promptPilot       *PromptPilot
+	ollamaApiDebugger *OllamaApiDebugger // API 调试器模块
+	httpClient        *core.HttpCli      // 全局httpClient，主要给ModelManager用
 }
 
 // NewApp 创建一个新的 App 应用
@@ -48,6 +49,7 @@ func NewApp() *App {
 	app.chatManager = NewChatManager(context.Background(), store, logger)
 	app.modelManager = NewModelManager(app, app.configMgr, logger)
 	app.modelMarket = NewModelMarket(app, logger)
+	app.ollamaApiDebugger = NewOllamaApiDebugger(logger, app.configMgr)
 
 	// 3. 初始化全局HTTP客户端和AIProvider
 	app.httpClient = core.NewHttp(logger.WithPrefix("HttpClient"))
@@ -98,6 +100,16 @@ func (a *App) startup(ctx context.Context) {
 	a.modelMarket.SetContext(ctx)
 	a.chatManager.SetContext(ctx)
 	a.promptPilot.Startup(ctx)
+	a.ollamaApiDebugger.SetContext(ctx)
+}
+
+// --- OllamaApiDebugger Methods ---
+func (a *App) SendHttpRequest(request types.ApiRequest) (types.ApiResponse, error) {
+	return a.ollamaApiDebugger.SendHttpRequest(request)
+}
+
+func (a *App) GetOllamaServers() ([]types.OllamaServerConfig, error) {
+	return a.ollamaApiDebugger.GetOllamaServers()
 }
 
 // --- PromptPilot Methods ---

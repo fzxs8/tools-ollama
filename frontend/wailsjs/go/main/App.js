@@ -46,6 +46,10 @@ export function GetModelParams(arg1) {
   return window['go']['main']['App']['GetModelParams'](arg1);
 }
 
+export function GetOllamaServers() {
+  return window['go']['main']['App']['GetOllamaServers']();
+}
+
 export function GetPrompt(arg1) {
   return window['go']['main']['App']['GetPrompt'](arg1);
 }
@@ -88,6 +92,10 @@ export function SavePrompt(arg1) {
 
 export function SearchOnlineModels(arg1) {
   return window['go']['main']['App']['SearchOnlineModels'](arg1);
+}
+
+export function SendHttpRequest(arg1) {
+  return window['go']['main']['App']['SendHttpRequest'](arg1);
 }
 
 export function SetActiveServer(arg1) {

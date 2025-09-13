@@ -24,6 +24,8 @@ export function GetConversation(arg1:string):Promise<types.Conversation>;
 
 export function GetModelParams(arg1:string):Promise<Record<string, any>>;
 
+export function GetOllamaServers():Promise<Array<types.OllamaServerConfig>>;
+
 export function GetPrompt(arg1:string):Promise<types.Prompt>;
 
 export function GetServers():Promise<Array<types.OllamaServerConfig>>;
@@ -45,6 +47,8 @@ export function SaveConversation(arg1:types.Conversation):Promise<types.Conversa
 export function SavePrompt(arg1:types.Prompt):Promise<void>;
 
 export function SearchOnlineModels(arg1:string):Promise<Array<any>>;
+
+export function SendHttpRequest(arg1:types.ApiRequest):Promise<types.ApiResponse>;
 
 export function SetActiveServer(arg1:string):Promise<void>;
 

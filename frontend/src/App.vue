@@ -38,6 +38,10 @@
               <el-icon><Setting /></el-icon>
               <span>服务设置</span>
             </el-menu-item>
+            <el-menu-item index="/api-debugger">
+              <el-icon><Tools /></el-icon>
+              <span>API调试</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
         
@@ -52,7 +56,7 @@
 <script setup lang="ts">
 import {ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
-import {ChatDotRound, Collection, MagicStick, Setting, Shop} from '@element-plus/icons-vue'
+import {ChatDotRound, Collection, MagicStick, Setting, Shop, Tools} from '@element-plus/icons-vue' // Added Tools icon
 
 const route = useRoute()
 const activeRoute = ref(route.path)

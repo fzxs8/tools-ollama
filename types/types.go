@@ -85,3 +85,72 @@ type OnlineModel struct {
 	UpdatedAt   string `json:"updatedAt"`
 	Description string `json:"description"`
 }
+
+// --- Ollama API Debugger Types ---
+
+// RequestHeader 请求头结构
+type RequestHeader struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
+}
+
+// QueryParam 查询参数结构
+type QueryParam struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
+}
+
+// RequestBodyType 请求体类型枚举
+type RequestBodyType string
+
+const (
+	RequestBodyTypeNone     RequestBodyType = "none"
+	RequestBodyTypeRaw      RequestBodyType = "raw"
+	RequestBodyTypeFormData RequestBodyType = "formData"
+)
+
+// RawBodyContentType 原始请求体内容类型枚举
+type RawBodyContentType string
+
+const (
+	RawBodyContentTypeJson RawBodyContentType = "application/json"
+	RawBodyContentTypeText RawBodyContentType = "text/plain"
+	RawBodyContentTypeHtml RawBodyContentType = "text/html"
+	RawBodyContentTypeXml  RawBodyContentType = "application/xml"
+)
+
+// FormDataItem 用于表示表单数据中的键值对
+type FormDataItem struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// RequestBody 请求体结构
+type RequestBody struct {
+	Type           RequestBodyType    `json:"type"`
+	RawContent     string             `json:"rawContent,omitempty"`     // For Raw type
+	RawContentType RawBodyContentType `json:"rawContentType,omitempty"` // For Raw type
+	FormData       []FormDataItem     `json:"formData,omitempty"`       // For FormData type
+}
+
+// ApiRequest API请求结构
+type ApiRequest struct {
+	Method           string          `json:"method"`           // HTTP 方法 (GET, POST, etc.)
+	SelectedServerID string          `json:"selectedServerId"` // 选中的 Ollama 服务 ID
+	Path             string          `json:"path"`             // API 路径 (不包含 Base URL)
+	QueryParams      []QueryParam    `json:"queryParams"`
+	Headers          []RequestHeader `json:"headers"`
+	Body             RequestBody     `json:"body"`
+}
+
+// ApiResponse API响应结构
+type ApiResponse struct {
+	StatusCode        int             `json:"statusCode"`
+	StatusText        string          `json:"statusText"`
+	Headers           []RequestHeader `json:"headers"` // Changed to RequestHeader to match frontend
+	Body              string          `json:"body"`
+	RequestDurationMs int64           `json:"requestDurationMs"` // 请求耗时 (毫秒)
+	Error             string          `json:"error,omitempty"`   // 错误信息
+}
