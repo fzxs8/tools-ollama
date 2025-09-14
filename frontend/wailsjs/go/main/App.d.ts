@@ -20,11 +20,17 @@ export function GeneratePromptStream(arg1:string,arg2:string,arg3:string):Promis
 
 export function GetActiveServer():Promise<types.OllamaServerConfig>;
 
+export function GetAdapterAPIDocs():Promise<Record<string, string>>;
+
 export function GetConversation(arg1:string):Promise<types.Conversation>;
 
 export function GetModelParams(arg1:string):Promise<Record<string, any>>;
 
 export function GetOllamaServers():Promise<Array<types.OllamaServerConfig>>;
+
+export function GetOpenAIAdapterConfig():Promise<types.OpenAIAdapterConfig>;
+
+export function GetOpenAIAdapterStatus():Promise<types.OpenAIAdapterStatus>;
 
 export function GetPrompt(arg1:string):Promise<types.Prompt>;
 
@@ -44,6 +50,8 @@ export function RunModel(arg1:string,arg2:Record<string, any>):Promise<void>;
 
 export function SaveConversation(arg1:types.Conversation):Promise<types.Conversation>;
 
+export function SaveOpenAIAdapterConfig(arg1:types.OpenAIAdapterConfig):Promise<void>;
+
 export function SavePrompt(arg1:types.Prompt):Promise<void>;
 
 export function SearchOnlineModels(arg1:string):Promise<Array<any>>;
@@ -53,6 +61,10 @@ export function SendHttpRequest(arg1:types.ApiRequest):Promise<types.ApiResponse
 export function SetActiveServer(arg1:string):Promise<void>;
 
 export function SetModelParams(arg1:string,arg2:Record<string, any>):Promise<void>;
+
+export function StartAdapterServer():Promise<void>;
+
+export function StopAdapterServer():Promise<void>;
 
 export function StopModel(arg1:string):Promise<void>;
 

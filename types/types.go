@@ -154,3 +154,25 @@ type ApiResponse struct {
 	RequestDurationMs int64           `json:"requestDurationMs"` // 请求耗时 (毫秒)
 	Error             string          `json:"error,omitempty"`   // 错误信息
 }
+
+// --- OpenAI Adapter Types ---
+
+// OpenAIAdapterConfig holds the user-configurable settings for the adapter.
+type OpenAIAdapterConfig struct {
+	ListenIP             string `json:"listen_ip"`
+	ListenPort           int    `json:"listen_port"`
+	TargetOllamaServerID string `json:"target_ollama_server_id"`
+}
+
+// OpenAIAdapterStatus represents the current runtime status of the adapter service.
+type OpenAIAdapterStatus struct {
+	IsRunning bool   `json:"is_running"`
+	Error     string `json:"error,omitempty"` // Holds error message if startup failed
+}
+
+// LogEntry represents a single log message sent to the frontend.
+type LogEntry struct {
+	Timestamp time.Time `json:"timestamp"`
+	Level     string    `json:"level"` // e.g., "INFO", "ERROR", "DEBUG"
+	Message   string    `json:"message"`
+}

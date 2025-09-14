@@ -6,6 +6,7 @@ import ModelManager from "../views/ModelManager.vue";
 import ModelMarket from "../views/ModelMarket.vue";
 import OllamaSettings from "../views/OllamaSettings.vue";
 import OllamaApiDebugger from "../views/OllamaApiDebugger.vue";
+import OpenAIAdapterSettings from "../views/OpenAIAdapterSettings.vue";
 
 const routes = [
     {
@@ -44,6 +45,12 @@ const routes = [
         path: '/api-debugger',
         name: 'OllamaApiDebugger',
         component: OllamaApiDebugger
+    }
+    ,
+    {
+        path: '/openai-adapter',
+        name: 'OpenAIAdapterSettings',
+        component: OpenAIAdapterSettings
     }
 ]
 

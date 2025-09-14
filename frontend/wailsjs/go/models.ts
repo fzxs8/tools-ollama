@@ -268,6 +268,36 @@ export namespace types {
 	        this.testStatus = source["testStatus"];
 	    }
 	}
+	export class OpenAIAdapterConfig {
+	    listen_ip: string;
+	    listen_port: number;
+	    target_ollama_server_id: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new OpenAIAdapterConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.listen_ip = source["listen_ip"];
+	        this.listen_port = source["listen_port"];
+	        this.target_ollama_server_id = source["target_ollama_server_id"];
+	    }
+	}
+	export class OpenAIAdapterStatus {
+	    is_running: boolean;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new OpenAIAdapterStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.is_running = source["is_running"];
+	        this.error = source["error"];
+	    }
+	}
 	export class Prompt {
 	    id: string;
 	    name: string;

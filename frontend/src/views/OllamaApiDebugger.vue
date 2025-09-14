@@ -135,7 +135,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { GetOllamaServers, SendHttpRequest } from '../../wailsjs/go/main/App'; // Assuming these are correctly imported
 

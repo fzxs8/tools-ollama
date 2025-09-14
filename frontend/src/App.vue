@@ -42,6 +42,10 @@
               <el-icon><Tools /></el-icon>
               <span>API调试</span>
             </el-menu-item>
+            <el-menu-item index="/openai-adapter">
+              <el-icon><Tools /></el-icon>
+              <span>OpenAI 适配器</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
         

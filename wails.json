@@ -5,6 +5,20 @@
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+  "frontend:dev:ignore": [
+    "frontend/wailsjs/**"
+  ],
+  "build:exclude": [
+    "*.db",
+    "*.db-journal",
+    "*.log"
+  ],
+  "dev": {
+    "ignores": [
+      "*.db*",
+      "*.log"
+    ]
+  },
   "author": {
     "name": "fzxs",
     "email": "fzxs8@163.com"

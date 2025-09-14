@@ -38,6 +38,10 @@ export function GetActiveServer() {
   return window['go']['main']['App']['GetActiveServer']();
 }
 
+export function GetAdapterAPIDocs() {
+  return window['go']['main']['App']['GetAdapterAPIDocs']();
+}
+
 export function GetConversation(arg1) {
   return window['go']['main']['App']['GetConversation'](arg1);
 }
@@ -48,6 +52,14 @@ export function GetModelParams(arg1) {
 
 export function GetOllamaServers() {
   return window['go']['main']['App']['GetOllamaServers']();
+}
+
+export function GetOpenAIAdapterConfig() {
+  return window['go']['main']['App']['GetOpenAIAdapterConfig']();
+}
+
+export function GetOpenAIAdapterStatus() {
+  return window['go']['main']['App']['GetOpenAIAdapterStatus']();
 }
 
 export function GetPrompt(arg1) {
@@ -86,6 +98,10 @@ export function SaveConversation(arg1) {
   return window['go']['main']['App']['SaveConversation'](arg1);
 }
 
+export function SaveOpenAIAdapterConfig(arg1) {
+  return window['go']['main']['App']['SaveOpenAIAdapterConfig'](arg1);
+}
+
 export function SavePrompt(arg1) {
   return window['go']['main']['App']['SavePrompt'](arg1);
 }
@@ -104,6 +120,14 @@ export function SetActiveServer(arg1) {
 
 export function SetModelParams(arg1, arg2) {
   return window['go']['main']['App']['SetModelParams'](arg1, arg2);
+}
+
+export function StartAdapterServer() {
+  return window['go']['main']['App']['StartAdapterServer']();
+}
+
+export function StopAdapterServer() {
+  return window['go']['main']['App']['StopAdapterServer']();
 }
 
 export function StopModel(arg1) {
