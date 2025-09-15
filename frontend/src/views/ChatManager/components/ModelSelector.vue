@@ -7,7 +7,7 @@
     </template>
     <el-select
         :model-value="props.selectedServer"
-        :placeholder="t('serverSettings.selectServer')"
+        :placeholder="t('modelManager.selectServer')"
         style="width: 100%; margin-bottom: 10px;"
         @update:modelValue="val => emit('update:selectedServer', val)"
         @change="() => emit('server-change')">

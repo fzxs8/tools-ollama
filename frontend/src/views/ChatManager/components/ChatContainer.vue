@@ -246,7 +246,7 @@ const handleDeleteConversation = (id: string) => {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background-color: #f0f4f9;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   display: flex;
   flex-direction: column;
 }
@@ -255,7 +255,7 @@ const handleDeleteConversation = (id: string) => {
   display: flex;
   align-items: flex-start;
   margin-bottom: 24px;
-  max-width: 85%;
+  max-width: 95%;
   width: -moz-fit-content;
   width: fit-content;
 }
@@ -279,11 +279,14 @@ const handleDeleteConversation = (id: string) => {
 }
 
 .user-message .message-content-area {
-  background-color: #cce5ff; /* A softer, more professional blue */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .assistant-message .message-content-area {
   background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .message-avatar {
@@ -324,10 +327,18 @@ const handleDeleteConversation = (id: string) => {
   color: #2d3748;
 }
 
+.user-message .sender-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .message-time {
   font-size: 12px;
   color: #718096;
   margin-left: 12px;
+}
+
+.user-message .message-time {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .message-content {
@@ -341,6 +352,10 @@ const handleDeleteConversation = (id: string) => {
   font-size: 16px;
   color: #1a202c;
   text-align: left !important;
+}
+
+.user-message .message-body {
+  color: white;
 }
 
 /* Reset margin for the first element rendered by v-html */

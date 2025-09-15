@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/fzxs8/duolasdk/core"
 )
@@ -44,22 +42,25 @@ func (m *ModelMarket) SearchOnlineModels(query string) ([]interface{}, error) {
 		return nil, fmt.Errorf("搜索模型失败: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		m.logger.Error("在线搜索模型API返回非200状态码", "query", query, "statusCode", resp.StatusCode)
-		return nil, fmt.Errorf("搜索模型失败: 状态码 %d", resp.StatusCode)
+	if err := HandleHTTPError(resp.StatusCode, resp.Body, m.logger, "在线搜索模型"); err != nil {
+		return nil, err
 	}
 
 	var searchResult map[string]interface{}
-	err = json.Unmarshal([]byte(resp.Body), &searchResult)
-	if err != nil {
-		m.logger.Error("解析在线模型搜索结果失败", "error", err)
-		return nil, fmt.Errorf("解析搜索结果失败: %w", err)
+	if err := UnmarshalJSONWithError([]byte(resp.Body), &searchResult, m.logger, "解析在线模型搜索结果"); err != nil {
+		return nil, err
 	}
 
-	models, ok := searchResult["models"].([]interface{})
-	if !ok {
+	modelsField, err := ExtractFieldFromResponse(searchResult, "models")
+	if err != nil {
 		m.logger.Error("在线模型搜索结果中缺少 'models' 字段")
 		return nil, fmt.Errorf("在搜索结果中找不到模型")
+	}
+
+	models, ok := modelsField.([]interface{})
+	if !ok {
+		m.logger.Error("在线模型搜索结果中 'models' 字段类型错误")
+		return nil, fmt.Errorf("模型数据格式错误")
 	}
 
 	m.logger.Debug("成功发现在线模型", "count", len(models))

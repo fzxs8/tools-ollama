@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"time"
 	"tools-ollama/types"
 
 	"github.com/fzxs8/duolasdk"
 	"github.com/fzxs8/duolasdk/core"
-	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -59,17 +56,14 @@ func (cm *ChatManager) ListConversations() ([]*types.Conversation, error) {
 	conversations := make([]*types.Conversation, 0, len(conversationsMap))
 	for _, convJSON := range conversationsMap {
 		var conv types.Conversation
-		if err := json.Unmarshal([]byte(convJSON), &conv); err != nil {
-			cm.logger.Warn("解析对话失败, 跳过该条目", "error", err)
+		if err := UnmarshalJSONWithError([]byte(convJSON), &conv, cm.logger, "解析对话"); err != nil {
 			continue
 		}
 		conversations = append(conversations, &conv)
 	}
 
 	// 按时间倒序排列（最新的在前面）
-	for i := 0; i < len(conversations)/2; i++ {
-		conversations[i], conversations[len(conversations)-1-i] = conversations[len(conversations)-1-i], conversations[i]
-	}
+	ReverseSlice(conversations)
 
 	cm.logger.Debug("成功获取对话列表", "count", len(conversations))
 	return conversations, nil
@@ -78,17 +72,16 @@ func (cm *ChatManager) ListConversations() ([]*types.Conversation, error) {
 // SaveConversation 创建或更新一个对话
 func (cm *ChatManager) SaveConversation(conv *types.Conversation) (*types.Conversation, error) {
 	if conv.ID == "" {
-		conv.ID = uuid.New().String()
-		conv.Timestamp = time.Now().UnixNano() / int64(time.Millisecond)
+		conv.ID = GenerateUniqueID()
+		conv.Timestamp = GetCurrentTimestamp()
 		cm.logger.Debug("创建新对话", "id", conv.ID)
 	} else {
 		cm.logger.Debug("更新对话", "id", conv.ID)
 	}
 
-	convJSON, err := json.Marshal(conv)
+	convJSON, err := MarshalJSONWithError(conv, cm.logger, "序列化对话")
 	if err != nil {
-		cm.logger.Error("序列化对话失败", "id", conv.ID, "error", err)
-		return nil, fmt.Errorf("序列化对话失败: %w", err)
+		return nil, err
 	}
 
 	if err := cm.store.HSet("conversations", conv.ID, string(convJSON)); err != nil {
@@ -110,9 +103,8 @@ func (cm *ChatManager) GetConversation(id string) (*types.Conversation, error) {
 	}
 
 	var conv types.Conversation
-	if err := json.Unmarshal([]byte(convJSON), &conv); err != nil {
-		cm.logger.Error("解析对话失败", "id", id, "error", err)
-		return nil, fmt.Errorf("解析对话失败: %w", err)
+	if err := UnmarshalJSONWithError([]byte(convJSON), &conv, cm.logger, "解析对话"); err != nil {
+		return nil, err
 	}
 
 	cm.logger.Debug("成功获取对话", "id", id)
@@ -134,10 +126,11 @@ func (cm *ChatManager) ChatMessage(modelName string, messages []types.Message, s
 	cm.logger.Debug("收到聊天消息请求", "model", modelName, "messageCount", len(messages), "stream", stream)
 
 	if cm.aiProvider == nil {
+		cm.logger.Error("AI provider未设置")
 		return "", fmt.Errorf("AI provider not set")
 	}
 
-	coreMessages := toCoreMessages(messages)
+	coreMessages := ToCoreMessages(messages)
 
 	if stream {
 		cm.logger.Debug("使用流式传输")
@@ -145,7 +138,9 @@ func (cm *ChatManager) ChatMessage(modelName string, messages []types.Message, s
 			defer func() {
 				if r := recover(); r != nil {
 					cm.logger.Error("流式聊天goroutine发生恐慌", "panic", r)
+					runtime.EventsEmit(cm.ctx, "chat_stream_error", fmt.Sprintf("内部错误: %v", r))
 				}
+				runtime.EventsEmit(cm.ctx, "chat_stream_done")
 			}()
 			err := cm.aiProvider.ChatStream(modelName, coreMessages, func(content string) {
 				runtime.EventsEmit(cm.ctx, "chat_stream_chunk", content)

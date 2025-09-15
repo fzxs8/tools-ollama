@@ -15,6 +15,7 @@
     "stopped": "已停止",
     "loading": "加载中...",
     "confirm": "确认保存",
+    "confirmDelete": "确认删除",
     "close": "关闭",
     "view": "查看",
     "download": "下载",
@@ -54,6 +55,7 @@
     "titleUpdated": "标题更新成功",
     "deleteConfirm": "确定要删除这个对话吗？",
     "deleteTitle": "删除确认",
+    "confirmDelete": "确认删除",
     "conversationDeleted": "对话删除成功",
     "deleteConversationFailed": "删除对话失败",
     "loadConversationsFailed": "加载对话列表失败",
@@ -164,7 +166,7 @@
     "rawData": "原始数据 (JSON)"
   },
   "openaiAdapter": {
-    "title": "OpenAI API 适配器",
+    "title": "OpenAI适配器",
     "description": "将本地 Ollama 服务模拟为 OpenAI API，兼容各类生态工具",
     "serviceStatus": "服务状态",
     "startService": "启动服务",

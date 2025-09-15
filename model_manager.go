@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,8 +59,7 @@ func (m *ModelManager) ListModelsByServer(serverID string) ([]types.Model, error
 	}
 
 	var result types.ListModelsResponse
-	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
-		m.logger.Error("反序列化模型列表响应失败", "error", err)
+	if err := UnmarshalJSONWithError([]byte(response.Body), &result, m.logger, "反序列化模型列表响应"); err != nil {
 		return nil, err
 	}
 
@@ -121,9 +119,8 @@ func (m *ModelManager) RunModel(modelName string, params types.ModelParams) erro
 
 	m.logger.Debug("收到启动模型响应", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
 
-	if response.StatusCode >= 400 {
-		m.logger.Error("启动模型失败，状态码非200", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
-		return fmt.Errorf("启动模型失败，状态码: %d, 响应: %s", response.StatusCode, response.Body)
+	if err := HandleHTTPError(response.StatusCode, response.Body, m.logger, "启动模型"); err != nil {
+		return err
 	}
 
 	// 更新内存中的运行状态
@@ -170,9 +167,8 @@ func (m *ModelManager) DeleteModel(modelName string) error {
 		return err
 	}
 
-	if response.StatusCode >= 400 {
-		m.logger.Error("删除模型失败，状态码非200", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
-		return fmt.Errorf("删除模型失败，状态码: %d, 内容: %s", response.StatusCode, response.Body)
+	if err := HandleHTTPError(response.StatusCode, response.Body, m.logger, "删除模型"); err != nil {
+		return err
 	}
 
 	m.logger.Info("模型删除成功", "modelName", modelName)
@@ -194,17 +190,14 @@ func (m *ModelManager) TestModel(modelName string, prompt string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("测试模型失败: %v", err)
 	}
-	if response.StatusCode >= 400 {
-		return "", fmt.Errorf("测试模型失败，状态码: %d", response.StatusCode)
+	if err := HandleHTTPError(response.StatusCode, response.Body, m.logger, "测试模型"); err != nil {
+		return "", err
 	}
 	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Body), &result); err != nil {
-		return "", fmt.Errorf("解析响应失败: %v", err)
+	if err := UnmarshalJSONWithError([]byte(response.Body), &result, m.logger, "解析测试响应"); err != nil {
+		return "", err
 	}
-	if responseText, ok := result["response"].(string); ok {
-		return responseText, nil
-	}
-	return "", fmt.Errorf("未在响应中找到 'response' 字段")
+	return ExtractResponseContent(result)
 }
 
 // DownloadModel 下载模型
@@ -262,8 +255,7 @@ func (m *ModelManager) DownloadModel(serverID string, modelName string) {
 		}
 
 		var progressInfo map[string]interface{}
-		if err := json.Unmarshal(line, &progressInfo); err != nil {
-			logger.Warnf("无法解析下载进度JSON: %s, 错误: %v", string(line), err)
+		if err := UnmarshalJSONWithError(line, &progressInfo, logger, "解析下载进度"); err != nil {
 			continue
 		}
 
@@ -315,4 +307,115 @@ func (m *ModelManager) GetModelParams(modelName string) (types.ModelParams, erro
 		NumPredict:    512,
 		RepeatPenalty: 1.1,
 	}, nil
+}
+
+// Chat 实现AIProvider接口的阻塞式聊天方法
+func (m *ModelManager) Chat(model string, messages []core.Message) (string, error) {
+	m.logger.Debug("开始阻塞式聊天", "model", model, "messageCount", len(messages))
+
+	if m.app.httpClient == nil {
+		return "", fmt.Errorf("HTTP客户端未初始化")
+	}
+
+	requestBody := map[string]interface{}{
+		"model":    model,
+		"messages": messages,
+		"stream":   false,
+	}
+
+	response, err := m.app.httpClient.Post("/api/chat", core.Options{
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
+	})
+
+	if err != nil {
+		m.logger.Error("阻塞式聊天请求失败", "error", err)
+		return "", err
+	}
+
+	if err := HandleHTTPError(response.StatusCode, response.Body, m.logger, "阻塞式聊天"); err != nil {
+		return "", err
+	}
+
+	var result map[string]interface{}
+	if err := UnmarshalJSONWithError([]byte(response.Body), &result, m.logger, "解析聊天响应"); err != nil {
+		return "", err
+	}
+
+	content, err := ExtractMessageContent(result)
+	if err != nil {
+		return "", err
+	}
+	m.logger.Debug("阻塞式聊天成功", "responseLength", len(content))
+	return content, nil
+}
+
+// ChatStream 实现AIProvider接口的流式聊天方法
+func (m *ModelManager) ChatStream(model string, messages []core.Message, callback func(string)) error {
+	m.logger.Debug("开始流式聊天", "model", model, "messageCount", len(messages))
+
+	if m.app.httpClient == nil {
+		return fmt.Errorf("HTTP客户端未初始化")
+	}
+
+	requestBody := map[string]interface{}{
+		"model":    model,
+		"messages": messages,
+		"stream":   true,
+	}
+
+	resp, err := m.app.httpClient.PostStream("/api/chat", core.Options{
+		Headers: map[string]string{"Content-Type": "application/json"},
+		Body:    requestBody,
+	})
+
+	if err != nil {
+		m.logger.Error("流式聊天请求失败", "error", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		errMsg := fmt.Sprintf("流式聊天失败，状态码: %d, 响应: %s", resp.StatusCode, string(bodyBytes))
+		m.logger.Error(errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+
+		var streamResponse map[string]interface{}
+		if err := UnmarshalJSONWithError(line, &streamResponse, m.logger, "解析流式响应"); err != nil {
+			continue
+		}
+
+		if errorMsg, ok := streamResponse["error"]; ok {
+			m.logger.Error("流式聊天过程中出现错误", "error", errorMsg)
+			return fmt.Errorf("聊天错误: %v", errorMsg)
+		}
+
+		if message, ok := streamResponse["message"].(map[string]interface{}); ok {
+			if content, ok := message["content"].(string); ok && content != "" {
+				callback(content)
+			}
+		}
+
+		if done, ok := streamResponse["done"].(bool); ok && done {
+			m.logger.Debug("流式聊天完成")
+			break
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		m.logger.Error("读取流式响应失败", "error", err)
+		return fmt.Errorf("读取流式响应失败: %v", err)
+	}
+
+	m.logger.Debug("流式聊天成功完成")
+	return nil
 }

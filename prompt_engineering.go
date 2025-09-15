@@ -38,18 +38,6 @@ func (p *PromptEngineering) Startup(ctx context.Context) {
 	p.logger.Info("提示词大师模块已启动")
 }
 
-// toCoreMessages 将 main.Message 转换为 core.Message
-func toCoreMessages(messages []types.Message) []core.Message {
-	coreMsgs := make([]core.Message, len(messages))
-	for i, msg := range messages {
-		coreMsgs[i] = core.Message{
-			Role:    msg.Role,
-			Content: msg.Content,
-		}
-	}
-	return coreMsgs
-}
-
 // GeneratePromptStream 流式生成一个提示词
 func (p *PromptEngineering) GeneratePromptStream(idea string, model string, serverId string) {
 	p.logger.Debug("开始生成提示词流", "idea", idea, "model", model, "serverId", serverId)
@@ -89,7 +77,7 @@ func (p *PromptEngineering) GeneratePromptStream(idea string, model string, serv
 			runtime.EventsEmit(p.ctx, "prompt_pilot_stream", map[string]string{"model": model, "chunk": chunk})
 		}
 
-		coreMessages := toCoreMessages(messages)
+		coreMessages := ToCoreMessages(messages)
 		if err := provider.ChatStream(model, coreMessages, callback); err != nil {
 			p.logger.Error("流式生成提示词失败", "model", model, "error", err)
 			runtime.EventsEmit(p.ctx, "prompt_pilot_stream_error", map[string]string{"model": model, "error": err.Error()})

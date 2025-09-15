@@ -229,13 +229,15 @@ const loadModel = () => {
   if (selectedModel.value) {
     ElMessage.success(`${t('chatManager.modelLoaded')} ${selectedModel.value}`)
   } else {
-    ElMessage.warning(t('chatManager.pleaseSelectModel'))
+    ElMessage.warning(t('chatManager.selectModelFirst'))
   }
 }
 
 // 发送消息
 const sendMessage = async () => {
   const message = inputMessage.value.trim()
+  console.log('sendMessage called with:', { message, isThinking: isThinking.value, selectedModel: selectedModel.value })
+  
   if (!message || isThinking.value) return
 
   if (!selectedModel.value) {
@@ -275,7 +277,17 @@ const sendMessage = async () => {
         timestamp: Date.now()
       })
 
-      await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
+      try {
+        console.log('Calling ChatMessage with:', { model: selectedModel.value, messageCount: messagesWithSystemPrompt.length, stream: true })
+        const result = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
+        console.log('ChatMessage result:', result)
+      } catch (error) {
+        console.error('ChatMessage error:', error)
+        const lastMessageIndex = messages.value.length - 1
+        if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+          messages.value[lastMessageIndex].content = t('chatManager.sorry') + ': ' + (error as Error).message
+        }
+      }
 
     } else {
       const assistantMessageIndex = messages.value.length
@@ -286,13 +298,15 @@ const sendMessage = async () => {
       })
 
       try {
+        console.log('Calling ChatMessage (blocking) with:', { model: selectedModel.value, messageCount: messagesWithSystemPrompt.length, stream: false })
         const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
+        console.log('ChatMessage (blocking) result:', response)
         if (messages.value && messages.value[assistantMessageIndex]) {
           messages.value[assistantMessageIndex].content = response
           setTimeout(() => scrollToBottom(), 0)
         }
       } catch (error) {
-        console.error(t('chatManager.blockOutputError'), error)
+        console.error('ChatMessage (blocking) error:', error)
         throw error
       }
     }
@@ -301,18 +315,27 @@ const sendMessage = async () => {
   } catch (error: any) {
     console.error(t('chatManager.sendMessageError'), error)
     let errorMessage = t('chatManager.sorry')
-    if (error.message) {
+    if (error && error.message) {
       errorMessage += ': ' + error.message
-    } else if (error.toString() !== '[object Object]') {
+    } else if (error && typeof error === 'string') {
+      errorMessage += ': ' + error
+    } else if (error && error.toString && error.toString() !== '[object Object]') {
       errorMessage += ': ' + error.toString()
     } else {
       errorMessage += ': ' + t('chatManager.unknownError')
     }
-    messages.value.push({
-      role: 'assistant',
-      content: errorMessage,
-      timestamp: Date.now()
-    })
+    
+    // 确保最后一条消息是助手消息，如果不是则添加一条
+    const lastMessageIndex = messages.value.length - 1
+    if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+      messages.value[lastMessageIndex].content = errorMessage
+    } else {
+      messages.value.push({
+        role: 'assistant',
+        content: errorMessage,
+        timestamp: Date.now()
+      })
+    }
   } finally {
     isThinking.value = false
     scrollToBottom()
@@ -384,12 +407,6 @@ const editConversationTitle = async (conv: Conversation) => {
 // 删除对话
 const deleteConversation = async (id: string) => {
   try {
-    await ElMessageBox.confirm(t('chatManager.deleteConfirm'), t('chatManager.deleteTitle'), {
-      confirmButtonText: t('common.confirm'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning'
-    })
-
     await DeleteConversation(id)
     ElMessage.success(t('chatManager.conversationDeleted'))
     await loadConversations() // 重新加载列表
@@ -398,9 +415,7 @@ const deleteConversation = async (id: string) => {
       newConversation() // 创建新对话
     }
   } catch (error) {
-    if (!(error as Error).message?.includes('cancel')) {
-      ElMessage.error(t('chatManager.deleteConversationFailed') + ': ' + (error as Error).message)
-    }
+    ElMessage.error(t('chatManager.deleteConversationFailed') + ': ' + (error as Error).message)
   }
 }
 
@@ -459,19 +474,27 @@ const regenerateMessage = async (index: number) => {
         timestamp: Date.now()
       })
 
-      const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
-
-      if (messages.value && messages.value[assistantMessageIndex]) {
-        messages.value[assistantMessageIndex].content = response
+      if (modelParams.value.outputMode === 'stream') {
+        await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
+      } else {
+        const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
+        if (messages.value && messages.value[assistantMessageIndex]) {
+          messages.value[assistantMessageIndex].content = response
+        }
       }
 
       await saveCurrentConversation()
     } catch (error) {
-      messages.value.push({
-        role: 'assistant',
-        content: '抱歉，重新生成消息时出现错误: ' + (error as Error).message,
-        timestamp: Date.now()
-      })
+      const lastMessageIndex = messages.value.length - 1
+      if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+        messages.value[lastMessageIndex].content = t('chatManager.sorry') + ': ' + (error as Error).message
+      } else {
+        messages.value.push({
+          role: 'assistant',
+          content: t('chatManager.sorry') + ': ' + (error as Error).message,
+          timestamp: Date.now()
+        })
+      }
     } finally {
       isThinking.value = false;
       scrollToBottom();
@@ -481,7 +504,12 @@ const regenerateMessage = async (index: number) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  // 这里需要实现滚动到底部的逻辑
+  setTimeout(() => {
+    const chatHistory = document.querySelector('.chat-history')
+    if (chatHistory) {
+      chatHistory.scrollTop = chatHistory.scrollHeight
+    }
+  }, 100)
 }
 
 // 处理键盘事件
@@ -552,6 +580,26 @@ onMounted(async () => {
       messages.value[lastMessageIndex].content += data;
       scrollToBottom();
     }
+  });
+  
+  // Listen for streaming completion events
+  EventsOn("chat_stream_done", () => {
+    isThinking.value = false;
+    scrollToBottom();
+  });
+  
+  // Listen for streaming error events
+  EventsOn("chat_stream_error", (error: string) => {
+    isThinking.value = false;
+    const lastMessageIndex = messages.value.length - 1;
+    if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
+      if (messages.value[lastMessageIndex].content === '') {
+        messages.value[lastMessageIndex].content = t('chatManager.sorry') + ': ' + error;
+      } else {
+        messages.value[lastMessageIndex].content += '\n\n' + t('chatManager.sorry') + ': ' + error;
+      }
+    }
+    scrollToBottom();
   });
 });
 </script>

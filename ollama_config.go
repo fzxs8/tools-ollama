@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"tools-ollama/types"
 
@@ -48,8 +47,8 @@ func (o *OllamaConfigManager) migrateServersToHashFormat() {
 
 	o.logger.Info("发现旧格式的服务器配置，开始迁移...")
 	var oldServers []types.OllamaServerConfig
-	if err := json.Unmarshal([]byte(oldData), &oldServers); err != nil {
-		o.logger.Error("反序列化旧格式配置失败，迁移中断", "error", err)
+	if err := UnmarshalJSONWithError([]byte(oldData), &oldServers, o.logger, "反序列化旧格式配置"); err != nil {
+		o.logger.Error("迁移中断")
 		return
 	}
 
@@ -83,8 +82,8 @@ func (o *OllamaConfigManager) GetServers() ([]types.OllamaServerConfig, error) {
 	servers := make([]types.OllamaServerConfig, 0, len(dataMap))
 	for id, data := range dataMap {
 		var server types.OllamaServerConfig
-		if err := json.Unmarshal([]byte(data), &server); err != nil {
-			o.logger.Warn("反序列化单个服务器配置失败", "id", id, "error", err)
+		if err := UnmarshalJSONWithError([]byte(data), &server, o.logger, "反序列化单个服务器配置"); err != nil {
+			o.logger.Warn("跳过无效配置", "id", id)
 			continue
 		}
 		servers = append(servers, server)
@@ -103,8 +102,7 @@ func (o *OllamaConfigManager) GetServerByID(serverID string) (*types.OllamaServe
 	}
 
 	var server types.OllamaServerConfig
-	if err := json.Unmarshal([]byte(data), &server); err != nil {
-		o.logger.Error("反序列化服务器配置失败", "serverID", serverID, "error", err)
+	if err := UnmarshalJSONWithError([]byte(data), &server, o.logger, "反序列化服务器配置"); err != nil {
 		return nil, fmt.Errorf("解析服务器 %s 的配置失败: %w", serverID, err)
 	}
 
@@ -114,9 +112,8 @@ func (o *OllamaConfigManager) GetServerByID(serverID string) (*types.OllamaServe
 // AddServer 添加或更新服务器
 func (o *OllamaConfigManager) AddServer(server types.OllamaServerConfig) error {
 	o.logger.Info("添加或更新服务器", "serverName", server.Name, "serverID", server.ID)
-	data, err := json.Marshal(server)
+	data, err := MarshalJSONWithError(server, o.logger, "序列化服务器配置")
 	if err != nil {
-		o.logger.Error("序列化服务器配置失败", "serverName", server.Name, "error", err)
 		return fmt.Errorf("序列化服务配置失败: %w", err)
 	}
 
@@ -150,17 +147,7 @@ func (o *OllamaConfigManager) SetActiveServer(serverID string) error {
 		return err
 	}
 
-	found := false
-	for i := range servers {
-		// 使用索引来修改切片中的元素
-		if servers[i].ID == serverID {
-			servers[i].IsActive = true
-			found = true
-		} else {
-			servers[i].IsActive = false
-		}
-	}
-
+	servers, found := SetServerActiveStatus(servers, serverID)
 	if !found {
 		return fmt.Errorf("未找到要设置为活动的服务器ID: %s", serverID)
 	}
@@ -184,11 +171,9 @@ func (o *OllamaConfigManager) GetActiveServer() (*types.OllamaServerConfig, erro
 		return nil, err
 	}
 
-	for i, server := range servers {
-		if server.IsActive {
-			o.logger.Debug("找到活动服务器", "serverName", server.Name)
-			return &servers[i], nil
-		}
+	if activeServer := FindActiveServer(servers); activeServer != nil {
+		o.logger.Debug("找到活动服务器", "serverName", activeServer.Name)
+		return activeServer, nil
 	}
 
 	// 注意：这里的自动设置默认活动服务器的副作用逻辑已被移除，以防止意外的写入操作。

@@ -94,7 +94,7 @@ const handleEditTitle = (conv: Conversation) => {
 const handleDeleteConversation = async (id: string) => {
   try {
     await ElMessageBox.confirm(t('chatManager.deleteConfirm'), t('chatManager.deleteTitle'), {
-      confirmButtonText: t('common.confirm'),
+      confirmButtonText: t('chatManager.confirmDelete'),
       cancelButtonText: t('common.cancel'),
       type: 'warning'
     })

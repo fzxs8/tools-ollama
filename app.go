@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"tools-ollama/types"
 
 	"github.com/fzxs8/duolasdk"
@@ -54,6 +53,9 @@ func NewApp() *App {
 	app.ollamaApiDebugger = NewOllamaApiDebugger(logger, app.configMgr)
 	app.adapterManager = NewOpenAIAdapterManager(logger, store, app.configMgr)
 
+	// 设置ChatManager的AIProvider
+	app.chatManager.SetAIProvider(NewAIProviderAdapter(app.modelManager, logger))
+
 	app.httpClient = core.NewHttp(logger.WithPrefix("HttpClient"))
 	if err := app.rebuildDependencies(); err != nil {
 		logger.Fatal("初始化应用依赖失败", "error", err)
@@ -81,9 +83,8 @@ func (a *App) rebuildDependencies() error {
 	a.logger.Info("使用活动服务器配置初始化HTTP客户端", "serverName", activeServer.Name, "baseURL", activeServer.BaseURL)
 
 	// 确保BaseURL包含协议前缀
-	baseURL := activeServer.BaseURL
-	if baseURL != "" && !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
-		baseURL = "http://" + baseURL
+	baseURL := EnsureHTTPPrefix(activeServer.BaseURL)
+	if baseURL != activeServer.BaseURL {
 		a.logger.Debug("为BaseURL添加http://前缀", "originalURL", activeServer.BaseURL, "newURL", baseURL)
 	}
 
@@ -142,47 +143,7 @@ func (a *App) GetOpenAIAdapterStatus() types.OpenAIAdapterStatus {
 // GetAdapterAPIDocs 获取 API 文档
 func (a *App) GetAdapterAPIDocs() (map[string]string, error) {
 	cfg := a.adapterManager.GetConfig()
-	ip := cfg.ListenIP
-	if ip == "0.0.0.0" {
-		ip = "127.0.0.1" // 为方便用户复制，将 0.0.0.0 显示为 127.0.0.1
-	}
-	port := cfg.ListenPort
-
-	nonStreamingCurl := fmt.Sprintf(
-		`curl http://%s:%d/v1/chat/completions -X POST \
--H "Content-Type: application/json" \
--d '{
- "model": "llama3",
- "messages": [
-   {
-     "role": "user",
-     "content": "你好，介绍一下你自己"
-   }
- ],
- "stream": false
-}'`,
-		ip, port,
-	)
-	streamingCurl := fmt.Sprintf(
-		`curl http://%s:%d/v1/chat/completions -X POST \
--H "Content-Type: application/json" \
--d '{
- "model": "llama3",
- "messages": [
-   {
-     "role": "user",
-     "content": "给我讲一个关于程序员的笑话"
-   }
- ],
- "stream": true
-}'`,
-		ip, port,
-	)
-
-	return map[string]string{
-		"非流式请求": nonStreamingCurl,
-		"流式请求":  streamingCurl,
-	}, nil
+	return GenerateAPIDocs(cfg.ListenIP, cfg.ListenPort), nil
 }
 
 // ... (其他 App 方法保持不变) ...
@@ -227,30 +188,7 @@ func (a *App) DeleteModel(modelName string) error {
 	return a.modelManager.DeleteModel(modelName)
 }
 func (a *App) RunModel(modelName string, params map[string]interface{}) error {
-	// 参数转换逻辑保留在此处或移至ModelManager
-	modelParams := types.ModelParams{
-		Temperature: 0.8, TopP: 0.9, TopK: 40,
-		Context: 2048, NumPredict: 512, RepeatPenalty: 1.1,
-	}
-	if temp, ok := params["temperature"].(float64); ok {
-		modelParams.Temperature = temp
-	}
-	if topP, ok := params["topP"].(float64); ok {
-		modelParams.TopP = topP
-	}
-	if topK, ok := params["topK"].(float64); ok {
-		modelParams.TopK = int(topK)
-	}
-	if ct, ok := params["context"].(float64); ok {
-		modelParams.Context = int(ct)
-	}
-	if numPredict, ok := params["numPredict"].(float64); ok {
-		modelParams.NumPredict = int(numPredict)
-	}
-	if repeatPenalty, ok := params["repeatPenalty"].(float64); ok {
-		modelParams.RepeatPenalty = repeatPenalty
-	}
-
+	modelParams := ConvertToModelParams(params)
 	return a.modelManager.RunModel(modelName, modelParams)
 }
 func (a *App) StopModel(modelName string) error {
@@ -260,12 +198,7 @@ func (a *App) TestModel(modelName string, prompt string) (string, error) {
 	return a.modelManager.TestModel(modelName, prompt)
 }
 func (a *App) SetModelParams(modelName string, params map[string]interface{}) error {
-	// 参数转换逻辑
-	modelParams := types.ModelParams{}
-	if temp, ok := params["temperature"].(float64); ok {
-		modelParams.Temperature = temp
-	}
-	// ... 其他参数 ...
+	modelParams := ConvertToModelParams(params)
 	return a.modelManager.SetModelParams(modelName, modelParams)
 }
 func (a *App) GetModelParams(modelName string) (map[string]interface{}, error) {
@@ -273,14 +206,7 @@ func (a *App) GetModelParams(modelName string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]interface{}{
-		"temperature":   params.Temperature,
-		"topP":          params.TopP,
-		"topK":          params.TopK,
-		"context":       params.Context,
-		"numPredict":    params.NumPredict,
-		"repeatPenalty": params.RepeatPenalty,
-	}, nil
+	return ConvertFromModelParams(params), nil
 }
 
 // --- ChatManager Methods ---
@@ -351,22 +277,22 @@ func (a *App) OpenInBrowser(url string) {
 
 // AIProviderAdapter 适配器，用于解决core.Message和本地Message类型不匹配的问题
 type AIProviderAdapter struct {
-	provider AIProvider
-	logger   *core.AppLog
+	modelManager *ModelManager
+	logger       *core.AppLog
 }
 
 // NewAIProviderAdapter 创建AI提供者适配器
-func NewAIProviderAdapter(provider AIProvider, logger *core.AppLog) *AIProviderAdapter {
+func NewAIProviderAdapter(modelManager *ModelManager, logger *core.AppLog) *AIProviderAdapter {
 	return &AIProviderAdapter{
-		provider: provider,
-		logger:   logger.WithPrefix("AIAdapter"),
+		modelManager: modelManager,
+		logger:       logger.WithPrefix("AIAdapter"),
 	}
 }
 
 // Chat 适配Chat方法
 func (a *AIProviderAdapter) Chat(model string, messages []core.Message) (string, error) {
 	a.logger.Debug("Adapter: 开始阻塞式聊天请求", "model", model, "messageCount", len(messages))
-	response, err := a.provider.Chat(model, messages)
+	response, err := a.modelManager.Chat(model, messages)
 	if err != nil {
 		a.logger.Error("Adapter: 阻塞式聊天请求失败", "error", err)
 		return "", err
@@ -377,7 +303,7 @@ func (a *AIProviderAdapter) Chat(model string, messages []core.Message) (string,
 // ChatStream 适配ChatStream方法
 func (a *AIProviderAdapter) ChatStream(model string, messages []core.Message, callback func(string)) error {
 	a.logger.Debug("Adapter: 开始流式聊天请求", "model", model, "messageCount", len(messages))
-	err := a.provider.ChatStream(model, messages, callback)
+	err := a.modelManager.ChatStream(model, messages, callback)
 	if err != nil {
 		a.logger.Error("Adapter: 流式聊天请求失败", "error", err)
 	}

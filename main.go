@@ -23,7 +23,7 @@ func main() {
 
 	// 创建应用并配置Wails选项
 	err := wails.Run(&options.App{
-		Title:  "Ollama 客户端",
+		Title:  "Ollama Tools",
 		Width:  1366,
 		Height: 768,
 		AssetServer: &assetserver.Options{

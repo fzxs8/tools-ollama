@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -56,28 +55,19 @@ func (d *OllamaApiDebugger) SendHttpRequest(request types.ApiRequest) (types.Api
 	}
 
 	// 2. 构建完整的 URL (BaseURL + Path + Query Params)
-	fullURL, err := url.JoinPath(baseURL, request.Path)
-	if err != nil {
-		d.logger.Errorf("Failed to join URL: %v", err)
-		apiResponse.Error = fmt.Sprintf("URL拼接失败: %v", err)
-		return apiResponse, nil
-	}
-
-	parsedURL, err := url.Parse(fullURL)
-	if err != nil {
-		d.logger.Errorf("Failed to parse URL %s: %v", fullURL, err)
-		apiResponse.Error = fmt.Sprintf("URL解析失败: %v", err)
-		return apiResponse, nil
-	}
-
-	q := parsedURL.Query()
+	queryParams := make(map[string]string)
 	for _, param := range request.QueryParams {
 		if param.Enabled {
-			q.Set(param.Key, param.Value)
+			queryParams[param.Key] = param.Value
 		}
 	}
-	parsedURL.RawQuery = q.Encode()
-	finalURL := parsedURL.String()
+
+	finalURL, err := BuildURLWithQuery(baseURL, request.Path, queryParams)
+	if err != nil {
+		d.logger.Errorf("Failed to build URL: %v", err)
+		apiResponse.Error = fmt.Sprintf("URL构建失败: %v", err)
+		return apiResponse, nil
+	}
 
 	// 3. 准备请求体 (io.Reader)
 	var bodyReader io.Reader
@@ -122,7 +112,7 @@ func (d *OllamaApiDebugger) SendHttpRequest(request types.ApiRequest) (types.Api
 
 	// 6. 发送请求
 	d.logger.Debug("Sending HTTP request via stdlib", "method", req.Method, "url", req.URL, "headers", req.Header)
-	client := &http.Client{Timeout: time.Second * 30}
+	client := CreateHTTPClientWithTimeout(30 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		d.logger.Errorf("Failed to send HTTP request: %v", err)
@@ -132,7 +122,7 @@ func (d *OllamaApiDebugger) SendHttpRequest(request types.ApiRequest) (types.Api
 	defer resp.Body.Close()
 
 	// 7. 读取并处理响应
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := ReadResponseBody(resp)
 	if err != nil {
 		d.logger.Errorf("Failed to read response body: %v", err)
 		apiResponse.Error = fmt.Sprintf("读取响应失败: %v", err)
@@ -141,7 +131,7 @@ func (d *OllamaApiDebugger) SendHttpRequest(request types.ApiRequest) (types.Api
 
 	apiResponse.StatusCode = resp.StatusCode
 	apiResponse.StatusText = http.StatusText(resp.StatusCode)
-	apiResponse.Body = string(respBody)
+	apiResponse.Body = respBody
 
 	for k, v := range resp.Header {
 		apiResponse.Headers = append(apiResponse.Headers, types.RequestHeader{Key: k, Value: strings.Join(v, ", "), Enabled: true})
