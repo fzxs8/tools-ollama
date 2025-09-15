@@ -10,7 +10,6 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import i18n from './i18n'
-import { useI18nStore } from './stores/i18n'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -25,7 +24,8 @@ app.use(router)
 app.use(ElementPlus)
 app.use(i18n)
 
-// Initialize i18n store to ensure proper locale sync
-const i18nStore = useI18nStore()
+// Initialize locale from localStorage
+const savedLocale = localStorage.getItem('language') || 'en';
+i18n.global.locale.value = savedLocale;
 
 app.mount('#app')

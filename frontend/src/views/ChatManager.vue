@@ -9,8 +9,8 @@
           </svg>
         </div>
         <div class="header-text">
-          <h1>Chat Interface</h1>
-          <p>Interactive conversation with your AI models</p>
+          <h1>{{ $t('chatManager.title') }}</h1>
+          <p>{{ $t('chatManager.description') }}</p>
         </div>
       </div>
     </div>
@@ -74,6 +74,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import {
   ChatMessage,
   DeleteConversation,
@@ -99,13 +100,15 @@ import Model = types.Model;
 import Prompt = types.Prompt;
 import {ModelParams} from "../classes/types";
 
+const { t } = useI18n();
+
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
 const availableServers = ref<OllamaServerConfig[]>([])
 const selectedServer = ref('')
 const inputMessage = ref('')
 const messages = ref<Message[]>([
-  {role: 'assistant', content: '你好！我是Ollama助手，请选择一个模型开始对话。', timestamp: Date.now()}
+  {role: 'assistant', content: t('chatManager.welcomeMessage'), timestamp: Date.now()}
 ])
 const isThinking = ref(false)
 const systemPromptDrawerVisible = ref(false)
@@ -129,9 +132,9 @@ const modelParams = ref<ModelParams>({
 // 复制消息内容
 const copyMessage = (content: string) => {
   navigator.clipboard.writeText(content).then(() => {
-    ElMessage.success('消息已复制到剪贴板')
+    ElMessage.success(t('chatManager.messageCopied'))
   }).catch(() => {
-    ElMessage.error('复制失败')
+    ElMessage.error(t('chatManager.copyFailed'))
   })
 }
 
@@ -146,7 +149,7 @@ const loadSystemPrompts = async () => {
   try {
     systemPromptList.value = await ListPrompts();
   } catch (error) {
-    console.error('加载系统提示词失败:', error)
+    console.error(t('chatManager.loadSystemPromptsFailed'), error)
     systemPromptList.value = []
   }
 }
@@ -163,7 +166,7 @@ const loadAvailableServers = async () => {
     availableServers.value = await GetServers();
 
     if (availableServers.value.length === 0) {
-      ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
+      ElMessage.warning(t('chatManager.noOllamaServices'));
       selectedServer.value = '';
       return;
     }
@@ -181,8 +184,8 @@ const loadAvailableServers = async () => {
     selectedServer.value = serverToSelect;
 
   } catch (error) {
-    console.error('加载可用服务器列表失败:', error);
-    ElMessage.error('加载可用服务器列表失败: ' + (error as Error).message);
+    console.error(t('chatManager.loadServersFailed'), error);
+    ElMessage.error(t('chatManager.loadServersFailed') + ': ' + (error as Error).message);
     availableServers.value = [];
     selectedServer.value = '';
   }
@@ -197,7 +200,7 @@ const onServerChange = async () => {
     await SetActiveServer(selectedServer.value);
     await getModels();
   } catch (error: any) {
-    ElMessage.error('切换服务失败: ' + error.message);
+    ElMessage.error(t('chatManager.switchServiceFailed') + ': ' + error.message);
   }
 }
 
@@ -216,7 +219,7 @@ const getModels = async () => {
       selectedModel.value = ''
     }
   } catch (error: any) {
-    ElMessage.error('获取模型列表失败: ' + error.message)
+    ElMessage.error(t('chatManager.getModelListFailed') + ': ' + error.message)
     localModels.value = [] // 清空模型列表
   }
 }
@@ -224,9 +227,9 @@ const getModels = async () => {
 // 加载模型
 const loadModel = () => {
   if (selectedModel.value) {
-    ElMessage.success(`模型 ${selectedModel.value} 已加载`)
+    ElMessage.success(`${t('chatManager.modelLoaded')} ${selectedModel.value}`)
   } else {
-    ElMessage.warning('请先选择一个模型')
+    ElMessage.warning(t('chatManager.pleaseSelectModel'))
   }
 }
 
@@ -238,7 +241,7 @@ const sendMessage = async () => {
   if (!selectedModel.value) {
     messages.value.push({
       role: 'assistant',
-      content: '请先选择一个模型',
+      content: t('chatManager.selectModelFirst'),
       timestamp: Date.now()
     })
     return
@@ -289,21 +292,21 @@ const sendMessage = async () => {
           setTimeout(() => scrollToBottom(), 0)
         }
       } catch (error) {
-        console.error('阻塞式输出发生错误:', error)
+        console.error(t('chatManager.blockOutputError'), error)
         throw error
       }
     }
 
     await saveCurrentConversation()
   } catch (error: any) {
-    console.error('发送消息时出现错误:', error)
-    let errorMessage = '抱歉，出现错误'
+    console.error(t('chatManager.sendMessageError'), error)
+    let errorMessage = t('chatManager.sorry')
     if (error.message) {
       errorMessage += ': ' + error.message
     } else if (error.toString() !== '[object Object]') {
       errorMessage += ': ' + error.toString()
     } else {
-      errorMessage += ': 未知错误'
+      errorMessage += ': ' + t('chatManager.unknownError')
     }
     messages.value.push({
       role: 'assistant',
@@ -320,7 +323,7 @@ const sendMessage = async () => {
 const clearChat = () => {
   messages.value = [{
     role: 'assistant',
-    content: '你好！我是Ollama助手，请选择一个模型开始对话。',
+    content: t('chatManager.welcomeMessage'),
     timestamp: Date.now()
   }]
 }
@@ -329,7 +332,7 @@ const clearChat = () => {
 const newConversation = () => {
   messages.value = [{
     role: 'assistant',
-    content: '你好！我是Ollama助手，请选择一个模型开始对话。',
+    content: t('chatManager.welcomeMessage'),
     timestamp: Date.now()
   }]
   activeConversationId.value = ''
@@ -341,7 +344,7 @@ const loadConversations = async () => {
   try {
     conversations.value = await ListConversations()
   } catch (error) {
-    ElMessage.error('加载对话列表失败: ' + (error as Error).message)
+    ElMessage.error(t('chatManager.loadConversationsFailed') + ': ' + (error as Error).message)
   }
 }
 
@@ -354,23 +357,23 @@ const loadConversation = async (conv: Conversation) => {
     activeConversationId.value = conversation.id
     currentConversation.value = conversation
   } catch (error) {
-    ElMessage.error('加载对话失败: ' + (error as Error).message)
+    ElMessage.error(t('chatManager.loadConversationFailed') + ': ' + (error as Error).message)
   }
 }
 
 // 编辑对话标题
 const editConversationTitle = async (conv: Conversation) => {
   try {
-    const newTitle = await ElMessageBox.prompt('请输入新的对话标题', '编辑标题', {
+    const newTitle = await ElMessageBox.prompt(t('chatManager.enterNewTitle'), t('chatManager.editTitle'), {
       inputValue: conv.title,
-      confirmButtonText: '确定',
-      cancelButtonText: '取消'
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel')
     })
 
     if (newTitle.value) {
       const updatedConv = {...conv, title: newTitle.value}
       await SaveConversation(updatedConv)
-      ElMessage.success('标题更新成功')
+      ElMessage.success(t('chatManager.titleUpdated'))
       await loadConversations() // 重新加载列表
     }
   } catch (error) {
@@ -381,14 +384,14 @@ const editConversationTitle = async (conv: Conversation) => {
 // 删除对话
 const deleteConversation = async (id: string) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个对话吗？', '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('chatManager.deleteConfirm'), t('chatManager.deleteTitle'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
     })
 
     await DeleteConversation(id)
-    ElMessage.success('对话删除成功')
+    ElMessage.success(t('chatManager.conversationDeleted'))
     await loadConversations() // 重新加载列表
 
     if (activeConversationId.value === id) {
@@ -396,7 +399,7 @@ const deleteConversation = async (id: string) => {
     }
   } catch (error) {
     if (!(error as Error).message?.includes('cancel')) {
-      ElMessage.error('删除对话失败: ' + (error as Error).message)
+      ElMessage.error(t('chatManager.deleteConversationFailed') + ': ' + (error as Error).message)
     }
   }
 }

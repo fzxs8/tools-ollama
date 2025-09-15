@@ -4,14 +4,14 @@
     <div class="sidebar">
       <div class="server-selector-wrapper">
         <select v-model="request.selectedServerId" class="base-url-selector">
-          <option value="">Select a server</option>
+          <option value="">{{ t('apiDebugger.selectServer') }}</option>
           <option v-for="server in servers" :key="server.id" :value="server.id">
             {{ server.name }} ({{ server.baseUrl }})
           </option>
         </select>
       </div>
       <div class="api-list">
-        <h3>Ollama API List</h3>
+        <h3>{{ t('apiDebugger.ollamaApiList') }}</h3>
         <ul>
           <li
             v-for="api in apiDefinitions"
@@ -34,46 +34,46 @@
           <span :class="['http-method-display', request.method.toLowerCase()]">{{ request.method }}</span>
           <input type="text" v-model="request.path" placeholder="/api/tags" class="url-input" />
           <button @click="sendRequest" :disabled="isLoading">
-            {{ isLoading ? 'Sending...' : 'Send' }}
+            {{ isLoading ? t('apiDebugger.sending') : t('apiDebugger.send') }}
           </button>
         </div>
 
         <!-- Request Tabs -->
         <div class="request-tabs">
           <div class="tab-headers">
-            <button :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">Query Params</button>
-            <button :class="{ active: activeTab === 'headers' }" @click="activeTab = 'headers'">Headers</button>
-            <button :class="{ active: activeTab === 'body' }" @click="activeTab = 'body'">Body</button>
+            <button :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">{{ t('apiDebugger.queryParams') }}</button>
+            <button :class="{ active: activeTab === 'headers' }" @click="activeTab = 'headers'">{{ t('apiDebugger.headers') }}</button>
+            <button :class="{ active: activeTab === 'body' }" @click="activeTab = 'body'">{{ t('apiDebugger.body') }}</button>
           </div>
           <div class="tab-content-request">
             <!-- Query Params -->
             <div v-if="activeTab === 'params'" class="key-value-editor">
               <div v-for="(param, index) in request.queryParams" :key="index" class="kv-row">
                 <input type="checkbox" v-model="param.enabled" />
-                <input type="text" v-model="param.key" placeholder="Key" />
-                <input type="text" v-model="param.value" placeholder="Value" />
-                <button @click="removeQueryParam(index)">Remove</button>
+                <input type="text" v-model="param.key" :placeholder="t('apiDebugger.key')" />
+                <input type="text" v-model="param.value" :placeholder="t('apiDebugger.value')" />
+                <button @click="removeQueryParam(index)">{{ t('apiDebugger.remove') }}</button>
               </div>
-              <button @click="addQueryParam">Add Parameter</button>
+              <button @click="addQueryParam">{{ t('apiDebugger.addParameter') }}</button>
             </div>
 
             <!-- Headers -->
             <div v-if="activeTab === 'headers'" class="key-value-editor">
               <div v-for="(header, index) in request.headers" :key="index" class="kv-row">
                 <input type="checkbox" v-model="header.enabled" />
-                <input type="text" v-model="header.key" placeholder="Key" />
-                <input type="text" v-model="header.value" placeholder="Value" />
-                <button @click="removeHeader(index)">Remove</button>
+                <input type="text" v-model="header.key" :placeholder="t('apiDebugger.key')" />
+                <input type="text" v-model="header.value" :placeholder="t('apiDebugger.value')" />
+                <button @click="removeHeader(index)">{{ t('apiDebugger.remove') }}</button>
               </div>
-              <button @click="addHeader">Add Header</button>
+              <button @click="addHeader">{{ t('apiDebugger.addHeader') }}</button>
             </div>
 
             <!-- Body -->
             <div v-if="activeTab === 'body'">
               <div class="body-type-selector">
-                <label><input type="radio" v-model="request.body.type" value="none" /> None</label>
-                <label><input type="radio" v-model="request.body.type" value="raw" /> Raw</label>
-                <label><input type="radio" v-model="request.body.type" value="formData" /> Form Data</label>
+                <label><input type="radio" v-model="request.body.type" value="none" /> {{ t('apiDebugger.none') }}</label>
+                <label><input type="radio" v-model="request.body.type" value="raw" /> {{ t('apiDebugger.raw') }}</label>
+                <label><input type="radio" v-model="request.body.type" value="formData" /> {{ t('apiDebugger.formData') }}</label>
               </div>
               <div v-if="request.body.type === 'raw'" class="raw-body-editor">
                 <select v-model="request.body.rawContentType">
@@ -82,15 +82,15 @@
                   <option value="text/html">HTML</option>
                   <option value="application/xml">XML</option>
                 </select>
-                <textarea v-model="request.body.rawContent" placeholder="Enter raw request body content..."></textarea>
+                <textarea v-model="request.body.rawContent" :placeholder="t('apiDebugger.enterRawContent')"></textarea>
               </div>
               <div v-if="request.body.type === 'formData'" class="key-value-editor">
                 <div v-for="(item, index) in request.body.formData" :key="index" class="kv-row">
-                  <input type="text" v-model="item.key" placeholder="Key" />
-                  <input type="text" v-model="item.value" placeholder="Value" />
-                  <button @click="removeFormData(index)">Remove</button>
+                  <input type="text" v-model="item.key" :placeholder="t('apiDebugger.key')" />
+                  <input type="text" v-model="item.value" :placeholder="t('apiDebugger.value')" />
+                  <button @click="removeFormData(index)">{{ t('apiDebugger.remove') }}</button>
                 </div>
-                <button @click="addFormData">Add Form Item</button>
+                <button @click="addFormData">{{ t('apiDebugger.addFormItem') }}</button>
               </div>
             </div>
           </div>
@@ -99,20 +99,20 @@
 
       <!-- Response Panel -->
       <div class="response-panel">
-        <div v-if="isLoading" class="response-placeholder">Loading...</div>
+        <div v-if="isLoading" class="response-placeholder">{{ t('apiDebugger.loading') }}</div>
         <div v-else-if="error" class="response-placeholder error-message">
-          <h3>Error</h3>
+          <h3>{{ t('apiDebugger.error') }}</h3>
           <pre>{{ error }}</pre>
         </div>
         <div v-else-if="response" class="response-wrapper">
           <div class="response-status-bar">
-            <span>Status: <strong :class="statusClass">{{ response.statusCode }} {{ response.statusText }}</strong></span>
-            <span>Duration: <strong>{{ response.requestDurationMs }} ms</strong></span>
+            <span>{{ t('apiDebugger.status') }}: <strong :class="statusClass">{{ response.statusCode }} {{ response.statusText }}</strong></span>
+            <span>{{ t('apiDebugger.duration') }}: <strong>{{ response.requestDurationMs }} ms</strong></span>
           </div>
           <div class="response-tabs">
             <div class="tab-headers">
-              <button :class="{ active: activeResponseTab === 'body' }" @click="activeResponseTab = 'body'">Response Body</button>
-              <button :class="{ active: activeResponseTab === 'headers' }" @click="activeResponseTab = 'headers'">Response Headers</button>
+              <button :class="{ active: activeResponseTab === 'body' }" @click="activeResponseTab = 'body'">{{ t('apiDebugger.responseBody') }}</button>
+              <button :class="{ active: activeResponseTab === 'headers' }" @click="activeResponseTab = 'headers'">{{ t('apiDebugger.responseHeaders') }}</button>
             </div>
             <div class="tab-content-response">
               <div v-if="activeResponseTab === 'body'">
@@ -120,15 +120,15 @@
               </div>
               <div v-if="activeResponseTab === 'headers'" class="key-value-editor">
                 <div v-for="(header, index) in response.headers" :key="index" class="kv-row-readonly">
-                  <input type="text" :value="header.key" readonly placeholder="Key" />
-                  <input type="text" :value="header.value" readonly placeholder="Value" />
+                  <input type="text" :value="header.key" readonly :placeholder="t('apiDebugger.key')" />
+                  <input type="text" :value="header.value" readonly :placeholder="t('apiDebugger.value')" />
                 </div>
               </div>
             </div>
           </div>
         </div>
          <div v-else class="response-placeholder">
-          <p>Click "Send" button to make a request</p>
+          <p>{{ t('apiDebugger.clickSendToRequest') }}</p>
         </div>
       </div>
     </div>
@@ -137,7 +137,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
-import { GetOllamaServers, SendHttpRequest } from '../../wailsjs/go/main/App'; // Assuming these are correctly imported
+import { useI18n } from 'vue-i18n';
+import { GetOllamaServers, SendHttpRequest } from '../../wailsjs/go/main/App';
+
+const { t } = useI18n();
 
 const servers = ref([]);
 const activeTab = ref('params');
@@ -163,9 +166,9 @@ const request = reactive({
 const response = ref(null);
 
 // --- API Definitions based on API.md ---
-const apiDefinitions = ref([
+const baseApiDefinitions = [
   {
-    name: 'Generate Completion',
+    key: 'generateCompletion',
     method: 'POST',
     path: '/api/generate',
     body: {
@@ -177,7 +180,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Generate Chat Completion',
+    key: 'generateChatCompletion',
     method: 'POST',
     path: '/api/chat',
     body: {
@@ -189,7 +192,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Create Model',
+    key: 'createModel',
     method: 'POST',
     path: '/api/create',
     body: {
@@ -201,7 +204,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'List Local Models',
+    key: 'listLocalModels',
     method: 'GET',
     path: '/api/tags',
     body: { type: 'none', rawContent: '', rawContentType: 'application/json' },
@@ -209,7 +212,7 @@ const apiDefinitions = ref([
     headers: [],
   },
   {
-    name: 'Show Model Details',
+    key: 'showModelDetails',
     method: 'POST',
     path: '/api/show',
     body: {
@@ -221,7 +224,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Copy Model',
+    key: 'copyModel',
     method: 'POST',
     path: '/api/copy',
     body: {
@@ -233,7 +236,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Delete Model',
+    key: 'deleteModel',
     method: 'DELETE',
     path: '/api/delete',
     body: {
@@ -245,7 +248,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Pull Model',
+    key: 'pullModel',
     method: 'POST',
     path: '/api/pull',
     body: {
@@ -257,7 +260,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'Generate Embeddings (Multiple)',
+    key: 'generateEmbeddingsMultiple',
     method: 'POST',
     path: '/api/embed',
     body: {
@@ -269,7 +272,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: 'List Running Models',
+    key: 'listRunningModels',
     method: 'GET',
     path: '/api/ps',
     body: { type: 'none', rawContent: '', rawContentType: 'application/json' },
@@ -277,7 +280,7 @@ const apiDefinitions = ref([
     headers: [],
   },
   {
-    name: 'Generate Single Embedding',
+    key: 'generateSingleEmbedding',
     method: 'POST',
     path: '/api/embeddings',
     body: {
@@ -288,7 +291,14 @@ const apiDefinitions = ref([
     queryParams: [],
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
-]);
+];
+
+const apiDefinitions = computed(() => {
+  return baseApiDefinitions.map(api => ({
+    ...api,
+    name: t(`apiDebugger.apis.${api.key}`)
+  }));
+});
 // --- End API Definitions ---
 
 onMounted(() => {
@@ -311,7 +321,7 @@ async function loadServers() {
       request.selectedServerId = servers.value[0].id;
     }
   } catch (e) {
-    error.value = `Failed to load servers: ${e}`;
+    error.value = `${t('apiDebugger.failedToLoadServers')}: ${e}`;
   }
 }
 
@@ -366,7 +376,7 @@ async function sendRequest() {
       response.value = result;
     }
   } catch (e) {
-    error.value = `An unexpected error occurred: ${e}`;
+    error.value = `${t('apiDebugger.unexpectedError')}: ${e}`;
   } finally {
     isLoading.value = false;
   }

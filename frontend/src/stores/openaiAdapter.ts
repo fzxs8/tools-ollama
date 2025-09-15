@@ -1,8 +1,5 @@
 import { defineStore } from 'pinia';
 import { ElMessage } from 'element-plus';
-import i18n from '../i18n';
-
-const { t } = i18n.global;
 import { types } from '../../wailsjs/go/models';
 import OpenAIAdapterConfig = types.OpenAIAdapterConfig;
 import OpenAIAdapterStatus = types.OpenAIAdapterStatus;
@@ -58,16 +55,16 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
           this.config.targetOllamaServerId = fetchedConfig.targetOllamaServerId;
         }
       } catch (error) {
-        ElMessage.error(`${t('messages.fetchConfigFailed')}: ${error}`);
+        ElMessage.error(`Failed to fetch adapter configuration: ${error}`);
       }
     },
 
     async saveConfig() {
       try {
         await SaveOpenAIAdapterConfig(this.config);
-        ElMessage.success(t('messages.configSaved'));
+        ElMessage.success('Configuration saved successfully!');
       } catch (error) {
-        ElMessage.error(`${t('messages.configSaveFailed')}: ${error}`);
+        ElMessage.error(`Failed to save configuration: ${error}`);
         throw error;
       }
     },
@@ -77,7 +74,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
         this.status = await GetOpenAIAdapterStatus();
       } catch (error) {
         this.status.isRunning = false;
-        this.status.error = `${t('messages.getServiceStatusFailed')}: ${error}`;
+        this.status.error = `Unable to get service status: ${error}`;
       }
     },
 
@@ -90,9 +87,9 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         await this.saveConfig();
         await StartAdapterServer();
-        ElMessage.success(t('messages.serviceStarted'));
+        ElMessage.success('Service start command sent.');
       } catch (error) {
-        ElMessage.error(`${t('messages.serviceStartFailed')}: ${error}`);
+        ElMessage.error(`Failed to start service: ${error}`);
         // The backend will emit a status update on failure, so no need to fetch here
         throw error;
       }
@@ -101,9 +98,9 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
     async stopServer() {
       try {
         await StopAdapterServer();
-        ElMessage.success(t('messages.serviceStopped'));
+        ElMessage.success('Service stop command sent.');
       } catch (error) {
-        ElMessage.error(`${t('messages.serviceStopFailed')}: ${error}`);
+        ElMessage.error(`Failed to stop service: ${error}`);
         throw error;
       }
     },
@@ -112,7 +109,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         this.ollamaServers = await GetOllamaServers();
       } catch (error) {
-        ElMessage.error(`${t('messages.fetchServersFailed')}: ${error}`);
+        ElMessage.error(`Failed to fetch Ollama server list: ${error}`);
       }
     },
 
@@ -125,7 +122,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
 
     clearLogs() {
       this.logs = [];
-      ElMessage.success(t('messages.logsClearedSuccess'));
+      ElMessage.success('Logs cleared');
     },
 
     toggleLogDrawer(visible?: boolean) {
@@ -145,7 +142,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
         this.apiDocs = await GetAdapterAPIDocs();
         this.toggleApiDrawer(true);
       } catch (error) {
-        ElMessage.error(`${t('messages.fetchApiDocsFailed')}: ${error}`);
+        ElMessage.error(`Failed to fetch API documentation: ${error}`);
       }
     },
   },

@@ -1,7 +1,7 @@
 import {createRouter, createWebHashHistory} from 'vue-router'
 import ChatManager from '../views/ChatManager.vue'
 import SystemMonitor from '../views/SystemMonitor.vue'
-import PromptPilot from '../views/PromptPilot/PromptPilot.vue'
+import PromptEngineering from '../views/PromptEngineering/PromptEngineering.vue'
 import ModelManager from "../views/ModelManager.vue";
 import ModelMarket from "../views/ModelMarket.vue";
 import OllamaSettings from "../views/OllamaSettings.vue";
@@ -29,7 +29,7 @@ const routes = [
     },
     {
         path: '/prompt',
-        component: PromptPilot
+        component: PromptEngineering
     },
     {
         path: '/system',

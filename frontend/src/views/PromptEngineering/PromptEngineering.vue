@@ -1,13 +1,13 @@
 <!-- FORCE UPDATE: 2025-09-10 20:10 PM -->
 <template>
-  <div class="prompt-pilot">
+  <div class="prompt-engineering">
     <div class="main-content">
       <!-- 想法输入区 -->
       <div class="idea-input-section">
         <el-input
           v-model="userIdea"
           type="textarea"
-          :placeholder="t('promptPilot.typeMessage')"
+          :placeholder="t('promptEngineering.typeMessage')"
           :rows="5"
           style="width: 100%;"
         />
@@ -22,14 +22,14 @@
             :loading="isGenerating"
             :disabled="isGenerating || selectedModels.length === 0 || !userIdea.trim() || !selectedServerId"
           >
-            {{ t('promptPilot.sendMessage') }}
+            {{ t('promptEngineering.sendMessage') }}
           </el-button>
         </div>
       </div>
 
       <!-- Prompt展示区 -->
       <div class="prompt-display-section">
-        <div class="section-title">{{ t('promptPilot.systemPrompt') }}</div>
+        <div class="section-title">{{ t('promptEngineering.systemPrompt') }}</div>
         <div class="prompt-content-container">
           <el-tabs v-model="activePromptTab" class="prompt-tabs">
             <el-tab-pane
@@ -65,7 +65,7 @@
                       size="small"
                       :disabled="isGenerating"
                     >
-                      Regenerate
+                      {{ t('chatManager.regenerate') }}
                     </el-button>
                   </div>
                 </div>
@@ -73,7 +73,7 @@
             </el-tab-pane>
           </el-tabs>
           <div v-if="selectedModels.length === 0 && !isGenerating" class="empty-state">
-            {{ t('promptPilot.selectModel') }}
+            {{ t('promptEngineering.selectModel') }}
           </div>
         </div>
 
@@ -82,7 +82,7 @@
             @click="openOptimizeDrawer"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
-            Optimize
+            {{ t('promptEngineering.optimizePrompt') }}
           </el-button>
           <el-button
             type="success"
@@ -92,37 +92,37 @@
             {{ t('common.save') }}
           </el-button>
           <el-button @click="showSavedPrompts = true" :disabled="isGenerating">
-            {{ t('promptPilot.myPrompts') }}
+            {{ t('promptEngineering.myPrompts') }}
           </el-button>
         </div>
       </div>
     </div>
 
     <!-- 抽屉区域 -->
-    <el-drawer v-model="showOptimizeDrawer" :title="t('promptPilot.optimizePrompt')" direction="rtl" size="40%">
+    <el-drawer v-model="showOptimizeDrawer" :title="t('promptEngineering.optimizePrompt')" direction="rtl" size="40%">
       <!-- ...抽屉内容... -->
     </el-drawer>
 
-    <el-drawer v-model="showSaveDrawer" :title="promptToSave.id ? `编辑 “${promptToSave.name}”` : '保存Prompt'" direction="rtl" size="40%">
+    <el-drawer v-model="showSaveDrawer" :title="drawerTitle" direction="rtl" size="40%">
       <div class="save-drawer-content">
         <el-form :model="promptToSave" label-position="top" ref="saveFormRef">
-          <el-form-item :label="t('promptPilot.promptTitle')" prop="name" :rules="[{ required: true, message: t('promptPilot.titleRequired'), trigger: 'blur' }]">
-            <el-input v-model="promptToSave.name" :placeholder="t('promptPilot.enterTitle')"></el-input>
+          <el-form-item :label="t('promptEngineering.promptTitle')" prop="name" :rules="[{ required: true, message: t('promptEngineering.titleRequired'), trigger: 'blur' }]">
+            <el-input v-model="promptToSave.name" :placeholder="t('promptEngineering.enterTitle')"></el-input>
           </el-form-item>
-          <el-form-item :label="t('promptPilot.description')">
-            <el-input v-model="promptToSave.description" type="textarea" :rows="3" :placeholder="t('promptPilot.enterDescription')"></el-input>
+          <el-form-item :label="t('promptEngineering.promptDescription')">
+            <el-input v-model="promptToSave.description" type="textarea" :rows="3" :placeholder="t('promptEngineering.enterDescription')"></el-input>
           </el-form-item>
-          <el-form-item :label="t('promptPilot.tags')">
-            <el-select v-model="promptToSave.tags" multiple filterable allow-create default-first-option :placeholder="t('promptPilot.selectTags')" style="width: 100%;">
+          <el-form-item :label="t('promptEngineering.tags')">
+            <el-select v-model="promptToSave.tags" multiple filterable allow-create default-first-option :placeholder="t('promptEngineering.selectTags')" style="width: 100%;">
               <el-option v-for="tag in existingTags" :key="tag" :label="tag" :value="tag"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item :label="t('promptPilot.associatedModels')" class="left-aligned-item">
+          <el-form-item :label="t('promptEngineering.associatedModels')" class="left-aligned-item">
             <div>
               <el-tag v-for="model in promptToSave.models" :key="model" type="info" style="margin-right: 5px;">{{ model }}</el-tag>
             </div>
           </el-form-item>
-          <el-form-item :label="t('promptPilot.promptContent')" class="left-aligned-item content-preview-item">
+          <el-form-item :label="t('promptEngineering.promptContent')" class="left-aligned-item content-preview-item">
             <el-input v-model="promptToSave.content" type="textarea" :rows="8" readonly></el-input>
             <el-button class="content-copy-btn" type="primary" link @click="copySaveDrawerContent">{{ t('common.copy') }}</el-button>
           </el-form-item>
@@ -193,6 +193,12 @@ const existingTags = computed(() => {
   return Array.from(tags);
 });
 
+const drawerTitle = computed(() => {
+  return promptToSave.value.id 
+    ? `${t('common.edit')} "${promptToSave.value.name}"`
+    : t('promptEngineering.savePrompt');
+});
+
 // --- 生命周期钩子 ---
 onMounted(() => {
   fetchPrompts();
@@ -205,7 +211,7 @@ onMounted(() => {
 
   EventsOn('prompt_pilot_stream_error', (data: { model: string; error: string }) => {
     if (data && data.model) {
-      ElMessage.error(`模型 ${data.model} 生成失败: ${data.error}`);
+      ElMessage.error(`${t('chatManager.modelGenerationFailed')} ${data.model}: ${data.error}`);
       generatingModels.value[data.model] = false;
       checkAllModelsFinished();
     }
@@ -242,7 +248,7 @@ const performStreamGeneration = async (model: string) => {
   try {
     await GeneratePromptStream(userIdea.value, model, selectedServerId.value);
   } catch (error: any) {
-    ElMessage.error(`调用模型 ${model} 失败: ${error.message || error}`);
+    ElMessage.error(`${t('chatManager.modelCallFailed')} ${model}: ${error.message || error}`);
     generatingModels.value[model] = false;
     checkAllModelsFinished();
   }
@@ -251,7 +257,7 @@ const performStreamGeneration = async (model: string) => {
 const generatePrompt = async () => {
   if (isGenerating.value) return;
   if (!userIdea.value.trim() || selectedModels.value.length === 0 || !selectedServerId.value) {
-    ElMessage.warning('请输入想法，选择服务和至少一个模型');
+    ElMessage.warning(t('promptEngineering.enterIdeaAndSelectModel'));
     return;
   }
 
@@ -268,7 +274,7 @@ const generatePrompt = async () => {
 
 const regenerateSinglePrompt = async (model: string) => {
   if (isGenerating.value) {
-    ElMessage.warning('正在等待所有模型生成完成，请稍后再试。');
+    ElMessage.warning(t('promptEngineering.waitForGeneration'));
     return;
   }
   isGenerating.value = true;
@@ -280,9 +286,9 @@ const copyPrompt = (model: string) => {
   const content = renderedPrompt.value[model]
   if (content) {
     navigator.clipboard.writeText(content).then(() => {
-      ElMessage.success('Prompt已复制到剪贴板')
+      ElMessage.success(t('promptEngineering.promptCopied'))
     }).catch(err => {
-      ElMessage.error('复制失败: ' + err)
+      ElMessage.error(t('promptEngineering.copyFailed') + ': ' + err)
     })
   }
 }
@@ -290,9 +296,9 @@ const copyPrompt = (model: string) => {
 const copySaveDrawerContent = () => {
   if (promptToSave.value.content) {
     navigator.clipboard.writeText(promptToSave.value.content).then(() => {
-      ElMessage.success('内容已复制到剪贴板')
+      ElMessage.success(t('promptEngineering.contentCopied'))
     }).catch(err => {
-      ElMessage.error('复制失败: ' + err)
+      ElMessage.error(t('promptEngineering.copyFailed') + ': ' + err)
     })
   }
 }
@@ -303,10 +309,8 @@ const openOptimizeDrawer = () => {
 
 const openSaveDrawer = (existingPrompt: Prompt | null) => {
   if (existingPrompt) {
-    // 编辑模式: 深拷贝以避免意外修改原始列表中的数据
     promptToSave.value = JSON.parse(JSON.stringify(existingPrompt));
   } else {
-    // 新建模式
     promptToSave.value = {
       id: undefined,
       name: userIdea.value.substring(0, 20) || '',
@@ -323,7 +327,7 @@ const fetchPrompts = async () => {
   try {
     savedPrompts.value = await ListPrompts();
   } catch (error: any) {
-    ElMessage.error('获取已保存的Prompt列表失败: ' + error.message);
+    ElMessage.error(t('promptEngineering.fetchPromptsFailed') + ': ' + error.message);
   }
 };
 
@@ -334,11 +338,11 @@ const executeSaveFromDrawer = async () => {
       isSaving.value = true;
       try {
         await SavePrompt(promptToSave.value as Prompt);
-        ElMessage.success(promptToSave.value.id ? 'Prompt更新成功' : 'Prompt保存成功');
+        ElMessage.success(promptToSave.value.id ? t('promptEngineering.promptUpdated') : t('promptEngineering.promptSaved'));
         await fetchPrompts();
         showSaveDrawer.value = false;
       } catch (error: any) {
-        ElMessage.error('保存Prompt失败: ' + error.message);
+        ElMessage.error(t('promptEngineering.savePromptFailed') + ': ' + error.message);
       } finally {
         isSaving.value = false;
       }
@@ -353,20 +357,20 @@ const handleEditPrompt = (prompt: Prompt) => {
 const handleDeletePrompt = async (prompt: Prompt) => {
   try {
     await ElMessageBox.confirm(
-        `您确定要删除 “${prompt.name}” 吗？`,
-        '警告',
+        t('promptEngineering.deleteConfirm', { name: prompt.name }),
+        t('promptEngineering.warning'),
         {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
+          confirmButtonText: t('common.confirm'),
+          cancelButtonText: t('common.cancel'),
           type: 'warning',
         }
     );
     await DeletePrompt(prompt.id);
-    ElMessage.success('Prompt删除成功');
+    ElMessage.success(t('promptEngineering.promptDeleted'));
     await fetchPrompts();
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除Prompt失败: ' + String(error));
+      ElMessage.error(t('promptEngineering.deletePromptFailed') + ': ' + String(error));
     }
   }
 };
@@ -374,9 +378,9 @@ const handleDeletePrompt = async (prompt: Prompt) => {
 const handlePreviewPrompt = (prompt: Prompt) => {
   if (activePromptTab.value) {
     renderedPrompt.value[activePromptTab.value] = prompt.content;
-    ElMessage.info(`已将Prompt“${prompt.name}”的内容加载到当前视图`);
+    ElMessage.info(t('promptEngineering.promptLoaded', { name: prompt.name }));
   } else {
-    ElMessage.warning('请先选择一个模型以加载Prompt内容');
+    ElMessage.warning(t('promptEngineering.selectModelFirst'));
   }
   showSavedPrompts.value = false;
 };
@@ -390,7 +394,7 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 </style>
 
 <style scoped>
-.prompt-pilot {
+.prompt-engineering {
   height: 100%;
   padding: 20px;
   box-sizing: border-box;

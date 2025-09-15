@@ -15,25 +15,25 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// PromptPilot 管理提示词工程功能
-type PromptPilot struct {
+// PromptEngineering 管理提示词工程功能
+type PromptEngineering struct {
 	ctx       context.Context
 	store     *duolasdk.AppStore
 	configMgr *OllamaConfigManager
 	logger    *core.AppLog
 }
 
-// NewPromptPilot 创建一个新的 PromptPilot 实例
-func NewPromptPilot(store *duolasdk.AppStore, configMgr *OllamaConfigManager, logger *core.AppLog) *PromptPilot {
-	return &PromptPilot{
+// NewPromptPilot 创建一个新的 PromptEngineering 实例
+func NewPromptPilot(store *duolasdk.AppStore, configMgr *OllamaConfigManager, logger *core.AppLog) *PromptEngineering {
+	return &PromptEngineering{
 		store:     store,
 		configMgr: configMgr,
-		logger:    logger.WithPrefix("PromptPilot"),
+		logger:    logger.WithPrefix("PromptEngineering"),
 	}
 }
 
 // Startup 在应用启动时调用
-func (p *PromptPilot) Startup(ctx context.Context) {
+func (p *PromptEngineering) Startup(ctx context.Context) {
 	p.ctx = ctx
 	p.logger.Info("提示词大师模块已启动")
 }
@@ -51,7 +51,7 @@ func toCoreMessages(messages []types.Message) []core.Message {
 }
 
 // GeneratePromptStream 流式生成一个提示词
-func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId string) {
+func (p *PromptEngineering) GeneratePromptStream(idea string, model string, serverId string) {
 	p.logger.Debug("开始生成提示词流", "idea", idea, "model", model, "serverId", serverId)
 
 	go func() {
@@ -102,7 +102,7 @@ func (p *PromptPilot) GeneratePromptStream(idea string, model string, serverId s
 }
 
 // OptimizePrompt 优化一个提示词
-func (p *PromptPilot) OptimizePrompt(content string, feedback string, model string, serverId string) (string, error) {
+func (p *PromptEngineering) OptimizePrompt(content string, feedback string, model string, serverId string) (string, error) {
 	p.logger.Debug("开始优化提示词", "model", model, "serverId", serverId)
 
 	if content == "" || feedback == "" || model == "" || serverId == "" {
@@ -117,7 +117,7 @@ func (p *PromptPilot) OptimizePrompt(content string, feedback string, model stri
 }
 
 // SavePrompt 保存一个提示词到存储
-func (p *PromptPilot) SavePrompt(prompt types.Prompt) error {
+func (p *PromptEngineering) SavePrompt(prompt types.Prompt) error {
 	p.logger.Debug("准备保存提示词", "promptName", prompt.Name)
 
 	if prompt.ID == "" {
@@ -149,7 +149,7 @@ func (p *PromptPilot) SavePrompt(prompt types.Prompt) error {
 }
 
 // ListPrompts 返回所有已保存的提示词
-func (p *PromptPilot) ListPrompts() ([]types.Prompt, error) {
+func (p *PromptEngineering) ListPrompts() ([]types.Prompt, error) {
 	p.logger.Debug("开始列出所有已保存的提示词")
 
 	promptsMap, err := p.store.HGetAll("prompts")
@@ -173,7 +173,7 @@ func (p *PromptPilot) ListPrompts() ([]types.Prompt, error) {
 }
 
 // GetPrompt 根据ID返回一个特定的提示词
-func (p *PromptPilot) GetPrompt(id string) (types.Prompt, error) {
+func (p *PromptEngineering) GetPrompt(id string) (types.Prompt, error) {
 	p.logger.Debug("开始获取提示词", "id", id)
 
 	promptJSON, err := p.store.HGet("prompts", id)
@@ -193,7 +193,7 @@ func (p *PromptPilot) GetPrompt(id string) (types.Prompt, error) {
 }
 
 // DeletePrompt 根据ID删除一个提示词
-func (p *PromptPilot) DeletePrompt(id string) error {
+func (p *PromptEngineering) DeletePrompt(id string) error {
 	p.logger.Debug("开始删除提示词", "id", id)
 
 	if err := p.store.HDel("prompts", id); err != nil {

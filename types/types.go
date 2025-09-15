@@ -6,7 +6,7 @@ import "time"
 type Model struct {
 	Name       string                 `json:"name"`
 	Model      string                 `json:"model"`
-	ModifiedAt string                 `json:"modifiedAt"`
+	ModifiedAt string                 `json:"modified_at"`
 	Size       int64                  `json:"size"`
 	Digest     string                 `json:"digest"`
 	Details    map[string]interface{} `json:"details"`

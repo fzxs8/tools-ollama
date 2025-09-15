@@ -8,3 +8,10 @@ frontend/dist
 /ollama-client.db
 /tools-ollama
 /frontend/wailsjs/
+/data/
+/logs/
+/tmp/
+/temp/
+*.log
+*.db
+*.db*

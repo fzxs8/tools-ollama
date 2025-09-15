@@ -80,8 +80,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const drawerTitle = computed(() => props.mode === 'manage' ? t('promptPilot.myPrompts') : t('promptPilot.selectSystemPrompt'));
-const emptyDescription = computed(() => props.mode === 'manage' ? t('promptPilot.noPrompts') : t('promptPilot.noSystemPrompts'));
+const drawerTitle = computed(() => props.mode === 'manage' ? t('promptEngineering.myPrompts') : t('promptEngineering.selectSystemPrompt'));
+const emptyDescription = computed(() => props.mode === 'manage' ? t('promptEngineering.noPrompts') : t('promptEngineering.noSystemPrompts'));
 
 const closeDrawer = () => {
   emit('update:visible', false);

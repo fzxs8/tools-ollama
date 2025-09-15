@@ -225,10 +225,16 @@ watch(logs, () => {
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
-  // Fetch initial data
-  store.fetchConfig();
-  store.fetchOllamaServers();
-  store.fetchInitialStatus();
+  // Delay initialization to avoid hot reload issues
+  setTimeout(async () => {
+    try {
+      await store.fetchConfig();
+      await store.fetchOllamaServers();
+      await store.fetchInitialStatus();
+    } catch (error) {
+      console.error('Failed to initialize OpenAI Adapter:', error);
+    }
+  }, 100);
 
   // Listen for backend events
   EventsOn('openai-adapter-log', (log: LogEntry) => {

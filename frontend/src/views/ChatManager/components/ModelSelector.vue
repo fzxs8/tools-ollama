@@ -2,12 +2,12 @@
   <el-card class="model-selector">
     <template #header>
       <div class="card-header">
-        <span>Model Selection</span>
+        <span>{{ t('chatManager.modelSelection') }}</span>
       </div>
     </template>
     <el-select
         :model-value="props.selectedServer"
-        placeholder="Select Server"
+        :placeholder="t('serverSettings.selectServer')"
         style="width: 100%; margin-bottom: 10px;"
         @update:modelValue="val => emit('update:selectedServer', val)"
         @change="() => emit('server-change')">
@@ -20,7 +20,7 @@
     </el-select>
     <el-select
         :model-value="props.selectedModel"
-        placeholder="Select Model"
+        :placeholder="t('modelManager.selectModel')"
         style="width: 100%"
         @update:modelValue="val => emit('update:selectedModel', val)">
       <el-option
@@ -32,13 +32,13 @@
     </el-select>
 
     <div style="margin-top: 20px">
-      <el-button @click="() => emit('load-model')" style="width: 100%">Load Model</el-button>
+      <el-button @click="() => emit('load-model')" style="width: 100%">{{ t('chatManager.loadModel') }}</el-button>
     </div>
 
     <div style="margin-top: 20px">
-      <h4>Parameter Settings</h4>
+      <h4>{{ t('modelManager.modelParameters') }}</h4>
       <el-form :model="props.modelParams" label-width="80px" size="small">
-        <el-form-item label="Temperature">
+        <el-form-item :label="t('modelManager.temperature')">
           <el-slider
               :model-value="props.modelParams.temperature"
               :min="0"
@@ -54,14 +54,14 @@
               :step="0.1"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, topP: val })"/>
         </el-form-item>
-        <el-form-item label="Context">
+        <el-form-item :label="t('modelManager.context')">
           <el-input-number
               :model-value="props.modelParams.context"
               :min="1"
               :max="32768"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, context: val })"/>
         </el-form-item>
-        <el-form-item label="Max Tokens">
+        <el-form-item :label="t('chatManager.maxTokens')">
           <el-input-number
               :model-value="props.modelParams.numPredict"
               :min="1"
@@ -75,7 +75,7 @@
               :max="100"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, topK: val })"/>
         </el-form-item>
-        <el-form-item label="Repeat Penalty">
+        <el-form-item :label="t('chatManager.repeatPenalty')">
           <el-input-number
               :model-value="props.modelParams.repeatPenalty"
               :min="0.1"
@@ -83,29 +83,32 @@
               :step="0.1"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, repeatPenalty: val })"/>
         </el-form-item>
-        <el-form-item label="Output Mode">
+        <el-form-item :label="t('chatManager.outputMode')">
           <el-select
               :model-value="props.modelParams.outputMode"
-              placeholder="Select Output Mode"
+              :placeholder="t('chatManager.selectOutputMode')"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, outputMode: val })">
-            <el-option label="Stream Output" value="stream"/>
-            <el-option label="Blocking Output" value="blocking"/>
+            <el-option :label="t('chatManager.streamOutput')" value="stream"/>
+            <el-option :label="t('chatManager.blockingOutput')" value="blocking"/>
           </el-select>
         </el-form-item>
       </el-form>
       <div style="margin-top: 10px">
-        <el-button @click="() => emit('save-model-params')" type="primary" size="small">Save Parameters</el-button>
-        <el-button @click="() => emit('reset-model-params')" size="small">Reset</el-button>
+        <el-button @click="() => emit('save-model-params')" type="primary" size="small">{{ t('modelManager.saveParameters') }}</el-button>
+        <el-button @click="() => emit('reset-model-params')" size="small">{{ t('modelManager.resetParameters') }}</el-button>
       </div>
     </div>
   </el-card>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import {types} from "../../../../wailsjs/go/models";
 import Model = types.Model;
 import OllamaServerConfig = types.OllamaServerConfig;
 import {ModelParams} from "../../../classes/types";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   localModels: Model[];

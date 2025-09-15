@@ -50,7 +50,7 @@ const message = t('messages.configSaved');
 翻译资源按功能模块组织：
 - `common`: 通用词汇（保存、取消、删除等）
 - `nav`: 导航菜单
-- `promptPilot`: 提示词驾驶舱模块
+- `promptEngineering`: 提示词驾驶舱模块
 - `modelManager`: 模型管理模块
 - `serverSettings`: 服务设置模块
 - `openaiAdapter`: OpenAI 适配器模块

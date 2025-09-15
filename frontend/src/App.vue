@@ -40,7 +40,7 @@
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>{{ $t('promptPilot.title') }}</span>
+            <span>{{ $t('chatManager.title') }}</span>
           </router-link>
           
           <router-link to="/prompt" class="nav-item" :class="{ active: activeRoute === '/prompt' }">
@@ -49,7 +49,7 @@
               <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
-            <span>Prompt Engineering</span>
+            <span>{{ $t('promptEngineering.title') }}</span>
           </router-link>
           
           <router-link to="/settings" class="nav-item" :class="{ active: activeRoute === '/settings' }">

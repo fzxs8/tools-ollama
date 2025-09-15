@@ -2,12 +2,12 @@
   <el-card class="chat-container" style="flex: 1; display: flex; flex-direction: column;">
     <template #header>
       <div class="card-header">
-        <span>Chat Interface{{ activeSystemPrompt ? ` - ${activeSystemPrompt.name}` : '' }}</span>
+        <span>{{ t('chatManager.chatInterface') }}{{ activeSystemPrompt ? ` - ${activeSystemPrompt.name}` : '' }}</span>
         <div>
-          <el-button @click="newConversation" style="margin-right: 10px;">New Chat</el-button>
-          <el-button @click="showConversationHistory = true" style="margin-right: 10px;">History</el-button>
-          <el-button @click="clearChat" style="margin-right: 10px;">Clear Chat</el-button>
-          <el-button @click="openSystemPromptDrawer">My Prompts</el-button>
+          <el-button @click="newConversation" style="margin-right: 10px;">{{ t('chatManager.newChat') }}</el-button>
+          <el-button @click="showConversationHistory = true" style="margin-right: 10px;">{{ t('chatManager.history') }}</el-button>
+          <el-button @click="clearChat" style="margin-right: 10px;">{{ t('chatManager.clearChat') }}</el-button>
+          <el-button @click="openSystemPromptDrawer">{{ t('promptEngineering.myPrompts') }}</el-button>
         </div>
       </div>
     </template>
@@ -42,7 +42,7 @@
         </div>
         <div class="message-content-area">
           <div class="message-header">
-            <span class="sender-name">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
+            <span class="sender-name">{{ message.role === 'user' ? t('chatManager.you') : t('chatManager.assistant') }}</span>
             <span class="message-time">{{ formatTime(message.timestamp || Date.now()) }}</span>
           </div>
           <div class="message-content">
@@ -54,7 +54,7 @@
                   @click="copyMessage(message.content)"
                   link
               >
-                Copy
+                {{ t('common.copy') }}
               </el-button>
               <el-button
                   size="small"
@@ -62,7 +62,7 @@
                   @click="regenerateMessage(index)"
                   link
               >
-                Regenerate
+                {{ t('chatManager.regenerate') }}
               </el-button>
             </div>
           </div>
@@ -83,12 +83,12 @@
         </div>
         <div class="message-content-area">
           <div class="message-header">
-            <span class="sender-name">Assistant</span>
+            <span class="sender-name">{{ t('chatManager.assistant') }}</span>
             <span class="message-time">{{ getCurrentTime() }}</span>
           </div>
           <div class="message-content">
             <div class="thinking-indicator">
-              <span>Thinking</span>
+              <span>{{ t('chatManager.thinking') }}</span>
               <div class="dot"></div>
               <div class="dot"></div>
               <div class="dot"></div>
@@ -113,9 +113,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MarkdownIt from 'markdown-it'
 import ConversationHistory from './ConversationHistory.vue'
 import {types} from "../../../../wailsjs/go/models";
+
+const { t } = useI18n();
 import Prompt = types.Prompt;
 import Conversation = types.Conversation;
 import Message = types.Message;

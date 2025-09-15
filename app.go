@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"tools-ollama/types"
 
 	"github.com/fzxs8/duolasdk"
@@ -19,7 +21,7 @@ type App struct {
 	chatManager       *ChatManager
 	modelManager      *ModelManager
 	modelMarket       *ModelMarket
-	promptPilot       *PromptPilot
+	promptEngineering *PromptEngineering
 	ollamaApiDebugger *OllamaApiDebugger
 	httpClient        *core.HttpCli
 	adapterManager    *OpenAIAdapterManager
@@ -33,8 +35,11 @@ func NewApp() *App {
 		Prefix: "DuoLa",
 	})
 
+	// 创建数据目录
+	os.MkdirAll("data", 0755)
+
 	store := duolasdk.NewStore(core.StoreOption{
-		FileName: "ollama-client.db",
+		FileName: "data/ollama-client.db",
 	})
 
 	app := &App{
@@ -42,7 +47,7 @@ func NewApp() *App {
 	}
 
 	app.configMgr = NewOllamaConfigManager(store, logger)
-	app.promptPilot = NewPromptPilot(store, app.configMgr, logger)
+	app.promptEngineering = NewPromptPilot(store, app.configMgr, logger)
 	app.chatManager = NewChatManager(context.Background(), store, logger)
 	app.modelManager = NewModelManager(app, app.configMgr, logger)
 	app.modelMarket = NewModelMarket(app, logger)
@@ -60,7 +65,34 @@ func NewApp() *App {
 
 // rebuildDependencies 根据当前活动服务器重建依赖
 func (a *App) rebuildDependencies() error {
-	// ... (此函数保持不变)
+	a.logger.Debug("开始重建应用依赖")
+
+	// 获取活动服务器配置
+	activeServer, err := a.configMgr.GetActiveServer()
+	if err != nil {
+		a.logger.Warn("未找到活动服务器，使用默认配置", "error", err)
+		// 如果没有活动服务器，创建一个默认的HTTP客户端
+		a.httpClient.Create(&core.Config{
+			BaseURL: "http://localhost:11434",
+		})
+		return nil
+	}
+
+	a.logger.Info("使用活动服务器配置初始化HTTP客户端", "serverName", activeServer.Name, "baseURL", activeServer.BaseURL)
+
+	// 确保BaseURL包含协议前缀
+	baseURL := activeServer.BaseURL
+	if baseURL != "" && !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
+		baseURL = "http://" + baseURL
+		a.logger.Debug("为BaseURL添加http://前缀", "originalURL", activeServer.BaseURL, "newURL", baseURL)
+	}
+
+	// 重新配置HTTP客户端
+	a.httpClient.Create(&core.Config{
+		BaseURL: baseURL,
+	})
+
+	a.logger.Debug("HTTP客户端重建完成", "baseURL", baseURL)
 	return nil
 }
 
@@ -71,7 +103,7 @@ func (a *App) startup(ctx context.Context) {
 	a.modelManager.SetContext(ctx)
 	a.modelMarket.SetContext(ctx)
 	a.chatManager.SetContext(ctx)
-	a.promptPilot.Startup(ctx)
+	a.promptEngineering.Startup(ctx)
 	a.ollamaApiDebugger.SetContext(ctx)
 	a.adapterManager.SetContext(ctx) // 注入 Wails 上下文到适配器管理器
 }
@@ -164,24 +196,24 @@ func (a *App) GetOllamaServers() ([]types.OllamaServerConfig, error) {
 	return a.ollamaApiDebugger.GetOllamaServers()
 }
 
-// --- PromptPilot Methods ---
+// --- PromptEngineering Methods ---
 func (a *App) GeneratePromptStream(idea string, model string, serverId string) {
-	a.promptPilot.GeneratePromptStream(idea, model, serverId)
+	a.promptEngineering.GeneratePromptStream(idea, model, serverId)
 }
 func (a *App) OptimizePrompt(content string, feedback string, model string, serverId string) (string, error) {
-	return a.promptPilot.OptimizePrompt(content, feedback, model, serverId)
+	return a.promptEngineering.OptimizePrompt(content, feedback, model, serverId)
 }
 func (a *App) SavePrompt(prompt types.Prompt) error {
-	return a.promptPilot.SavePrompt(prompt)
+	return a.promptEngineering.SavePrompt(prompt)
 }
 func (a *App) ListPrompts() ([]types.Prompt, error) {
-	return a.promptPilot.ListPrompts()
+	return a.promptEngineering.ListPrompts()
 }
 func (a *App) GetPrompt(id string) (types.Prompt, error) {
-	return a.promptPilot.GetPrompt(id)
+	return a.promptEngineering.GetPrompt(id)
 }
 func (a *App) DeletePrompt(id string) error {
-	return a.promptPilot.DeletePrompt(id)
+	return a.promptEngineering.DeletePrompt(id)
 }
 
 // --- ModelManager Methods ---

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import i18n from '../i18n';
 
 interface I18nState {
   locale: string;
@@ -7,7 +6,6 @@ interface I18nState {
 
 // Initialize locale from localStorage
 const savedLocale = localStorage.getItem('language') || 'en';
-i18n.global.locale.value = savedLocale;
 
 export const useI18nStore = defineStore('i18n', {
   state: (): I18nState => ({
@@ -15,8 +13,10 @@ export const useI18nStore = defineStore('i18n', {
   }),
 
   actions: {
-    setLocale(locale: string) {
+    async setLocale(locale: string) {
       this.locale = locale;
+      // Dynamically import i18n to avoid circular dependency
+      const { default: i18n } = await import('../i18n');
       i18n.global.locale.value = locale;
       localStorage.setItem('language', locale);
     },

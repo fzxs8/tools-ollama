@@ -225,7 +225,7 @@ export namespace types {
 	export class Model {
 	    name: string;
 	    model: string;
-	    modifiedAt: string;
+	    modified_at: string;
 	    size: number;
 	    digest: string;
 	    details: Record<string, any>;
@@ -239,7 +239,7 @@ export namespace types {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.model = source["model"];
-	        this.modifiedAt = source["modifiedAt"];
+	        this.modified_at = source["modified_at"];
 	        this.size = source["size"];
 	        this.digest = source["digest"];
 	        this.details = source["details"];

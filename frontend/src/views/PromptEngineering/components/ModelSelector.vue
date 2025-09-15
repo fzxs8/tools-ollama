@@ -2,7 +2,7 @@
   <div class="model-selector-horizontal">
     <el-select
         v-model="props.selectedServer"
-        :placeholder="t('promptPilot.selectService')"
+        :placeholder="t('promptEngineering.selectService')"
         class="selector-item"
         popper-class="left-aligned-dropdown"
         @change="onServerChange"
@@ -19,7 +19,7 @@
         multiple
         :multiple-limit="3"
         collapse-tags
-        :placeholder="t('promptPilot.selectModel')"
+        :placeholder="t('promptEngineering.selectModel')"
         class="selector-item"
         popper-class="left-aligned-dropdown"
         @update:modelValue="updateSelectedModels"
@@ -76,7 +76,7 @@ const loadAvailableServers = async () => {
     availableServers.value = await GetServers();
 
     if (availableServers.value.length === 0) {
-      ElMessage.warning('没有配置任何Ollama服务。请在“服务设置”页面添加一个。');
+      ElMessage.warning(t('chatManager.noOllamaServices'));
       availableModels.value = [];
       updateSelectedServer('');
       return;
@@ -96,8 +96,8 @@ const loadAvailableServers = async () => {
     updateSelectedServer(serverToSelect);
 
   } catch (error) {
-    console.error('加载服务配置失败:', error);
-    ElMessage.error('加载服务列表失败: ' + (error as Error).message);
+    console.error(t('chatManager.loadServiceConfigFailed'), error);
+    ElMessage.error(t('messages.loadServiceListFailed') + ': ' + (error as Error).message);
     availableServers.value = [];
     updateSelectedServer('');
   }
@@ -110,7 +110,7 @@ const loadModelsForServer = async (serverId: string) => {
     availableModels.value = await ListModelsByServer(serverId)
   } catch (error: any) {
     console.error(`Failed to get model list (Service ID: ${serverId}):`, error)
-    ElMessage.error('Failed to get model list: ' + (error.message || error))
+    ElMessage.error(t('messages.getModelListFailed') + ': ' + (error.message || error))
     availableModels.value = []
   }
 }

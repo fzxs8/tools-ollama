@@ -6,17 +6,49 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "frontend:dev:ignore": [
-    "frontend/wailsjs/**"
+    "frontend/wailsjs/**",
+    "frontend/node_modules/**",
+    "frontend/dist/**",
+    "frontend/build/**",
+    "frontend/package-lock.json",
+    "frontend/yarn.lock",
+    "frontend/package.json.md5",
+    "frontend/src/main.js"
   ],
   "build:exclude": [
     "*.db",
-    "*.db-journal",
-    "*.log"
+    "*.db*",
+    "*.log",
+    "duola.dat",
+    "ollama-client.db",
+    "ollama-client.db-journal",
+    "ollama-client.db-wal",
+    "ollama-client.db-shm",
+    "node_modules/**",
+    "frontend/node_modules/**",
+    "frontend/dist/**",
+    "**/.git/**"
   ],
   "dev": {
+    "debounce": 3000,
     "ignores": [
+      "*.db",
       "*.db*",
-      "*.log"
+      "*.log",
+      "duola.dat",
+      "data/**",
+      "logs/**",
+      "tmp/**",
+      "temp/**",
+      "node_modules/**",
+      "frontend/node_modules/**",
+      "frontend/dist/**",
+      "frontend/build/**",
+      "frontend/src/main.js",
+      "**/.git/**",
+      "**/wailsjs/**",
+      "**/.vscode/**",
+      "**/.idea/**"
     ]
   },
   "author": {

@@ -1,12 +1,12 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="Conversation History"
+    :title="t('chatManager.conversationHistory')"
     direction="rtl"
     size="400px"
   >
     <div class="conversation-list">
-      <el-empty v-if="conversations.length === 0" description="No conversation history" />
+      <el-empty v-if="conversations.length === 0" :description="t('chatManager.noConversationHistory')" />
       <div 
         v-else 
         v-for="conv in conversations" 
@@ -24,7 +24,7 @@
             link
             @click.stop="handleEditTitle(conv)"
           >
-            Edit
+            {{ t('common.edit') }}
           </el-button>
           <el-button 
             size="small" 
@@ -32,7 +32,7 @@
             link
             @click.stop="handleDeleteConversation(conv.id)"
           >
-            Delete
+            {{ t('common.delete') }}
           </el-button>
         </div>
       </div>
@@ -42,8 +42,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
 import {types} from "../../../../wailsjs/go/models";
+
+const { t } = useI18n();
 import Conversation = types.Conversation;
 
 const props = defineProps<{
@@ -90,9 +93,9 @@ const handleEditTitle = (conv: Conversation) => {
 // 处理删除对话
 const handleDeleteConversation = async (id: string) => {
   try {
-    await ElMessageBox.confirm('Are you sure you want to delete this conversation?', 'Delete Confirmation', {
-      confirmButtonText: 'Confirm',
-      cancelButtonText: 'Cancel',
+    await ElMessageBox.confirm(t('chatManager.deleteConfirm'), t('chatManager.deleteTitle'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning'
     })
     

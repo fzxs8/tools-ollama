@@ -11,8 +11,8 @@
           </svg>
         </div>
         <div class="header-text">
-          <h1>Server Settings</h1>
-          <p>Configure your Ollama server connections</p>
+          <h1>{{ t('ollamaSettings.title') }}</h1>
+          <p>{{ t('ollamaSettings.description') }}</p>
         </div>
       </div>
     </div>
@@ -22,15 +22,15 @@
       <!-- Control Panel -->
       <div class="control-panel">
         <div class="panel-title">
-          <h3>Ollama Servers</h3>
-          <p>Manage your local and remote Ollama server configurations</p>
+          <h3>{{ t('ollamaSettings.ollamaServers') }}</h3>
+          <p>{{ t('ollamaSettings.manageServers') }}</p>
         </div>
         <button class="btn primary" @click="openServiceDrawer(null)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Add New Server
+          {{ t('ollamaSettings.addNewServer') }}
         </button>
       </div>
 
@@ -40,10 +40,10 @@
           <table class="servers-table">
             <thead>
               <tr>
-                <th>Server Name</th>
-                <th>Server Address</th>
-                <th>Connection Status</th>
-                <th>Actions</th>
+                <th>{{ t('ollamaSettings.serverName') }}</th>
+                <th>{{ t('ollamaSettings.serverAddress') }}</th>
+                <th>{{ t('ollamaSettings.connectionStatus') }}</th>
+                <th>{{ t('ollamaSettings.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -55,8 +55,8 @@
                       <path d="M19.4 15A1.65 1.65 0 0 0 21 13.09A1.65 1.65 0 0 0 19.4 9A1.65 1.65 0 0 0 21 6.91A1.65 1.65 0 0 0 19.4 3" stroke="currentColor" stroke-width="2"/>
                       <path d="M4.6 9A1.65 1.65 0 0 0 3 10.91A1.65 1.65 0 0 0 4.6 15A1.65 1.65 0 0 0 3 17.09A1.65 1.65 0 0 0 4.6 21" stroke="currentColor" stroke-width="2"/>
                     </svg>
-                    <p>No servers configured</p>
-                    <span>Add a server to get started</span>
+                    <p>{{ t('ollamaSettings.noServersConfigured') }}</p>
+                    <span>{{ t('ollamaSettings.addServerToStart') }}</span>
                   </div>
                 </td>
               </tr>
@@ -64,7 +64,7 @@
                 <td class="server-name">
                   <div class="server-info">
                     <span class="name">{{ server.name }}</span>
-                    <span v-if="server.id === 'local'" class="local-badge">Local</span>
+                    <span v-if="server.id === 'local'" class="local-badge">{{ t('ollamaSettings.local') }}</span>
                   </div>
                 </td>
                 <td>{{ server.baseUrl }}</td>
@@ -75,8 +75,8 @@
                     unknown: server.testStatus === 'unknown' || !server.testStatus
                   }">
                     <span class="status-dot"></span>
-                    {{ server.testStatus === 'success' ? 'Connected' : 
-                       server.testStatus === 'failed' ? 'Failed' : 'Unknown' }}
+                    {{ server.testStatus === 'success' ? t('ollamaSettings.connected') : 
+                       server.testStatus === 'failed' ? t('ollamaSettings.failed') : t('ollamaSettings.unknown') }}
                   </span>
                 </td>
                 <td>
@@ -86,7 +86,7 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                           <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        Test
+                        {{ t('ollamaSettings.test') }}
                       </span>
                       <div v-else class="loading-spinner"></div>
                     </button>
@@ -96,7 +96,7 @@
                         <path d="M11 4H4A2 2 0 0 0 2 6V18A2 2 0 0 0 4 20H16A2 2 0 0 0 18 18V13" stroke="currentColor" stroke-width="2"/>
                         <path d="M18.5 2.5A2.12 2.12 0 0 1 21 5L12 14L8 15L9 11L18.5 2.5Z" stroke="currentColor" stroke-width="2"/>
                       </svg>
-                      Edit
+                      {{ t('ollamaSettings.edit') }}
                     </button>
                     
                     <button class="btn-small danger" @click="deleteService(server)" v-if="server.id !== 'local'">
@@ -104,7 +104,7 @@
                         <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M19 6V20A2 2 0 0 1 17 22H7A2 2 0 0 1 5 20V6M8 6V4A2 2 0 0 1 10 2H14A2 2 0 0 1 16 4V6" stroke="currentColor" stroke-width="2"/>
                       </svg>
-                      Delete
+                      {{ t('ollamaSettings.delete') }}
                     </button>
                   </div>
                 </td>
@@ -119,7 +119,7 @@
     <div v-if="serviceDrawerVisible" class="drawer-overlay" @click="serviceDrawerVisible = false">
       <div class="drawer-content" @click.stop>
         <div class="drawer-header">
-          <h3>{{ serviceForm.id ? 'Edit Server' : 'Add New Server' }}</h3>
+          <h3>{{ serviceForm.id ? t('ollamaSettings.editServer') : t('ollamaSettings.addNewServerTitle') }}</h3>
           <button class="close-btn" @click="serviceDrawerVisible = false">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -131,26 +131,26 @@
         <div class="drawer-body">
           <form class="server-form" @submit.prevent="handleSaveService">
             <div class="form-field">
-              <label>Server Name *</label>
-              <input v-model="serviceForm.name" placeholder="Enter server name" class="text-input" required />
+              <label>{{ t('ollamaSettings.serverNameRequired') }}</label>
+              <input v-model="serviceForm.name" :placeholder="t('ollamaSettings.enterServerName')" class="text-input" required />
             </div>
             
             <div class="form-field">
-              <label>Server Address *</label>
-              <input v-model="serviceForm.baseUrl" placeholder="e.g., http://localhost:11434" class="text-input" required />
+              <label>{{ t('ollamaSettings.serverAddressRequired') }}</label>
+              <input v-model="serviceForm.baseUrl" :placeholder="t('ollamaSettings.serverAddressPlaceholder')" class="text-input" required />
             </div>
             
             <div class="form-field" v-if="serviceForm.id !== 'local'">
-              <label>API Key (Optional)</label>
-              <input v-model="serviceForm.apiKey" placeholder="Enter API Key" type="password" class="text-input" />
+              <label>{{ t('ollamaSettings.apiKeyOptional') }}</label>
+              <input v-model="serviceForm.apiKey" :placeholder="t('ollamaSettings.enterApiKey')" type="password" class="text-input" />
             </div>
           </form>
         </div>
         
         <div class="drawer-footer">
-          <button class="btn secondary" @click="serviceDrawerVisible = false">Cancel</button>
+          <button class="btn secondary" @click="serviceDrawerVisible = false">{{ t('ollamaSettings.cancel') }}</button>
           <button class="btn primary" @click="handleSaveService" :disabled="isSaving">
-            <span v-if="!isSaving">Save Server</span>
+            <span v-if="!isSaving">{{ t('ollamaSettings.saveServer') }}</span>
             <div v-else class="loading-spinner"></div>
           </button>
         </div>
@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import {onMounted, reactive, ref} from 'vue'
 import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import {
   AddServer,
   DeleteServer,
@@ -172,6 +173,8 @@ import {
 } from '../../wailsjs/go/main/App'
 import {types} from "../../wailsjs/go/models";
 import OllamaServerConfig = types.OllamaServerConfig;
+
+const { t } = useI18n();
 
 // 响应式数据
 const allServers = ref<(OllamaServerConfig & { isTesting?: boolean })[]>([])
@@ -193,7 +196,7 @@ const loadAllServers = async () => {
     const servers = await GetServers();
     allServers.value = servers.map(s => ({...s, isTesting: false}));
   } catch (error) {
-    ElMessage.error('加载服务列表失败: ' + (error as Error).message);
+    ElMessage.error(t('ollamaSettings.loadServerListFailed') + ': ' + (error as Error).message);
   }
 };
 
@@ -232,11 +235,11 @@ const handleSaveService = async () => {
           configToSave.id = Date.now().toString();
           await AddServer(configToSave);
         }
-        ElMessage.success('服务配置已保存');
+        ElMessage.success(t('ollamaSettings.serverConfigSaved'));
         serviceDrawerVisible.value = false;
         await loadAllServers();
       } catch (error) {
-        ElMessage.error('保存失败: ' + (error as Error).message);
+        ElMessage.error(t('ollamaSettings.saveFailed') + ': ' + (error as Error).message);
       } finally {
         isSaving.value = false;
       }
@@ -251,17 +254,17 @@ const testConnection = async (server: OllamaServerConfig & { isTesting?: boolean
   try {
     await TestOllamaServer(server.baseUrl);
     newStatus = 'success';
-    ElMessage.success(`${server.name} 连接成功`);
+    ElMessage.success(`${server.name} ${t('ollamaSettings.connectionSuccess')}`);
   } catch (error) {
     newStatus = 'failed';
-    ElMessage.error(`${server.name} 连接失败: ${(error as Error).message}`);
+    ElMessage.error(`${server.name} ${t('ollamaSettings.connectionFailed')}: ${(error as Error).message}`);
   } finally {
     server.isTesting = false;
     server.testStatus = newStatus;
     try {
       await UpdateServerTestStatus(server.id, newStatus)
     } catch (e) {
-      ElMessage.error("Failed to update status: " + (e as Error).message)
+      ElMessage.error(t('ollamaSettings.updateStatusFailed') + ': ' + (e as Error).message)
       // Reload to maintain consistency if status update fails
       await loadAllServers();
     }
@@ -269,17 +272,17 @@ const testConnection = async (server: OllamaServerConfig & { isTesting?: boolean
 };
 
 const deleteService = (server: OllamaServerConfig) => {
-  ElMessageBox.confirm(`确定要删除 “${server.name}” 吗？`, '确认删除', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  ElMessageBox.confirm(t('ollamaSettings.deleteConfirm', { name: server.name }), t('ollamaSettings.confirmDelete'), {
+    confirmButtonText: t('ollamaSettings.confirm'),
+    cancelButtonText: t('ollamaSettings.cancel'),
     type: 'warning'
   }).then(async () => {
     try {
       await DeleteServer(server.id);
-      ElMessage.success('服务已删除');
+      ElMessage.success(t('ollamaSettings.serverDeleted'));
       await loadAllServers();
     } catch (error) {
-      ElMessage.error('删除失败: ' + (error as Error).message);
+      ElMessage.error(t('ollamaSettings.deleteFailed') + ': ' + (error as Error).message);
     }
   }).catch(() => {
   });

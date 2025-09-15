@@ -83,21 +83,44 @@ func (m *ModelManager) IsModelRunning(modelName string) bool {
 // RunModel 运行模型
 func (m *ModelManager) RunModel(modelName string, params types.ModelParams) error {
 	m.logger.Info("准备运行模型", "modelName", modelName)
+
+	// 检查模型名称是否为空
+	if modelName == "" {
+		return fmt.Errorf("模型名称不能为空")
+	}
+
 	if _, exists := runningModels[modelName]; exists {
 		return fmt.Errorf("模型 %s 已经在运行", modelName)
 	}
+
+	// 检查httpClient是否已初始化
+	if m.app.httpClient == nil {
+		m.logger.Error("HTTP客户端未初始化")
+		return fmt.Errorf("HTTP客户端未初始化，请检查服务器配置")
+	}
+
 	requestBody := map[string]interface{}{
 		"model":      modelName,
 		"keep_alive": -1, // 设置为-1以保持模型加载
 	}
+
+	m.logger.Debug("发送启动模型请求", "modelName", modelName, "requestBody", requestBody)
+
 	response, err := m.app.httpClient.Post("/api/generate", core.Options{
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    requestBody,
 	})
+
 	if err != nil {
-		m.logger.Error("启动模型失败", "modelName", modelName, "error", err)
-		return fmt.Errorf("启动模型失败: %v", err)
+		m.logger.Error("启动模型HTTP请求失败", "modelName", modelName, "error", err)
+		if err.Error() == "" {
+			return fmt.Errorf("启动模型失败: 网络请求错误")
+		}
+		return fmt.Errorf("启动模型失败: %s", err.Error())
 	}
+
+	m.logger.Debug("收到启动模型响应", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
+
 	if response.StatusCode >= 400 {
 		m.logger.Error("启动模型失败，状态码非200", "modelName", modelName, "statusCode", response.StatusCode, "body", response.Body)
 		return fmt.Errorf("启动模型失败，状态码: %d, 响应: %s", response.StatusCode, response.Body)

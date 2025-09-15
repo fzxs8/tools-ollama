@@ -4,13 +4,13 @@
         v-model="inputValue"
         type="textarea"
         :rows="3"
-        placeholder="Type your message..."
+        :placeholder="t('chatManager.typeMessage')"
         :disabled="disabled"
         @keydown="handleKeydown"
     />
     <div style="margin-top: 10px; text-align: right">
       <el-button type="primary" @click="handleSend" :disabled="disabled">
-        Send (Enter)
+        {{ t('chatManager.sendMessage') }}
       </el-button>
     </div>
   </div>
@@ -18,6 +18,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: string
