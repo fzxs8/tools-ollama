@@ -5,7 +5,8 @@
       <div class="header-content">
         <div class="header-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="header-text">
@@ -74,7 +75,7 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import { useI18n } from 'vue-i18n'
+import {useI18n} from 'vue-i18n'
 import {
   ChatMessage,
   DeleteConversation,
@@ -86,21 +87,21 @@ import {
   ListPrompts,
   SaveConversation,
   SetActiveServer
-} from '../../wailsjs/go/main/App'
-import {EventsOn} from '../../wailsjs/runtime'
-import ChatInput from "./ChatManager/components/ChatInput.vue";
-import ModelSelector from "./ChatManager/components/ModelSelector.vue";
-import ChatContainer from "./ChatManager/components/ChatContainer.vue";
-import PromptListDrawer from "../components/commons/PromptListDrawer.vue";
-import {types} from "../../wailsjs/go/models";
+} from '../../../wailsjs/go/main/App'
+import {EventsOn} from '../../../wailsjs/runtime'
+import ChatInput from "./components/ChatInput.vue";
+import ModelSelector from "./components/ModelSelector.vue";
+import ChatContainer from "./components/ChatContainer.vue";
+import PromptListDrawer from "../../components/commons/PromptListDrawer.vue";
+import {types} from "../../../wailsjs/go/models";
+import {ModelParams} from "../../classes/types";
 import Conversation = types.Conversation;
 import Message = types.Message;
 import OllamaServerConfig = types.OllamaServerConfig;
 import Model = types.Model;
 import Prompt = types.Prompt;
-import {ModelParams} from "../classes/types";
 
-const { t } = useI18n();
+const {t} = useI18n();
 
 const localModels = ref<Model[]>([])
 const selectedModel = ref('')
@@ -236,8 +237,8 @@ const loadModel = () => {
 // 发送消息
 const sendMessage = async () => {
   const message = inputMessage.value.trim()
-  console.log('sendMessage called with:', { message, isThinking: isThinking.value, selectedModel: selectedModel.value })
-  
+  console.log('sendMessage called with:', {message, isThinking: isThinking.value, selectedModel: selectedModel.value})
+
   if (!message || isThinking.value) return
 
   if (!selectedModel.value) {
@@ -278,7 +279,11 @@ const sendMessage = async () => {
       })
 
       try {
-        console.log('Calling ChatMessage with:', { model: selectedModel.value, messageCount: messagesWithSystemPrompt.length, stream: true })
+        console.log('Calling ChatMessage with:', {
+          model: selectedModel.value,
+          messageCount: messagesWithSystemPrompt.length,
+          stream: true
+        })
         const result = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, true)
         console.log('ChatMessage result:', result)
       } catch (error) {
@@ -298,7 +303,11 @@ const sendMessage = async () => {
       })
 
       try {
-        console.log('Calling ChatMessage (blocking) with:', { model: selectedModel.value, messageCount: messagesWithSystemPrompt.length, stream: false })
+        console.log('Calling ChatMessage (blocking) with:', {
+          model: selectedModel.value,
+          messageCount: messagesWithSystemPrompt.length,
+          stream: false
+        })
         const response: string = await ChatMessage(selectedModel.value, messagesWithSystemPrompt, false)
         console.log('ChatMessage (blocking) result:', response)
         if (messages.value && messages.value[assistantMessageIndex]) {
@@ -324,7 +333,7 @@ const sendMessage = async () => {
     } else {
       errorMessage += ': ' + t('chatManager.unknownError')
     }
-    
+
     // 确保最后一条消息是助手消息，如果不是则添加一条
     const lastMessageIndex = messages.value.length - 1
     if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
@@ -581,13 +590,13 @@ onMounted(async () => {
       scrollToBottom();
     }
   });
-  
+
   // Listen for streaming completion events
   EventsOn("chat_stream_done", () => {
     isThinking.value = false;
     scrollToBottom();
   });
-  
+
   // Listen for streaming error events
   EventsOn("chat_stream_error", (error: string) => {
     isThinking.value = false;
@@ -692,16 +701,16 @@ onMounted(async () => {
     flex-direction: column;
     padding: 0 1rem 1rem 1rem;
   }
-  
+
   .chat-sidebar {
     width: 100%;
     height: auto;
   }
-  
+
   .page-header {
     padding: 1.5rem 1rem 1rem 1rem;
   }
-  
+
   .header-text h1 {
     font-size: 1.75rem;
   }
@@ -711,16 +720,16 @@ onMounted(async () => {
   .page-header {
     padding: 1rem;
   }
-  
+
   .header-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .header-text h1 {
     font-size: 1.5rem;
   }
-  
+
   .header-text p {
     font-size: 1rem;
   }

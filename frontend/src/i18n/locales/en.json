@@ -177,13 +177,23 @@
     "listenPort": "Listen Port",
     "targetService": "Target Ollama Service",
     "selectService": "Please select a service",
+    "targetModel": "Target Model",
+    "selectModel": "Please select a model",
     "viewApiDocs": "View API Documentation",
     "viewLogs": "View Logs",
     "saveSettings": "Save Settings",
     "apiUsageExamples": "API Usage Examples",
     "realtimeLogs": "Adapter Real-time Logs",
     "clearLogs": "Clear Logs",
-    "downloadLogs": "Download Logs"
+    "downloadLogs": "Download Logs",
+    "curlExamples": "cURL Examples",
+    "apiDebugger": "API Debugger",
+    "apiDebuggerTitle": "OpenAI API Debugger",
+    "apiDebuggerDescription": "Test OpenAI compatible API with Postman-like interface",
+    "quickTemplates": "Quick Templates",
+    "nonStreamingChat": "Non-streaming Chat",
+    "streamingChat": "Streaming Chat",
+    "serviceNotRunning": "Service is not running, please start the OpenAI Adapter service first"
   },
   "ollamaSettings": {
     "title": "Server Settings",
@@ -226,6 +236,10 @@
     "serverDeleted": "Server deleted",
     "deleteFailed": "Delete failed"
   },
+  "modelMarket": {
+    "title": "Model Market",
+    "description": "Browse and download community models"
+  },
   "apiDebugger": {
     "title": "API Debugger",
     "description": "Test and debug Ollama API endpoints",
@@ -255,6 +269,11 @@
     "clickSendToRequest": "Click \"Send\" button to make a request",
     "failedToLoadServers": "Failed to load servers",
     "unexpectedError": "An unexpected error occurred",
+    "enterUrl": "Enter request URL",
+    "requestFailed": "Request failed",
+    "configureServerFirst": "Please configure target Ollama server first",
+    "chatExample": "Chat Example",
+    "streamExample": "Stream Example",
     "apis": {
       "generateCompletion": "Generate Completion",
       "generateChatCompletion": "Generate Chat Completion",

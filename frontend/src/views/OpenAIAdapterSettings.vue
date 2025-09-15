@@ -19,6 +19,62 @@
 
     <!-- Main Content Area -->
     <div class="main-content">
+      <!-- Configuration Card -->
+      <div class="config-card">
+        <div class="card-header">
+          <h3>{{ t('openaiAdapter.serviceConfiguration') }}</h3>
+          <p>{{ t('openaiAdapter.configDescription') }}</p>
+        </div>
+        
+        <div class="config-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="listen-ip">{{ t('openaiAdapter.listenAddress') }}</label>
+              <div class="input-wrapper">
+                <input id="listen-ip" type="text" v-model="store.config.listenIp" :disabled="status.isRunning" placeholder="0.0.0.0" />
+              </div>
+            </div>
+            
+            <div class="form-field">
+              <label for="listen-port">{{ t('openaiAdapter.listenPort') }}</label>
+              <div class="input-wrapper">
+                <input id="listen-port" type="number" v-model.number="store.config.listenPort" :disabled="status.isRunning" placeholder="11434" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-field full-width">
+            <label for="ollama-server">{{ t('openaiAdapter.targetService') }}</label>
+            <div class="select-wrapper">
+              <select id="ollama-server" v-model="store.config.targetOllamaServerId" :disabled="status.isRunning" @change="onServerChange">
+                <option value="" disabled>{{ t('openaiAdapter.selectService') }}</option>
+                <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
+                  {{ server.name }} ({{ server.baseUrl }})
+                </option>
+              </select>
+              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="form-field full-width" v-if="store.config.targetOllamaServerId">
+            <label for="target-model">{{ t('openaiAdapter.targetModel') }}</label>
+            <div class="select-wrapper">
+              <select id="target-model" v-model="selectedModel" :disabled="status.isRunning || !availableModels.length">
+                <option value="" disabled>{{ t('openaiAdapter.selectModel') }}</option>
+                <option v-for="model in availableModels" :key="model.name" :value="model.name">
+                  {{ model.name }}
+                </option>
+              </select>
+              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Service Status Card -->
       <div class="status-card">
         <div class="status-header">
@@ -55,51 +111,10 @@
         </div>
       </div>
 
-      <!-- Configuration Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h3>{{ t('openaiAdapter.serviceConfiguration') }}</h3>
-          <p>{{ t('openaiAdapter.configDescription') }}</p>
-        </div>
-        
-        <div class="config-form">
-          <div class="form-row">
-            <div class="form-field">
-              <label for="listen-ip">{{ t('openaiAdapter.listenAddress') }}</label>
-              <div class="input-wrapper">
-                <input id="listen-ip" type="text" v-model="config.listenIp" :disabled="status.isRunning" placeholder="0.0.0.0" />
-              </div>
-            </div>
-            
-            <div class="form-field">
-              <label for="listen-port">{{ t('openaiAdapter.listenPort') }}</label>
-              <div class="input-wrapper">
-                <input id="listen-port" type="number" v-model.number="config.listenPort" :disabled="status.isRunning" placeholder="11434" />
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-field full-width">
-            <label for="ollama-server">{{ t('openaiAdapter.targetService') }}</label>
-            <div class="select-wrapper">
-              <select id="ollama-server" v-model="config.targetOllamaServerId" :disabled="status.isRunning">
-                <option value="" disabled>{{ t('openaiAdapter.selectService') }}</option>
-                <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
-                  {{ server.name }} ({{ server.baseUrl }})
-                </option>
-              </select>
-              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Action Buttons Area -->
       <div class="actions-card">
         <div class="actions-grid">
-          <button class="action-btn secondary" @click="store.fetchApiDocs">
+          <button class="action-btn secondary" @click="store.fetchApiDocs" :disabled="!status.isRunning">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
               <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
@@ -131,11 +146,62 @@
     </div>
 
     <!-- API Documentation Drawer -->
-    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="40%">
+    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="60%">
       <div class="drawer-content">
-        <div v-for="(command, title) in apiDocs" :key="title" class="api-doc-item">
-          <h3>{{ title }}</h3>
-          <pre><code>{{ command }}</code></pre>
+        <div class="api-docs-tabs">
+          <div class="tab-headers">
+            <button 
+              :class="{ active: activeApiTab === 'examples' }" 
+              @click="activeApiTab = 'examples'"
+            >
+              {{ t('openaiAdapter.curlExamples') }}
+            </button>
+            <button 
+              :class="{ active: activeApiTab === 'debugger' }" 
+              @click="activeApiTab = 'debugger'"
+            >
+              {{ t('openaiAdapter.apiDebugger') }}
+            </button>
+          </div>
+          
+          <div class="tab-content">
+            <!-- cURL 示例 -->
+            <div v-if="activeApiTab === 'examples'" class="examples-content">
+              <div v-for="(command, title) in apiDocs" :key="title" class="api-doc-item">
+                <h3>{{ title }}</h3>
+                <pre><code>{{ command }}</code></pre>
+              </div>
+            </div>
+            
+            <!-- API 调试器 -->
+            <div v-if="activeApiTab === 'debugger'" class="debugger-content">
+              <div class="debugger-header">
+                <h3>{{ t('openaiAdapter.apiDebuggerTitle') }}</h3>
+                <p>{{ t('openaiAdapter.apiDebuggerDescription') }}</p>
+              </div>
+              
+              <div class="api-templates">
+                <h4>{{ t('openaiAdapter.quickTemplates') }}</h4>
+                <div class="template-buttons">
+                  <button 
+                    v-for="template in apiTemplates" 
+                    :key="template.name"
+                    @click="loadApiTemplate(template)"
+                    class="template-btn"
+                  >
+                    {{ template.name }}
+                  </button>
+                </div>
+              </div>
+              
+              <ApiDebugger 
+                ref="apiDebuggerRef"
+                :base-url="adapterBaseUrl"
+                url-placeholder="/v1/chat/completions"
+                :on-request="handleApiRequest"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </el-drawer>
@@ -168,7 +234,10 @@ import { EventsOn } from '../../wailsjs/runtime';
 import { types } from '../../wailsjs/go/models';
 import LogEntry = types.LogEntry;
 import OpenAIAdapterStatus = types.OpenAIAdapterStatus;
+import Model = types.Model;
 import { debounce } from 'lodash-es';
+import { ListModelsByServer } from '../../wailsjs/go/main/App';
+import ApiDebugger from '../components/ApiDebugger.vue';
 
 const { t } = useI18n();
 const store = useOpenAIAdapterStore();
@@ -176,6 +245,10 @@ const { config, status, logs, ollamaServers, isLogDrawerVisible, isApiDrawerVisi
 
 const isToggling = ref(false);
 const logContainerRef = ref<HTMLElement | null>(null);
+const activeApiTab = ref('examples');
+const apiDebuggerRef = ref();
+const selectedModel = ref('');
+const availableModels = ref<Model[]>([]);
 
 // --- Computed Properties for UI --- 
 const toggleButtonClass = computed(() => [
@@ -184,6 +257,77 @@ const toggleButtonClass = computed(() => [
 ]);
 
 const toggleButtonText = computed(() => status.value.isRunning ? t('common.running') : t('openaiAdapter.startService'));
+
+// 适配器基础 URL
+const adapterBaseUrl = computed(() => {
+  if (!status.value.isRunning) return '';
+  const ip = config.value.listenIp === '0.0.0.0' ? '127.0.0.1' : config.value.listenIp;
+  return `http://${ip}:${config.value.listenPort}`;
+});
+
+// API 模板
+const apiTemplates = computed(() => {
+  const currentModel = selectedModel.value || 'llama3';
+  
+  return [
+    {
+      name: t('openaiAdapter.nonStreamingChat'),
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: [
+        { key: 'Content-Type', value: 'application/json', enabled: true }
+      ],
+      body: {
+        type: 'raw',
+        rawContentType: 'application/json',
+        rawContent: JSON.stringify({
+          model: currentModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.'
+            },
+            {
+              role: 'user',
+              content: 'Hello! Please introduce yourself.'
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+          stream: false
+        }, null, 2)
+      }
+    },
+    {
+      name: t('openaiAdapter.streamingChat'),
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: [
+        { key: 'Content-Type', value: 'application/json', enabled: true }
+      ],
+      body: {
+        type: 'raw',
+        rawContentType: 'application/json',
+        rawContent: JSON.stringify({
+          model: currentModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that tells jokes.'
+            },
+            {
+              role: 'user',
+              content: 'Tell me a programming joke.'
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 500,
+          stream: true
+        }, null, 2)
+      }
+    }
+  ];
+});
 
 // --- Service Control ---
 const toggleService = debounce(async () => {
@@ -200,6 +344,121 @@ const toggleService = debounce(async () => {
     isToggling.value = false;
   }
 }, 300);
+
+// --- Model Management ---
+const loadModelsForServer = async (serverId: string) => {
+  if (!serverId) {
+    availableModels.value = [];
+    selectedModel.value = '';
+    return;
+  }
+  
+  try {
+    availableModels.value = await ListModelsByServer(serverId);
+    // Auto-select first model if available
+    if (availableModels.value.length > 0 && !selectedModel.value) {
+      selectedModel.value = availableModels.value[0].name;
+    }
+  } catch (error) {
+    console.error('Failed to load models:', error);
+    availableModels.value = [];
+    selectedModel.value = '';
+  }
+};
+
+const onServerChange = () => {
+  selectedModel.value = '';
+  if (store.config.targetOllamaServerId) {
+    loadModelsForServer(store.config.targetOllamaServerId);
+  }
+};
+
+// --- API Request Handling ---
+const handleApiRequest = async (request) => {
+  if (!status.value.isRunning) {
+    throw new Error(t('openaiAdapter.serviceNotRunning'));
+  }
+  
+  // 构建完整 URL
+  let url = request.url;
+  if (adapterBaseUrl.value && !url.startsWith('http')) {
+    url = adapterBaseUrl.value.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
+  }
+  
+  // 添加查询参数
+  const enabledParams = request.queryParams.filter(p => p.enabled && p.key);
+  if (enabledParams.length > 0) {
+    const params = new URLSearchParams();
+    enabledParams.forEach(p => params.append(p.key, p.value));
+    url += (url.includes('?') ? '&' : '?') + params.toString();
+  }
+  
+  // 构建请求头
+  const headers = {};
+  request.headers.filter(h => h.enabled && h.key).forEach(h => {
+    headers[h.key] = h.value;
+  });
+  
+  // 构建请求体
+  let body;
+  if (request.body.type === 'raw' && request.body.rawContent) {
+    body = request.body.rawContent;
+    if (request.body.rawContentType && !headers['Content-Type']) {
+      headers['Content-Type'] = request.body.rawContentType;
+    }
+  } else if (request.body.type === 'formData') {
+    const formData = new FormData();
+    request.body.formData.filter(f => f.key).forEach(f => {
+      formData.append(f.key, f.value);
+    });
+    body = formData;
+  }
+  
+  // 发送请求
+  const startTime = Date.now();
+  try {
+    const fetchResponse = await fetch(url, {
+      method: request.method,
+      headers,
+      body: ['GET', 'HEAD'].includes(request.method) ? undefined : body
+    });
+    const endTime = Date.now();
+    
+    const responseHeaders = Array.from(fetchResponse.headers.entries()).map(([key, value]) => ({
+      key,
+      value
+    }));
+    
+    return {
+      statusCode: fetchResponse.status,
+      statusText: fetchResponse.statusText,
+      headers: responseHeaders,
+      body: await fetchResponse.text(),
+      requestDurationMs: endTime - startTime
+    };
+  } catch (error) {
+    throw new Error(`${t('apiDebugger.requestFailed')}: ${error.message}`);
+  }
+};
+
+// --- API Template Handling ---
+const loadApiTemplate = (template) => {
+  if (apiDebuggerRef.value) {
+    apiDebuggerRef.value.setRequest({
+      method: template.method,
+      url: template.url,
+      queryParams: [],
+      headers: template.headers || [],
+      body: template.body || {
+        type: 'none',
+        rawContent: '',
+        rawContentType: 'application/json',
+        formData: []
+      }
+    });
+    apiDebuggerRef.value.clearResponse();
+  }
+};
 
 // --- Log Handling ---
 const downloadLogs = () => {
@@ -231,6 +490,18 @@ onMounted(() => {
       await store.fetchConfig();
       await store.fetchOllamaServers();
       await store.fetchInitialStatus();
+      
+      // Load models if server is already selected
+      if (store.config.targetOllamaServerId) {
+        await loadModelsForServer(store.config.targetOllamaServerId);
+      }
+      
+      // Auto-load streaming chat template
+      setTimeout(() => {
+        if (apiTemplates.value.length > 1) {
+          loadApiTemplate(apiTemplates.value[1]); // Load streaming chat template
+        }
+      }, 200);
     } catch (error) {
       console.error('Failed to initialize OpenAI Adapter:', error);
     }
@@ -254,6 +525,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .page-header {
@@ -689,5 +961,112 @@ onMounted(() => {
   border: 1px solid #e2e8f0;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   color: #374151;
+}
+
+.api-docs-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.api-docs-tabs .tab-headers {
+  display: flex;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.api-docs-tabs .tab-headers button {
+  padding: 1rem 1.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.api-docs-tabs .tab-headers button:hover {
+  color: #374151;
+  background: #f9fafb;
+}
+
+.api-docs-tabs .tab-headers button.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  font-weight: 600;
+}
+
+.api-docs-tabs .tab-content {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.examples-content {
+  padding: 0;
+}
+
+.debugger-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.debugger-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.debugger-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.debugger-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.api-templates {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.api-templates h4 {
+  margin: 0 0 1rem 0;
+  color: #374151;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.template-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.template-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.template-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 </style>

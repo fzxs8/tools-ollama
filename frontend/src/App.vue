@@ -5,45 +5,50 @@
       <div class="sidebar">
         <div class="sidebar-header">
           <div class="logo">
-            <img src="./assets/images/logo.png" alt="Ollama Tools" class="logo-img" />
+            <img src="./assets/images/logo.png" alt="Ollama Tools" class="logo-img"/>
             <div class="logo-text">
               <h3>Ollama Tools</h3>
               <p>Model Management</p>
             </div>
           </div>
           <div class="language-switcher-container">
-            <LanguageSwitcher />
+            <LanguageSwitcher/>
           </div>
         </div>
-        
+
         <nav class="sidebar-nav">
           <router-link to="/models" class="nav-item" :class="{ active: activeRoute === '/models' }">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
               <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
             <span>{{ $t('modelManager.title') }}</span>
           </router-link>
-          
+
           <router-link to="/market" class="nav-item" :class="{ active: activeRoute === '/market' }">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M6 2L3 6V20A2 2 0 0 0 5 22H19A2 2 0 0 0 21 20V6L18 2H6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 2L3 6V20A2 2 0 0 0 5 22H19A2 2 0 0 0 21 20V6L18 2H6Z" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M16 10A4 4 0 0 1 8 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 10A4 4 0 0 1 8 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
             </svg>
-            <span>Model Market</span>
+            <span>{{ $t('modelMarket.title') }}</span>
           </router-link>
-          
+
           <router-link to="/chat" class="nav-item" :class="{ active: activeRoute === '/chat' }">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>{{ $t('chatManager.title') }}</span>
           </router-link>
-          
+
           <router-link to="/prompt" class="nav-item" :class="{ active: activeRoute === '/prompt' }">
+
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
@@ -51,26 +56,18 @@
             </svg>
             <span>{{ $t('promptEngineering.title') }}</span>
           </router-link>
-          
-          <router-link to="/settings" class="nav-item" :class="{ active: activeRoute === '/settings' }">
-            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-              <path d="M19.4 15A1.65 1.65 0 0 0 21 13.09A1.65 1.65 0 0 0 19.4 9A1.65 1.65 0 0 0 21 6.91A1.65 1.65 0 0 0 19.4 3" stroke="currentColor" stroke-width="2"/>
-              <path d="M4.6 9A1.65 1.65 0 0 0 3 10.91A1.65 1.65 0 0 0 4.6 15A1.65 1.65 0 0 0 3 17.09A1.65 1.65 0 0 0 4.6 21" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <span>{{ $t('serverSettings.title') }}</span>
-          </router-link>
-          
           <router-link to="/api-debugger" class="nav-item" :class="{ active: activeRoute === '/api-debugger' }">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M14.7 6.3A1 1 0 0 0 13 5H5A2 2 0 0 0 3 7V19A2 2 0 0 0 5 21H19A2 2 0 0 0 21 19V11A1 1 0 0 0 19.7 9.3L14.7 6.3Z" stroke="currentColor" stroke-width="2"/>
+              <path
+                  d="M14.7 6.3A1 1 0 0 0 13 5H5A2 2 0 0 0 3 7V19A2 2 0 0 0 5 21H19A2 2 0 0 0 21 19V11A1 1 0 0 0 19.7 9.3L14.7 6.3Z"
+                  stroke="currentColor" stroke-width="2"/>
               <path d="M14 6V10H18" stroke="currentColor" stroke-width="2"/>
               <path d="M16 13H8" stroke="currentColor" stroke-width="2"/>
               <path d="M16 17H8" stroke="currentColor" stroke-width="2"/>
             </svg>
-            <span>API Debugger</span>
+            <span>{{ $t('apiDebugger.title') }}</span>
           </router-link>
-          
+
           <router-link to="/openai-adapter" class="nav-item" :class="{ active: activeRoute === '/openai-adapter' }">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
@@ -79,12 +76,25 @@
             </svg>
             <span>{{ $t('openaiAdapter.title') }}</span>
           </router-link>
+
+          <router-link to="/settings" class="nav-item" :class="{ active: activeRoute === '/settings' }">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+              <path
+                  d="M19.4 15A1.65 1.65 0 0 0 21 13.09A1.65 1.65 0 0 0 19.4 9A1.65 1.65 0 0 0 21 6.91A1.65 1.65 0 0 0 19.4 3"
+                  stroke="currentColor" stroke-width="2"/>
+              <path
+                  d="M4.6 9A1.65 1.65 0 0 0 3 10.91A1.65 1.65 0 0 0 4.6 15A1.65 1.65 0 0 0 3 17.09A1.65 1.65 0 0 0 4.6 21"
+                  stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>{{ $t('serverSettings.title') }}</span>
+          </router-link>
         </nav>
       </div>
-      
+
       <!-- Main Content -->
       <div class="main-content">
-        <router-view />
+        <router-view/>
       </div>
     </div>
   </div>
@@ -93,7 +103,6 @@
 <script setup lang="ts">
 import {ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
-import {ChatDotRound, Collection, MagicStick, Setting, Shop, Tools} from '@element-plus/icons-vue' // Added Tools icon
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 
 const route = useRoute()
@@ -228,15 +237,15 @@ watch(route, (newRoute) => {
   .sidebar {
     width: 240px;
   }
-  
+
   .sidebar-header {
     padding: 1.5rem;
   }
-  
+
   .logo-text h3 {
     font-size: 1.1rem;
   }
-  
+
   .nav-item {
     padding: 0.75rem;
     font-size: 0.9rem;

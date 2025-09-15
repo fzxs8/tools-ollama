@@ -46,6 +46,12 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
   }),
 
   actions: {
+    // IP地址验证方法
+    isValidIP(ip: string): boolean {
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      return ipRegex.test(ip) || ip === 'localhost';
+    },
+
     async fetchConfig() {
       try {
         const fetchedConfig = await GetOpenAIAdapterConfig();
@@ -85,6 +91,28 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
 
     async startServer() {
       try {
+        // 全面验证配置
+        const validationErrors = [];
+        
+        if (!this.config.listenIp || this.config.listenIp.trim() === '') {
+          validationErrors.push('请输入监听地址');
+        } else if (!this.isValidIP(this.config.listenIp.trim())) {
+          validationErrors.push('请输入有效的IP地址');
+        }
+        
+        if (!this.config.listenPort || this.config.listenPort < 1 || this.config.listenPort > 65535) {
+          validationErrors.push('请输入有效的端口号 (1-65535)');
+        }
+        
+        if (!this.config.targetOllamaServerId) {
+          validationErrors.push('请选择目标 Ollama 服务器');
+        }
+        
+        if (validationErrors.length > 0) {
+          ElMessage.error('配置不完整：' + validationErrors.join('；'));
+          return;
+        }
+        
         await this.saveConfig();
         await StartAdapterServer();
         ElMessage.success('Service start command sent.');

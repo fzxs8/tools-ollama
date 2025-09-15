@@ -177,13 +177,23 @@
     "listenPort": "监听端口",
     "targetService": "目标 Ollama 服务",
     "selectService": "请选择一个服务",
+    "targetModel": "目标模型",
+    "selectModel": "请选择一个模型",
     "viewApiDocs": "查看 API 文档",
     "viewLogs": "查看日志",
     "saveSettings": "保存设置",
     "apiUsageExamples": "API 调用示例",
     "realtimeLogs": "适配器实时日志",
     "clearLogs": "清空日志",
-    "downloadLogs": "下载日志"
+    "downloadLogs": "下载日志",
+    "curlExamples": "cURL 示例",
+    "apiDebugger": "API 调试器",
+    "apiDebuggerTitle": "OpenAI API 调试器",
+    "apiDebuggerDescription": "使用类似 Postman 的界面测试 OpenAI 兼容 API",
+    "quickTemplates": "快速模板",
+    "nonStreamingChat": "非流式聊天",
+    "streamingChat": "流式聊天",
+    "serviceNotRunning": "服务未运行，请先启动 OpenAI 适配器服务"
   },
   "ollamaSettings": {
     "title": "服务设置",
@@ -226,6 +236,10 @@
     "serverDeleted": "服务已删除",
     "deleteFailed": "删除失败"
   },
+  "modelMarket": {
+    "title": "模型市场",
+    "description": "浏览和下载社区模型"
+  },
   "apiDebugger": {
     "title": "API 调试器",
     "description": "测试和调试 Ollama API 接口",
@@ -255,6 +269,11 @@
     "clickSendToRequest": "点击\"发送\"按钮发起请求",
     "failedToLoadServers": "加载服务器失败",
     "unexpectedError": "发生意外错误",
+    "enterUrl": "输入请求 URL",
+    "requestFailed": "请求失败",
+    "configureServerFirst": "请先配置目标 Ollama 服务器",
+    "chatExample": "聊天示例",
+    "streamExample": "流式示例",
     "apis": {
       "generateCompletion": "生成完成",
       "generateChatCompletion": "生成聊天完成",
