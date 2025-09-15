@@ -24,7 +24,7 @@
               <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
-            <span>{{ $t('nav.modelManager') }}</span>
+            <span>{{ $t('modelManager.title') }}</span>
           </router-link>
           
           <router-link to="/market" class="nav-item" :class="{ active: activeRoute === '/market' }">
@@ -40,7 +40,7 @@
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>{{ $t('nav.promptPilot') }}</span>
+            <span>{{ $t('promptPilot.title') }}</span>
           </router-link>
           
           <router-link to="/prompt" class="nav-item" :class="{ active: activeRoute === '/prompt' }">
@@ -58,7 +58,7 @@
               <path d="M19.4 15A1.65 1.65 0 0 0 21 13.09A1.65 1.65 0 0 0 19.4 9A1.65 1.65 0 0 0 21 6.91A1.65 1.65 0 0 0 19.4 3" stroke="currentColor" stroke-width="2"/>
               <path d="M4.6 9A1.65 1.65 0 0 0 3 10.91A1.65 1.65 0 0 0 4.6 15A1.65 1.65 0 0 0 3 17.09A1.65 1.65 0 0 0 4.6 21" stroke="currentColor" stroke-width="2"/>
             </svg>
-            <span>{{ $t('nav.serverSettings') }}</span>
+            <span>{{ $t('serverSettings.title') }}</span>
           </router-link>
           
           <router-link to="/api-debugger" class="nav-item" :class="{ active: activeRoute === '/api-debugger' }">
@@ -77,7 +77,7 @@
               <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
               <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
-            <span>{{ $t('nav.openaiAdapter') }}</span>
+            <span>{{ $t('openaiAdapter.title') }}</span>
           </router-link>
         </nav>
       </div>
