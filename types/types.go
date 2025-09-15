@@ -159,14 +159,14 @@ type ApiResponse struct {
 
 // OpenAIAdapterConfig holds the user-configurable settings for the adapter.
 type OpenAIAdapterConfig struct {
-	ListenIP             string `json:"listen_ip"`
-	ListenPort           int    `json:"listen_port"`
-	TargetOllamaServerID string `json:"target_ollama_server_id"`
+	ListenIP             string `json:"listenIp"`
+	ListenPort           int    `json:"listenPort"`
+	TargetOllamaServerID string `json:"targetOllamaServerId"`
 }
 
 // OpenAIAdapterStatus represents the current runtime status of the adapter service.
 type OpenAIAdapterStatus struct {
-	IsRunning bool   `json:"is_running"`
+	IsRunning bool   `json:"isRunning"`
 	Error     string `json:"error,omitempty"` // Holds error message if startup failed
 }
 

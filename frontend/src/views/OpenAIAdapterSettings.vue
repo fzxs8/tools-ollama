@@ -1,56 +1,137 @@
 <template>
   <div class="adapter-settings-page">
-    <div class="setting-card">
-      <div class="card-header">
-        <h1>OpenAI API 适配器</h1>
-        <p>将本地 Ollama 服务模拟为 OpenAI API，兼容各类生态工具。</p>
-      </div>
-
-      <div class="card-body">
-        <!-- 服务控制 -->
-        <div class="control-section">
-          <button :class="toggleButtonClass" @click="toggleService" :disabled="isToggling">
-            <span v-if="!isToggling" class="button-text">{{ toggleButtonText }}</span>
-            <div v-else class="spinner"></div>
-          </button>
-          <div class="status-indicator">
-            <span :class="['dot', status.isRunning ? 'dot-running' : 'dot-stopped']"></span>
-            <span>{{ status.isRunning ? '服务运行中' : '服务已停止' }}</span>
-            <span v-if="status.error && !status.isRunning" class="error-text"> - {{ status.error }}</span>
-          </div>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
         </div>
-
-        <!-- 配置区域 -->
-        <div class="config-grid">
-          <div class="form-group">
-            <label for="listen-ip">监听地址</label>
-            <input id="listen-ip" type="text" v-model="config.listen_ip" :disabled="status.isRunning" />
-          </div>
-          <div class="form-group">
-            <label for="listen-port">监听端口</label>
-            <input id="listen-port" type="number" v-model.number="config.listen_port" :disabled="status.isRunning" />
-          </div>
-          <div class="form-group">
-            <label for="ollama-server">目标 Ollama 服务</label>
-            <select id="ollama-server" v-model="config.target_ollama_server_id" :disabled="status.isRunning">
-              <option value="" disabled>请选择一个服务</option>
-              <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
-                {{ server.name }} ({{ server.baseUrl }})
-              </option>
-            </select>
-          </div>
+        <div class="header-text">
+          <h1>{{ t('openaiAdapter.title') }}</h1>
+          <p>{{ t('openaiAdapter.description') }}</p>
         </div>
-      </div>
-
-      <div class="card-footer">
-        <button class="btn-secondary" @click="store.fetchApiDocs">查看 API</button>
-        <button class="btn-secondary" @click="store.toggleLogDrawer(true)">查看日志</button>
-        <button class="btn-primary" @click="store.saveConfig" :disabled="status.isRunning">保存设置</button>
       </div>
     </div>
 
-    <!-- API 文档抽屉 -->
-    <el-drawer v-model="isApiDrawerVisible" title="API 调用示例" direction="rtl" size="40%">
+    <!-- Main Content Area -->
+    <div class="main-content">
+      <!-- Service Status Card -->
+      <div class="status-card">
+        <div class="status-header">
+          <h3>{{ t('openaiAdapter.serviceStatus') }}</h3>
+          <div class="status-badge" :class="{ 'running': status.isRunning, 'stopped': !status.isRunning }">
+            <span class="status-dot"></span>
+            {{ status.isRunning ? t('common.running') : t('common.stopped') }}
+          </div>
+        </div>
+        
+        <div class="status-body">
+          <button :class="['toggle-btn', { 'running': status.isRunning }]" @click="toggleService" :disabled="isToggling">
+            <span v-if="!isToggling" class="btn-content">
+              <svg v-if="!status.isRunning" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+              </svg>
+              {{ status.isRunning ? t('openaiAdapter.stopService') : t('openaiAdapter.startService') }}
+            </span>
+            <div v-else class="loading-spinner"></div>
+          </button>
+          
+          <div v-if="status.error && !status.isRunning" class="error-message">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            {{ status.error }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration Card -->
+      <div class="config-card">
+        <div class="card-header">
+          <h3>{{ t('openaiAdapter.serviceConfiguration') }}</h3>
+          <p>{{ t('openaiAdapter.configDescription') }}</p>
+        </div>
+        
+        <div class="config-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="listen-ip">{{ t('openaiAdapter.listenAddress') }}</label>
+              <div class="input-wrapper">
+                <input id="listen-ip" type="text" v-model="config.listenIp" :disabled="status.isRunning" placeholder="0.0.0.0" />
+              </div>
+            </div>
+            
+            <div class="form-field">
+              <label for="listen-port">{{ t('openaiAdapter.listenPort') }}</label>
+              <div class="input-wrapper">
+                <input id="listen-port" type="number" v-model.number="config.listenPort" :disabled="status.isRunning" placeholder="11434" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-field full-width">
+            <label for="ollama-server">{{ t('openaiAdapter.targetService') }}</label>
+            <div class="select-wrapper">
+              <select id="ollama-server" v-model="config.targetOllamaServerId" :disabled="status.isRunning">
+                <option value="" disabled>{{ t('openaiAdapter.selectService') }}</option>
+                <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
+                  {{ server.name }} ({{ server.baseUrl }})
+                </option>
+              </select>
+              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons Area -->
+      <div class="actions-card">
+        <div class="actions-grid">
+          <button class="action-btn secondary" @click="store.fetchApiDocs">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
+              <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+              <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/>
+              <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            {{ t('openaiAdapter.viewApiDocs') }}
+          </button>
+          
+          <button class="action-btn secondary" @click="store.toggleLogDrawer(true)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
+              <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            {{ t('openaiAdapter.viewLogs') }}
+          </button>
+          
+          <button class="action-btn primary" @click="store.saveConfig" :disabled="status.isRunning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16L21 8V19A2 2 0 0 1 19 21Z" stroke="currentColor" stroke-width="2"/>
+              <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2"/>
+              <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            {{ t('openaiAdapter.saveSettings') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Documentation Drawer -->
+    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="40%">
       <div class="drawer-content">
         <div v-for="(command, title) in apiDocs" :key="title" class="api-doc-item">
           <h3>{{ title }}</h3>
@@ -59,12 +140,12 @@
       </div>
     </el-drawer>
 
-    <!-- 日志抽屉 -->
-    <el-drawer v-model="isLogDrawerVisible" title="适配器实时日志" direction="rtl" size="50%">
+    <!-- Log Drawer -->
+    <el-drawer v-model="isLogDrawerVisible" :title="t('openaiAdapter.realtimeLogs')" direction="rtl" size="50%">
       <div class="drawer-content log-drawer">
         <div class="log-actions">
-          <button @click="store.clearLogs">清空日志</button>
-          <button @click="downloadLogs">下载日志</button>
+          <button @click="store.clearLogs">{{ t('openaiAdapter.clearLogs') }}</button>
+          <button @click="downloadLogs">{{ t('openaiAdapter.downloadLogs') }}</button>
         </div>
         <div class="log-container" ref="logContainerRef">
           <div v-for="(log, index) in logs" :key="index" :class="['log-line', `log-${log.level.toLowerCase()}`]">
@@ -81,6 +162,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { useOpenAIAdapterStore } from '../stores/openaiAdapter';
 import { EventsOn } from '../../wailsjs/runtime';
 import { types } from '../../wailsjs/go/models';
@@ -88,6 +170,7 @@ import LogEntry = types.LogEntry;
 import OpenAIAdapterStatus = types.OpenAIAdapterStatus;
 import { debounce } from 'lodash-es';
 
+const { t } = useI18n();
 const store = useOpenAIAdapterStore();
 const { config, status, logs, ollamaServers, isLogDrawerVisible, isApiDrawerVisible, apiDocs } = storeToRefs(store);
 
@@ -100,7 +183,7 @@ const toggleButtonClass = computed(() => [
   status.value.isRunning ? 'btn-running' : 'btn-stopped',
 ]);
 
-const toggleButtonText = computed(() => status.value.isRunning ? '服务运行中' : '启动服务');
+const toggleButtonText = computed(() => status.value.isRunning ? t('common.running') : t('openaiAdapter.startService'));
 
 // --- Service Control ---
 const toggleService = debounce(async () => {
@@ -160,149 +243,445 @@ onMounted(() => {
 </script>
 
 <style scoped>
-:root {
-  --card-bg: #2c2c2e;
-  --text-primary: #f2f2f7;
-  --text-secondary: #aeb0b4;
-  --border-color: #48484a;
-  --input-bg: #3a3a3c;
-  --btn-primary-bg: #0a84ff;
-  --btn-secondary-bg: #505052;
-  --dot-running: #34c759;
-  --dot-stopped: #8e8e93;
-  --log-info: #5ac8fa;
-  --log-warn: #ffcc00;
-  --log-error: #ff453a;
+.adapter-settings-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
-.adapter-settings-page {
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.header-text h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-text p {
+  margin: 0.5rem 0 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+}
+
+.main-content {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.status-card, .config-card, .actions-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
   padding: 2rem;
-  background-color: #1c1c1e;
-  color: var(--text-primary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.status-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.status-badge.running {
+  background: rgba(72, 187, 120, 0.1);
+  color: #38a169;
+  border: 1px solid rgba(72, 187, 120, 0.2);
+}
+
+.status-badge.stopped {
+  background: rgba(160, 174, 192, 0.1);
+  color: #718096;
+  border: 1px solid rgba(160, 174, 192, 0.2);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.toggle-btn.running {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+}
+
+.toggle-btn.running:hover {
+  box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+}
+
+.toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(245, 101, 101, 0.1);
+  border: 1px solid rgba(245, 101, 101, 0.2);
+  border-radius: 8px;
+  color: #e53e3e;
+  font-size: 0.9rem;
+}
+
+.card-header {
+  margin-bottom: 2rem;
+}
+
+.card-header h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.card-header p {
+  margin: 0;
+  color: #718096;
+  font-size: 0.95rem;
+}
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  font-weight: 500;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.input-wrapper, .select-wrapper {
+  position: relative;
+}
+
+.input-wrapper input, .select-wrapper select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: white;
+  color: #2d3748;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-wrapper input:focus, .select-wrapper select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-wrapper input:disabled, .select-wrapper select:disabled {
+  background: #f7fafc;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper select {
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  pointer-events: none;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.action-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-btn.secondary {
+  background: white;
+  color: #4a5568;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn.secondary:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .adapter-settings-page {
+    padding: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+.drawer-content { 
+  padding: 1.5rem; 
+  background: #f8fafc;
   height: 100%;
   box-sizing: border-box;
 }
 
-.setting-card {
-  max-width: 700px;
-  margin: 2rem auto;
-  background-color: var(--card-bg);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+.log-drawer { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100%; 
 }
 
-.card-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-.card-header h1 { margin: 0 0 0.5rem 0; font-size: 1.75rem; }
-.card-header p { margin: 0; color: var(--text-secondary); }
-
-.card-body { padding: 1.5rem; }
-
-.control-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+.log-actions { 
+  flex-shrink: 0; 
+  margin-bottom: 1rem; 
+  display: flex; 
+  gap: 1rem; 
 }
 
-.btn-toggle {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+.log-actions button { 
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; 
+  padding: 0.75rem 1.5rem; 
+  border: none; 
+  border-radius: 8px; 
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
-  min-width: 140px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.btn-toggle:disabled { cursor: not-allowed; opacity: 0.7; }
-.btn-stopped { background-color: var(--btn-primary-bg); color: white; }
-.btn-running { background-color: var(--dot-running); color: white; }
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-secondary);
-}
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot-running { background-color: var(--dot-running); }
-.dot-stopped { background-color: var(--dot-stopped); }
-.error-text { color: var(--log-error); font-size: 0.9rem; }
-
-.config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
   font-weight: 500;
-  color: var(--text-secondary);
-}
-.form-group input, .form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 1rem;
-}
-.form-group input:disabled, .form-group select:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.card-footer {
-  padding: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  transition: all 0.3s ease;
 }
 
-.btn-primary, .btn-secondary {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
+.log-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
-.btn-primary { background-color: var(--btn-primary-bg); color: white; }
-.btn-secondary { background-color: var(--btn-secondary-bg); color: white; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.drawer-content { padding: 1rem; }
-.log-drawer { display: flex; flex-direction: column; height: 100%; }
-.log-actions { flex-shrink: 0; margin-bottom: 1rem; display: flex; gap: 1rem; }
-.log-actions button { background-color: var(--btn-secondary-bg); color: white; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; }
 
 .log-container {
   flex-grow: 1;
-  background-color: #1c1c1e;
-  padding: 1rem;
-  border-radius: 8px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
   overflow-y: auto;
-  font-family: monospace;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 0.9rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.log-line { display: flex; gap: 1rem; }
-.log-time { color: var(--text-secondary); }
-.log-level.log-info { color: var(--log-info); }
-.log-level.log-warn { color: var(--log-warn); }
-.log-level.log-error { color: var(--log-error); }
-.log-message { white-space: pre-wrap; word-break: break-all; }
+.log-line { 
+  display: flex; 
+  gap: 1rem; 
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
 
-.api-doc-item h3 { border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-top: 2rem; }
-.api-doc-item pre { background-color: #1c1c1e; padding: 1rem; border-radius: 8px; white-space: pre-wrap; word-break: break-all; }
+.log-time { 
+  color: #64748b;
+  font-weight: 500;
+}
 
-.spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.log-level {
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.log-info .log-level { color: #0ea5e9; }
+.log-warn .log-level { color: #f59e0b; }
+.log-error .log-level { color: #ef4444; }
+
+.log-message { 
+  white-space: pre-wrap; 
+  word-break: break-all;
+  color: #374151;
+}
+
+.api-doc-item h3 { 
+  border-bottom: 2px solid #e2e8f0; 
+  padding-bottom: 0.75rem; 
+  margin: 2rem 0 1rem 0;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.api-doc-item pre { 
+  background: #f8fafc; 
+  padding: 1.5rem; 
+  border-radius: 12px; 
+  white-space: pre-wrap; 
+  word-break: break-all;
+  border: 1px solid #e2e8f0;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  color: #374151;
+}
 </style>

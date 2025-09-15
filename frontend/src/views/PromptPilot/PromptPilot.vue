@@ -7,7 +7,7 @@
         <el-input
           v-model="userIdea"
           type="textarea"
-          placeholder="请输入您的想法或需求描述，例如：我想生成一个专业的周报，内容包括本周完成的工作、遇到的问题和下周计划。"
+          :placeholder="t('promptPilot.typeMessage')"
           :rows="5"
           style="width: 100%;"
         />
@@ -22,14 +22,14 @@
             :loading="isGenerating"
             :disabled="isGenerating || selectedModels.length === 0 || !userIdea.trim() || !selectedServerId"
           >
-            生成
+            {{ t('promptPilot.sendMessage') }}
           </el-button>
         </div>
       </div>
 
       <!-- Prompt展示区 -->
       <div class="prompt-display-section">
-        <div class="section-title">提示词内容</div>
+        <div class="section-title">{{ t('promptPilot.systemPrompt') }}</div>
         <div class="prompt-content-container">
           <el-tabs v-model="activePromptTab" class="prompt-tabs">
             <el-tab-pane
@@ -41,7 +41,7 @@
             >
               <div class="prompt-content">
                 <div v-if="generatingModels[model]" class="generating-indicator">
-                  <span>正在生成</span>
+                  <span>{{ t('common.loading') }}</span>
                   <div class="dot"></div>
                   <div class="dot"></div>
                   <div class="dot"></div>
@@ -56,7 +56,7 @@
                       size="small"
                       :disabled="generatingModels[model] || !renderedPrompt[model]"
                     >
-                      复制
+                      {{ t('common.copy') }}
                     </el-button>
                     <el-button
                       type="primary"
@@ -65,7 +65,7 @@
                       size="small"
                       :disabled="isGenerating"
                     >
-                      重新生成
+                      Regenerate
                     </el-button>
                   </div>
                 </div>
@@ -73,7 +73,7 @@
             </el-tab-pane>
           </el-tabs>
           <div v-if="selectedModels.length === 0 && !isGenerating" class="empty-state">
-            请先选择服务和模型，然后输入您的想法，点击“生成”开始。
+            {{ t('promptPilot.selectModel') }}
           </div>
         </div>
 
@@ -82,54 +82,54 @@
             @click="openOptimizeDrawer"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
-            优化
+            Optimize
           </el-button>
           <el-button
             type="success"
             @click="openSaveDrawer(null)"
             :disabled="isGenerating || selectedModels.length === 0 || !activePromptTab || !renderedPrompt[activePromptTab]"
           >
-            保存
+            {{ t('common.save') }}
           </el-button>
           <el-button @click="showSavedPrompts = true" :disabled="isGenerating">
-            我的提示词
+            {{ t('promptPilot.myPrompts') }}
           </el-button>
         </div>
       </div>
     </div>
 
     <!-- 抽屉区域 -->
-    <el-drawer v-model="showOptimizeDrawer" title="优化Prompt" direction="rtl" size="40%">
+    <el-drawer v-model="showOptimizeDrawer" :title="t('promptPilot.optimizePrompt')" direction="rtl" size="40%">
       <!-- ...抽屉内容... -->
     </el-drawer>
 
     <el-drawer v-model="showSaveDrawer" :title="promptToSave.id ? `编辑 “${promptToSave.name}”` : '保存Prompt'" direction="rtl" size="40%">
       <div class="save-drawer-content">
         <el-form :model="promptToSave" label-position="top" ref="saveFormRef">
-          <el-form-item label="标题" prop="name" :rules="[{ required: true, message: '标题不能为空', trigger: 'blur' }]">
-            <el-input v-model="promptToSave.name" placeholder="请输入Prompt标题"></el-input>
+          <el-form-item :label="t('promptPilot.promptTitle')" prop="name" :rules="[{ required: true, message: t('promptPilot.titleRequired'), trigger: 'blur' }]">
+            <el-input v-model="promptToSave.name" :placeholder="t('promptPilot.enterTitle')"></el-input>
           </el-form-item>
-          <el-form-item label="描述">
-            <el-input v-model="promptToSave.description" type="textarea" :rows="3" placeholder="请输入详细描述、使用场景等"></el-input>
+          <el-form-item :label="t('promptPilot.description')">
+            <el-input v-model="promptToSave.description" type="textarea" :rows="3" :placeholder="t('promptPilot.enterDescription')"></el-input>
           </el-form-item>
-          <el-form-item label="标签">
-            <el-select v-model="promptToSave.tags" multiple filterable allow-create default-first-option placeholder="选择或创建标签" style="width: 100%;">
+          <el-form-item :label="t('promptPilot.tags')">
+            <el-select v-model="promptToSave.tags" multiple filterable allow-create default-first-option :placeholder="t('promptPilot.selectTags')" style="width: 100%;">
               <el-option v-for="tag in existingTags" :key="tag" :label="tag" :value="tag"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="关联模型" class="left-aligned-item">
+          <el-form-item :label="t('promptPilot.associatedModels')" class="left-aligned-item">
             <div>
               <el-tag v-for="model in promptToSave.models" :key="model" type="info" style="margin-right: 5px;">{{ model }}</el-tag>
             </div>
           </el-form-item>
-          <el-form-item label="Prompt内容 (只读预览)" class="left-aligned-item content-preview-item">
+          <el-form-item :label="t('promptPilot.promptContent')" class="left-aligned-item content-preview-item">
             <el-input v-model="promptToSave.content" type="textarea" :rows="8" readonly></el-input>
-            <el-button class="content-copy-btn" type="primary" link @click="copySaveDrawerContent">复制</el-button>
+            <el-button class="content-copy-btn" type="primary" link @click="copySaveDrawerContent">{{ t('common.copy') }}</el-button>
           </el-form-item>
         </el-form>
         <div class="save-drawer-footer">
-          <el-button @click="showSaveDrawer = false">取消</el-button>
-          <el-button type="primary" @click="executeSaveFromDrawer" :loading="isSaving">确认保存</el-button>
+          <el-button @click="showSaveDrawer = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="executeSaveFromDrawer" :loading="isSaving">{{ t('common.confirm') }}</el-button>
         </div>
       </div>
     </el-drawer>
@@ -149,12 +149,15 @@
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from 'vue'
 import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import ModelSelector from './components/ModelSelector.vue'
 import CommonPromptDrawer from '../../components/commons/PromptListDrawer.vue'
 import {EventsOn} from "../../../wailsjs/runtime";
 import {DeletePrompt, GeneratePromptStream, ListPrompts, SavePrompt} from "../../../wailsjs/go/main/App";
 import {types} from "../../../wailsjs/go/models";
 import Prompt = types.Prompt;
+
+const { t } = useI18n();
 
 // 响应式数据
 const selectedServerId = ref('')

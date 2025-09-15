@@ -1,12 +1,12 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="历史对话"
+    title="Conversation History"
     direction="rtl"
     size="400px"
   >
     <div class="conversation-list">
-      <el-empty v-if="conversations.length === 0" description="暂无历史对话" />
+      <el-empty v-if="conversations.length === 0" description="No conversation history" />
       <div 
         v-else 
         v-for="conv in conversations" 
@@ -24,7 +24,7 @@
             link
             @click.stop="handleEditTitle(conv)"
           >
-            编辑
+            Edit
           </el-button>
           <el-button 
             size="small" 
@@ -32,7 +32,7 @@
             link
             @click.stop="handleDeleteConversation(conv.id)"
           >
-            删除
+            Delete
           </el-button>
         </div>
       </div>
@@ -90,15 +90,15 @@ const handleEditTitle = (conv: Conversation) => {
 // 处理删除对话
 const handleDeleteConversation = async (id: string) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个对话吗？', '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm('Are you sure you want to delete this conversation?', 'Delete Confirmation', {
+      confirmButtonText: 'Confirm',
+      cancelButtonText: 'Cancel',
       type: 'warning'
     })
     
     emit('delete-conversation', id)
   } catch (error) {
-    // 用户取消操作
+    // User cancelled operation
   }
 }
 </script>

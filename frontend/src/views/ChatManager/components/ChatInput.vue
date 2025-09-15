@@ -4,13 +4,13 @@
         v-model="inputValue"
         type="textarea"
         :rows="3"
-        placeholder="输入消息..."
+        placeholder="Type your message..."
         :disabled="disabled"
         @keydown="handleKeydown"
     />
     <div style="margin-top: 10px; text-align: right">
       <el-button type="primary" @click="handleSend" :disabled="disabled">
-        发送 (Enter)
+        Send (Enter)
       </el-button>
     </div>
   </div>

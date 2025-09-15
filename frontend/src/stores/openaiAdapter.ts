@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia';
 import { ElMessage } from 'element-plus';
+import i18n from '../i18n';
+
+const { t } = i18n.global;
 import { types } from '../../wailsjs/go/models';
 import OpenAIAdapterConfig = types.OpenAIAdapterConfig;
 import OpenAIAdapterStatus = types.OpenAIAdapterStatus;
@@ -30,12 +33,12 @@ interface OpenAIAdapterState {
 export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
   state: (): OpenAIAdapterState => ({
     config: {
-      listen_ip: '127.0.0.1',
-      listen_port: 11223,
-      target_ollama_server_id: '',
+      listenIp: '127.0.0.1',
+      listenPort: 11223,
+      targetOllamaServerId: '',
     },
     status: {
-      is_running: false,
+      isRunning: false,
       error: '',
     },
     ollamaServers: [],
@@ -50,21 +53,21 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         const fetchedConfig = await GetOpenAIAdapterConfig();
         if (fetchedConfig) {
-          this.config.listen_ip = fetchedConfig.listen_ip || '127.0.0.1';
-          this.config.listen_port = fetchedConfig.listen_port || 11223;
-          this.config.target_ollama_server_id = fetchedConfig.target_ollama_server_id;
+          this.config.listenIp = fetchedConfig.listenIp || '127.0.0.1';
+          this.config.listenPort = fetchedConfig.listenPort || 11223;
+          this.config.targetOllamaServerId = fetchedConfig.targetOllamaServerId;
         }
       } catch (error) {
-        ElMessage.error(`获取适配器配置失败: ${error}`);
+        ElMessage.error(`${t('messages.fetchConfigFailed')}: ${error}`);
       }
     },
 
     async saveConfig() {
       try {
         await SaveOpenAIAdapterConfig(this.config);
-        ElMessage.success('配置保存成功！');
+        ElMessage.success(t('messages.configSaved'));
       } catch (error) {
-        ElMessage.error(`保存配置失败: ${error}`);
+        ElMessage.error(`${t('messages.configSaveFailed')}: ${error}`);
         throw error;
       }
     },
@@ -73,8 +76,8 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         this.status = await GetOpenAIAdapterStatus();
       } catch (error) {
-        this.status.is_running = false;
-        this.status.error = `无法获取服务状态: ${error}`;
+        this.status.isRunning = false;
+        this.status.error = `${t('messages.getServiceStatusFailed')}: ${error}`;
       }
     },
 
@@ -87,9 +90,9 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         await this.saveConfig();
         await StartAdapterServer();
-        ElMessage.success('服务启动指令已发送。');
+        ElMessage.success(t('messages.serviceStarted'));
       } catch (error) {
-        ElMessage.error(`服务启动失败: ${error}`);
+        ElMessage.error(`${t('messages.serviceStartFailed')}: ${error}`);
         // The backend will emit a status update on failure, so no need to fetch here
         throw error;
       }
@@ -98,9 +101,9 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
     async stopServer() {
       try {
         await StopAdapterServer();
-        ElMessage.success('服务停止指令已发送。');
+        ElMessage.success(t('messages.serviceStopped'));
       } catch (error) {
-        ElMessage.error(`服务停止失败: ${error}`);
+        ElMessage.error(`${t('messages.serviceStopFailed')}: ${error}`);
         throw error;
       }
     },
@@ -109,7 +112,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
       try {
         this.ollamaServers = await GetOllamaServers();
       } catch (error) {
-        ElMessage.error(`获取 Ollama 服务列表失败: ${error}`);
+        ElMessage.error(`${t('messages.fetchServersFailed')}: ${error}`);
       }
     },
 
@@ -122,7 +125,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
 
     clearLogs() {
       this.logs = [];
-      ElMessage.success('日志已清空');
+      ElMessage.success(t('messages.logsClearedSuccess'));
     },
 
     toggleLogDrawer(visible?: boolean) {
@@ -142,7 +145,7 @@ export const useOpenAIAdapterStore = defineStore('openaiAdapter', {
         this.apiDocs = await GetAdapterAPIDocs();
         this.toggleApiDrawer(true);
       } catch (error) {
-        ElMessage.error(`获取 API 文档失败: ${error}`);
+        ElMessage.error(`${t('messages.fetchApiDocsFailed')}: ${error}`);
       }
     },
   },

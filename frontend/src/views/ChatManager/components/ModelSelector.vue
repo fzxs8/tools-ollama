@@ -2,12 +2,12 @@
   <el-card class="model-selector">
     <template #header>
       <div class="card-header">
-        <span>模型选择</span>
+        <span>Model Selection</span>
       </div>
     </template>
     <el-select
         :model-value="props.selectedServer"
-        placeholder="选择服务"
+        placeholder="Select Server"
         style="width: 100%; margin-bottom: 10px;"
         @update:modelValue="val => emit('update:selectedServer', val)"
         @change="() => emit('server-change')">
@@ -20,7 +20,7 @@
     </el-select>
     <el-select
         :model-value="props.selectedModel"
-        placeholder="选择模型"
+        placeholder="Select Model"
         style="width: 100%"
         @update:modelValue="val => emit('update:selectedModel', val)">
       <el-option
@@ -32,13 +32,13 @@
     </el-select>
 
     <div style="margin-top: 20px">
-      <el-button @click="() => emit('load-model')" style="width: 100%">加载模型</el-button>
+      <el-button @click="() => emit('load-model')" style="width: 100%">Load Model</el-button>
     </div>
 
     <div style="margin-top: 20px">
-      <h4>参数设置</h4>
+      <h4>Parameter Settings</h4>
       <el-form :model="props.modelParams" label-width="80px" size="small">
-        <el-form-item label="温度">
+        <el-form-item label="Temperature">
           <el-slider
               :model-value="props.modelParams.temperature"
               :min="0"
@@ -54,14 +54,14 @@
               :step="0.1"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, topP: val })"/>
         </el-form-item>
-        <el-form-item label="上下文">
+        <el-form-item label="Context">
           <el-input-number
               :model-value="props.modelParams.context"
               :min="1"
               :max="32768"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, context: val })"/>
         </el-form-item>
-        <el-form-item label="预测数">
+        <el-form-item label="Max Tokens">
           <el-input-number
               :model-value="props.modelParams.numPredict"
               :min="1"
@@ -75,7 +75,7 @@
               :max="100"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, topK: val })"/>
         </el-form-item>
-        <el-form-item label="重复惩罚">
+        <el-form-item label="Repeat Penalty">
           <el-input-number
               :model-value="props.modelParams.repeatPenalty"
               :min="0.1"
@@ -83,19 +83,19 @@
               :step="0.1"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, repeatPenalty: val })"/>
         </el-form-item>
-        <el-form-item label="输出方式">
+        <el-form-item label="Output Mode">
           <el-select
               :model-value="props.modelParams.outputMode"
-              placeholder="选择输出方式"
+              placeholder="Select Output Mode"
               @update:modelValue="val => emit('update:modelParams', { ...props.modelParams, outputMode: val })">
-            <el-option label="流式输出" value="stream"/>
-            <el-option label="阻塞输出" value="blocking"/>
+            <el-option label="Stream Output" value="stream"/>
+            <el-option label="Blocking Output" value="blocking"/>
           </el-select>
         </el-form-item>
       </el-form>
       <div style="margin-top: 10px">
-        <el-button @click="() => emit('save-model-params')" type="primary" size="small">保存参数</el-button>
-        <el-button @click="() => emit('reset-model-params')" size="small">重置</el-button>
+        <el-button @click="() => emit('save-model-params')" type="primary" size="small">Save Parameters</el-button>
+        <el-button @click="() => emit('reset-model-params')" size="small">Reset</el-button>
       </div>
     </div>
   </el-card>

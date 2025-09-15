@@ -2,12 +2,12 @@
   <el-card class="chat-container" style="flex: 1; display: flex; flex-direction: column;">
     <template #header>
       <div class="card-header">
-        <span>聊天界面{{ activeSystemPrompt ? ` - ${activeSystemPrompt.name}` : '' }}</span>
+        <span>Chat Interface{{ activeSystemPrompt ? ` - ${activeSystemPrompt.name}` : '' }}</span>
         <div>
-          <el-button @click="newConversation" style="margin-right: 10px;">新建对话</el-button>
-          <el-button @click="showConversationHistory = true" style="margin-right: 10px;">历史对话</el-button>
-          <el-button @click="clearChat" style="margin-right: 10px;">清空聊天</el-button>
-          <el-button @click="openSystemPromptDrawer">我的提示词</el-button>
+          <el-button @click="newConversation" style="margin-right: 10px;">New Chat</el-button>
+          <el-button @click="showConversationHistory = true" style="margin-right: 10px;">History</el-button>
+          <el-button @click="clearChat" style="margin-right: 10px;">Clear Chat</el-button>
+          <el-button @click="openSystemPromptDrawer">My Prompts</el-button>
         </div>
       </div>
     </template>
@@ -54,7 +54,7 @@
                   @click="copyMessage(message.content)"
                   link
               >
-                复制
+                Copy
               </el-button>
               <el-button
                   size="small"
@@ -62,7 +62,7 @@
                   @click="regenerateMessage(index)"
                   link
               >
-                重新生成
+                Regenerate
               </el-button>
             </div>
           </div>
@@ -88,7 +88,7 @@
           </div>
           <div class="message-content">
             <div class="thinking-indicator">
-              <span>正在思考</span>
+              <span>Thinking</span>
               <div class="dot"></div>
               <div class="dot"></div>
               <div class="dot"></div>

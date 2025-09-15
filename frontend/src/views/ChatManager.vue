@@ -1,7 +1,24 @@
 <template>
   <div class="chat-interface">
-    <el-row :gutter="20" style="height: 100%;">
-      <el-col :span="6" style="height: 100%;">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15A2 2 0 0 1 19 17H7L4 20V5A2 2 0 0 1 6 3H19A2 2 0 0 1 21 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>Chat Interface</h1>
+          <p>Interactive conversation with your AI models</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chat Layout -->
+    <div class="chat-layout">
+      <!-- Sidebar -->
+      <div class="chat-sidebar">
         <ModelSelector
             v-model:selectedModel="selectedModel"
             v-model:selectedServer="selectedServer"
@@ -13,9 +30,10 @@
             @reset-model-params="resetModelParams"
             @server-change="onServerChange"
         />
-      </el-col>
+      </div>
 
-      <el-col :span="18" style="height: 100%; display: flex; flex-direction: column;">
+      <!-- Chat Area -->
+      <div class="chat-main">
         <ChatContainer
             :messages="messages"
             :is-thinking="isThinking"
@@ -40,8 +58,8 @@
             />
           </template>
         </ChatContainer>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <PromptListDrawer
         v-model:visible="systemPromptDrawerVisible"
@@ -97,7 +115,7 @@ const conversations = ref<Conversation[]>([])
 const activeConversationId = ref('')
 const currentConversation = ref<Conversation | null>(null)
 
-// 模型参数
+// Model parameters
 const modelParams = ref<ModelParams>({
   temperature: 0.8,
   topP: 0.9,
@@ -105,7 +123,7 @@ const modelParams = ref<ModelParams>({
   numPredict: 512,
   topK: 40,
   repeatPenalty: 1.1,
-  outputMode: 'stream' // 默认使用流式输出
+  outputMode: 'stream' // Default to stream output
 })
 
 // 复制消息内容
@@ -510,13 +528,13 @@ const resetModelParams = () => {
 
 onMounted(async () => {
   await loadAvailableServers();
-  // 确保在加载模型或执行任何其他操作之前，后端的状态是同步的
+  // Ensure backend state is synchronized before loading models or performing other operations
   if (selectedServer.value) {
     try {
       await SetActiveServer(selectedServer.value);
     } catch (error: any) {
       ElMessage.error(`同步活动服务器失败: ${error.message}`);
-      return; // 如果同步失败，则不继续
+      return; // Don't continue if sync fails
     }
   }
 
@@ -524,7 +542,7 @@ onMounted(async () => {
   await loadSystemPrompts();
   await loadConversations();
 
-  // 监听流式传输事件
+  // Listen for streaming events
   EventsOn("chat_stream_chunk", (data: any) => {
     const lastMessageIndex = messages.value.length - 1;
     if (lastMessageIndex >= 0 && messages.value[lastMessageIndex].role === 'assistant') {
@@ -537,9 +555,123 @@ onMounted(async () => {
 
 <style scoped>
 .chat-interface {
-  background-color: #f0f4f9;
-  padding: 0;
-  height: 100%;
-  box-sizing: border-box;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-header {
+  padding: 2rem 2rem 1rem 2rem;
+  flex-shrink: 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.header-text h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-text p {
+  margin: 0.5rem 0 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+}
+
+.chat-layout {
+  flex: 1;
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 2rem 2rem 2rem;
+  gap: 1.5rem;
+  min-height: 0;
+}
+
+.chat-sidebar {
+  width: 350px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.chat-main {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+  .chat-layout {
+    flex-direction: column;
+    padding: 0 1rem 1rem 1rem;
+  }
+  
+  .chat-sidebar {
+    width: 100%;
+    height: auto;
+  }
+  
+  .page-header {
+    padding: 1.5rem 1rem 1rem 1rem;
+  }
+  
+  .header-text h1 {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 1rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .header-text h1 {
+    font-size: 1.5rem;
+  }
+  
+  .header-text p {
+    font-size: 1rem;
+  }
 }
 </style>

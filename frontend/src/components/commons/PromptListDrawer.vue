@@ -20,16 +20,16 @@
           <div class="prompt-header">
             <div class="prompt-title">{{ prompt.name }}</div>
             <div class="prompt-actions">
-              <!-- 管理模式下的按钮 -->
+              <!-- Management mode buttons -->
               <template v-if="props.mode === 'manage'">
-                <el-button type="primary" link @click.stop="previewPrompt(prompt)" size="small">预览</el-button>
-                <el-button type="primary" link @click.stop="editPrompt(prompt)" size="small">编辑</el-button>
-                <el-button type="danger" link @click.stop="deletePrompt(prompt)" size="small">删除</el-button>
+                <el-button type="primary" link @click.stop="previewPrompt(prompt)" size="small">{{ t('common.preview') }}</el-button>
+                <el-button type="primary" link @click.stop="editPrompt(prompt)" size="small">{{ t('common.edit') }}</el-button>
+                <el-button type="danger" link @click.stop="deletePrompt(prompt)" size="small">{{ t('common.delete') }}</el-button>
               </template>
-              <!-- 选择模式下的按钮 -->
+              <!-- Selection mode buttons -->
               <template v-if="props.mode === 'select'">
-                <el-button v-if="props.selectedId === prompt.id" type="success" link size="small">已选择</el-button>
-                <el-button v-else type="primary" link @click.stop="selectPrompt(prompt)" size="small">选择</el-button>
+                <el-button v-if="props.selectedId === prompt.id" type="success" link size="small">{{ t('common.selected') }}</el-button>
+                <el-button v-else type="primary" link @click.stop="selectPrompt(prompt)" size="small">{{ t('common.select') }}</el-button>
               </template>
             </div>
           </div>
@@ -42,12 +42,12 @@
             <div class="prompt-models">
               <el-tag v-for="model in prompt.models" :key="model" type="info" size="small" style="margin-right: 5px; margin-bottom: 5px;">{{ model }}</el-tag>
             </div>
-            <div class="prompt-time">更新于 {{ formatTime(prompt.updatedAt) }}</div>
+            <div class="prompt-time">{{ t('modelManager.updatedAt') }} {{ formatTime(prompt.updatedAt) }}</div>
           </div>
           
           <div class="prompt-content-preview-wrapper">
             <pre class="prompt-content-preview">{{ truncateContent(prompt.content, 100) }}</pre>
-            <el-button class="preview-copy-btn" type="primary" link @click.stop="copyPromptContent(prompt.content)">复制</el-button>
+            <el-button class="preview-copy-btn" type="primary" link @click.stop="copyPromptContent(prompt.content)">{{ t('common.copy') }}</el-button>
           </div>
         </div>
       </div>
@@ -58,10 +58,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { ElMessage } from "element-plus";
+import { useI18n } from 'vue-i18n';
 import {types} from "../../../wailsjs/go/models";
 import Prompt = types.Prompt;
 
-// 类型定义
+// Type definitions
 const props = defineProps<{
   visible: boolean;
   prompts: Prompt[];
@@ -77,8 +78,10 @@ const emit = defineEmits<{
   (e: 'select', prompt: Prompt): void;
 }>();
 
-const drawerTitle = computed(() => props.mode === 'manage' ? '我的提示词' : '选择系统提示词');
-const emptyDescription = computed(() => props.mode === 'manage' ? '没有提示词呢' : '没有可选择的系统提示词');
+const { t } = useI18n();
+
+const drawerTitle = computed(() => props.mode === 'manage' ? t('promptPilot.myPrompts') : t('promptPilot.selectSystemPrompt'));
+const emptyDescription = computed(() => props.mode === 'manage' ? t('promptPilot.noPrompts') : t('promptPilot.noSystemPrompts'));
 
 const closeDrawer = () => {
   emit('update:visible', false);
@@ -97,9 +100,9 @@ const truncateContent = (content: string, length: number) => {
 const copyPromptContent = (content: string) => {
   if (content) {
     navigator.clipboard.writeText(content).then(() => {
-      ElMessage.success('内容已复制到剪贴板');
+      ElMessage.success(t('messages.contentCopied'));
     }).catch(err => {
-      ElMessage.error('复制失败: ' + err);
+      ElMessage.error(t('messages.copyFailed') + ': ' + err);
     });
   }
 };

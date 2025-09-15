@@ -269,9 +269,9 @@ export namespace types {
 	    }
 	}
 	export class OpenAIAdapterConfig {
-	    listen_ip: string;
-	    listen_port: number;
-	    target_ollama_server_id: string;
+	    listenIp: string;
+	    listenPort: number;
+	    targetOllamaServerId: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new OpenAIAdapterConfig(source);
@@ -279,13 +279,13 @@ export namespace types {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.listen_ip = source["listen_ip"];
-	        this.listen_port = source["listen_port"];
-	        this.target_ollama_server_id = source["target_ollama_server_id"];
+	        this.listenIp = source["listenIp"];
+	        this.listenPort = source["listenPort"];
+	        this.targetOllamaServerId = source["targetOllamaServerId"];
 	    }
 	}
 	export class OpenAIAdapterStatus {
-	    is_running: boolean;
+	    isRunning: boolean;
 	    error?: string;
 	
 	    static createFrom(source: any = {}) {
@@ -294,7 +294,7 @@ export namespace types {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.is_running = source["is_running"];
+	        this.isRunning = source["isRunning"];
 	        this.error = source["error"];
 	    }
 	}

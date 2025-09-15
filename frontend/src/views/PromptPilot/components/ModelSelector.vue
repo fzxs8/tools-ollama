@@ -2,7 +2,7 @@
   <div class="model-selector-horizontal">
     <el-select
         v-model="props.selectedServer"
-        placeholder="选择服务"
+        :placeholder="t('promptPilot.selectService')"
         class="selector-item"
         popper-class="left-aligned-dropdown"
         @change="onServerChange"
@@ -19,7 +19,7 @@
         multiple
         :multiple-limit="3"
         collapse-tags
-        placeholder="选择模型 (最多3个)"
+        :placeholder="t('promptPilot.selectModel')"
         class="selector-item"
         popper-class="left-aligned-dropdown"
         @update:modelValue="updateSelectedModels"
@@ -37,12 +37,15 @@
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue'
 import {ElMessage} from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import {GetActiveServer, GetServers, ListModelsByServer, SetActiveServer} from '../../../../wailsjs/go/main/App'
 import {types} from "../../../../wailsjs/go/models";
 import Model = types.Model;
 import OllamaServerConfig = types.OllamaServerConfig;
 
-// 定义 Props 和 Emits
+const { t } = useI18n();
+
+// Define Props and Emits
 const props = defineProps<{
   selectedServer: string
   selectedModels: string[]
@@ -53,21 +56,21 @@ const emit = defineEmits<{
   (e: 'update:selectedModels', value: string[]): void
 }>()
 
-// 定义响应式状态
+// Define reactive state
 const availableServers = ref<OllamaServerConfig[]>([])
 const availableModels = ref<Model[]>([])
 
-// 更新选中的服务
+// Update selected server
 const updateSelectedServer = (value: string) => {
   emit('update:selectedServer', value)
 }
 
-// 更新选中的模型
+// Update selected models
 const updateSelectedModels = (value: string[]) => {
   emit('update:selectedModels', value)
 }
 
-// 加载可用服务
+// Load available servers
 const loadAvailableServers = async () => {
   try {
     availableServers.value = await GetServers();
@@ -100,37 +103,37 @@ const loadAvailableServers = async () => {
   }
 }
 
-// 根据服务加载模型
+// Load models for server
 const loadModelsForServer = async (serverId: string) => {
   if (!serverId) return
   try {
     availableModels.value = await ListModelsByServer(serverId)
   } catch (error: any) {
-    console.error(`获取模型列表失败 (服务ID: ${serverId}):`, error)
-    ElMessage.error('获取模型列表失败: ' + (error.message || error))
+    console.error(`Failed to get model list (Service ID: ${serverId}):`, error)
+    ElMessage.error('Failed to get model list: ' + (error.message || error))
     availableModels.value = []
   }
 }
 
-// 当服务选择变化时
+// When server selection changes
 const onServerChange = (serverId: string) => {
   updateSelectedServer(serverId)
-  // 清空已选模型
+  // Clear selected models
   updateSelectedModels([])
   loadModelsForServer(serverId)
 }
 
-// 监视 selectedServer 的变化
+// Watch for selectedServer changes
 watch(() => props.selectedServer, (newServerId, oldServerId) => {
   if (newServerId && newServerId !== oldServerId) {
     loadModelsForServer(newServerId)
   }
 })
 
-// 组件挂载时加载
+// Load on component mount
 onMounted(async () => {
   await loadAvailableServers()
-  // 如果初始有 selectedServer，则加载模型
+  // If there's an initial selectedServer, load models
   if (props.selectedServer) {
     await loadModelsForServer(props.selectedServer)
   }
@@ -151,6 +154,6 @@ onMounted(async () => {
 }
 
 .selector-item {
-  width: 220px; /* 设置固定宽度 */
+  width: 220px; /* Set fixed width */
 }
 </style>

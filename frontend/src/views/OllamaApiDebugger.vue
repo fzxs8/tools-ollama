@@ -4,14 +4,14 @@
     <div class="sidebar">
       <div class="server-selector-wrapper">
         <select v-model="request.selectedServerId" class="base-url-selector">
-          <option value="">选择一个服务</option>
+          <option value="">Select a server</option>
           <option v-for="server in servers" :key="server.id" :value="server.id">
             {{ server.name }} ({{ server.baseUrl }})
           </option>
         </select>
       </div>
       <div class="api-list">
-        <h3>Ollama API 列表</h3>
+        <h3>Ollama API List</h3>
         <ul>
           <li
             v-for="api in apiDefinitions"
@@ -34,44 +34,44 @@
           <span :class="['http-method-display', request.method.toLowerCase()]">{{ request.method }}</span>
           <input type="text" v-model="request.path" placeholder="/api/tags" class="url-input" />
           <button @click="sendRequest" :disabled="isLoading">
-            {{ isLoading ? '发送中...' : '发送' }}
+            {{ isLoading ? 'Sending...' : 'Send' }}
           </button>
         </div>
 
         <!-- Request Tabs -->
         <div class="request-tabs">
           <div class="tab-headers">
-            <button :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">查询参数</button>
-            <button :class="{ active: activeTab === 'headers' }" @click="activeTab = 'headers'">请求头</button>
-            <button :class="{ active: activeTab === 'body' }" @click="activeTab = 'body'">请求体</button>
+            <button :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">Query Params</button>
+            <button :class="{ active: activeTab === 'headers' }" @click="activeTab = 'headers'">Headers</button>
+            <button :class="{ active: activeTab === 'body' }" @click="activeTab = 'body'">Body</button>
           </div>
           <div class="tab-content-request">
             <!-- Query Params -->
             <div v-if="activeTab === 'params'" class="key-value-editor">
               <div v-for="(param, index) in request.queryParams" :key="index" class="kv-row">
                 <input type="checkbox" v-model="param.enabled" />
-                <input type="text" v-model="param.key" placeholder="键" />
-                <input type="text" v-model="param.value" placeholder="值" />
-                <button @click="removeQueryParam(index)">移除</button>
+                <input type="text" v-model="param.key" placeholder="Key" />
+                <input type="text" v-model="param.value" placeholder="Value" />
+                <button @click="removeQueryParam(index)">Remove</button>
               </div>
-              <button @click="addQueryParam">添加参数</button>
+              <button @click="addQueryParam">Add Parameter</button>
             </div>
 
             <!-- Headers -->
             <div v-if="activeTab === 'headers'" class="key-value-editor">
               <div v-for="(header, index) in request.headers" :key="index" class="kv-row">
                 <input type="checkbox" v-model="header.enabled" />
-                <input type="text" v-model="header.key" placeholder="键" />
-                <input type="text" v-model="header.value" placeholder="值" />
-                <button @click="removeHeader(index)">移除</button>
+                <input type="text" v-model="header.key" placeholder="Key" />
+                <input type="text" v-model="header.value" placeholder="Value" />
+                <button @click="removeHeader(index)">Remove</button>
               </div>
-              <button @click="addHeader">添加请求头</button>
+              <button @click="addHeader">Add Header</button>
             </div>
 
             <!-- Body -->
             <div v-if="activeTab === 'body'">
               <div class="body-type-selector">
-                <label><input type="radio" v-model="request.body.type" value="none" /> 无</label>
+                <label><input type="radio" v-model="request.body.type" value="none" /> None</label>
                 <label><input type="radio" v-model="request.body.type" value="raw" /> Raw</label>
                 <label><input type="radio" v-model="request.body.type" value="formData" /> Form Data</label>
               </div>
@@ -82,15 +82,15 @@
                   <option value="text/html">HTML</option>
                   <option value="application/xml">XML</option>
                 </select>
-                <textarea v-model="request.body.rawContent" placeholder="输入原始请求体内容..."></textarea>
+                <textarea v-model="request.body.rawContent" placeholder="Enter raw request body content..."></textarea>
               </div>
               <div v-if="request.body.type === 'formData'" class="key-value-editor">
                 <div v-for="(item, index) in request.body.formData" :key="index" class="kv-row">
-                  <input type="text" v-model="item.key" placeholder="键" />
-                  <input type="text" v-model="item.value" placeholder="值" />
-                  <button @click="removeFormData(index)">移除</button>
+                  <input type="text" v-model="item.key" placeholder="Key" />
+                  <input type="text" v-model="item.value" placeholder="Value" />
+                  <button @click="removeFormData(index)">Remove</button>
                 </div>
-                <button @click="addFormData">添加表单项</button>
+                <button @click="addFormData">Add Form Item</button>
               </div>
             </div>
           </div>
@@ -99,20 +99,20 @@
 
       <!-- Response Panel -->
       <div class="response-panel">
-        <div v-if="isLoading" class="response-placeholder">加载中...</div>
+        <div v-if="isLoading" class="response-placeholder">Loading...</div>
         <div v-else-if="error" class="response-placeholder error-message">
-          <h3>错误</h3>
+          <h3>Error</h3>
           <pre>{{ error }}</pre>
         </div>
         <div v-else-if="response" class="response-wrapper">
           <div class="response-status-bar">
-            <span>状态: <strong :class="statusClass">{{ response.statusCode }} {{ response.statusText }}</strong></span>
-            <span>耗时: <strong>{{ response.requestDurationMs }} ms</strong></span>
+            <span>Status: <strong :class="statusClass">{{ response.statusCode }} {{ response.statusText }}</strong></span>
+            <span>Duration: <strong>{{ response.requestDurationMs }} ms</strong></span>
           </div>
           <div class="response-tabs">
             <div class="tab-headers">
-              <button :class="{ active: activeResponseTab === 'body' }" @click="activeResponseTab = 'body'">响应体</button>
-              <button :class="{ active: activeResponseTab === 'headers' }" @click="activeResponseTab = 'headers'">响应头</button>
+              <button :class="{ active: activeResponseTab === 'body' }" @click="activeResponseTab = 'body'">Response Body</button>
+              <button :class="{ active: activeResponseTab === 'headers' }" @click="activeResponseTab = 'headers'">Response Headers</button>
             </div>
             <div class="tab-content-response">
               <div v-if="activeResponseTab === 'body'">
@@ -120,15 +120,15 @@
               </div>
               <div v-if="activeResponseTab === 'headers'" class="key-value-editor">
                 <div v-for="(header, index) in response.headers" :key="index" class="kv-row-readonly">
-                  <input type="text" :value="header.key" readonly placeholder="键" />
-                  <input type="text" :value="header.value" readonly placeholder="值" />
+                  <input type="text" :value="header.key" readonly placeholder="Key" />
+                  <input type="text" :value="header.value" readonly placeholder="Value" />
                 </div>
               </div>
             </div>
           </div>
         </div>
          <div v-else class="response-placeholder">
-          <p>点击 "发送" 按钮以发起请求</p>
+          <p>Click "Send" button to make a request</p>
         </div>
       </div>
     </div>
@@ -165,7 +165,7 @@ const response = ref(null);
 // --- API Definitions based on API.md ---
 const apiDefinitions = ref([
   {
-    name: '生成补全',
+    name: 'Generate Completion',
     method: 'POST',
     path: '/api/generate',
     body: {
@@ -177,19 +177,19 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '生成对话补全',
+    name: 'Generate Chat Completion',
     method: 'POST',
     path: '/api/chat',
     body: {
       type: 'raw',
       rawContentType: 'application/json',
-      rawContent: JSON.stringify({ model: 'llama3.2', messages: [{ role: 'user', content: '你好' }], keep_alive: 60 }, null, 2),
+      rawContent: JSON.stringify({ model: 'llama3.2', messages: [{ role: 'user', content: 'Hello' }], keep_alive: 60 }, null, 2),
     },
     queryParams: [],
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '创建模型',
+    name: 'Create Model',
     method: 'POST',
     path: '/api/create',
     body: {
@@ -201,7 +201,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '列出本地模型',
+    name: 'List Local Models',
     method: 'GET',
     path: '/api/tags',
     body: { type: 'none', rawContent: '', rawContentType: 'application/json' },
@@ -209,7 +209,7 @@ const apiDefinitions = ref([
     headers: [],
   },
   {
-    name: '显示模型详情',
+    name: 'Show Model Details',
     method: 'POST',
     path: '/api/show',
     body: {
@@ -221,7 +221,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '复制模型',
+    name: 'Copy Model',
     method: 'POST',
     path: '/api/copy',
     body: {
@@ -233,7 +233,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '删除模型',
+    name: 'Delete Model',
     method: 'DELETE',
     path: '/api/delete',
     body: {
@@ -245,7 +245,7 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '拉取模型',
+    name: 'Pull Model',
     method: 'POST',
     path: '/api/pull',
     body: {
@@ -257,19 +257,19 @@ const apiDefinitions = ref([
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '生成嵌入向量 (多输入)',
+    name: 'Generate Embeddings (Multiple)',
     method: 'POST',
     path: '/api/embed',
     body: {
       type: 'raw',
       rawContentType: 'application/json',
-      rawContent: JSON.stringify({ model: 'gpt-4', input: ['今天天气怎么样？', '北京现在的温度是多少？'] }, null, 2),
+      rawContent: JSON.stringify({ model: 'gpt-4', input: ['How is the weather today?', 'What is the current temperature in Beijing?'] }, null, 2),
     },
     queryParams: [],
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   },
   {
-    name: '列出运行中模型',
+    name: 'List Running Models',
     method: 'GET',
     path: '/api/ps',
     body: { type: 'none', rawContent: '', rawContentType: 'application/json' },
@@ -277,13 +277,13 @@ const apiDefinitions = ref([
     headers: [],
   },
   {
-    name: '生成单个嵌入向量',
+    name: 'Generate Single Embedding',
     method: 'POST',
     path: '/api/embeddings',
     body: {
       type: 'raw',
       rawContentType: 'application/json',
-      rawContent: JSON.stringify({ model: 'all-minilm', prompt: '这是一篇关于羊驼的文章...' }, null, 2),
+      rawContent: JSON.stringify({ model: 'all-minilm', prompt: 'This is an article about llamas...' }, null, 2),
     },
     queryParams: [],
     headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
