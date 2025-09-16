@@ -116,7 +116,7 @@
     </div>
 
     <!-- Add/Edit Server Drawer -->
-    <div v-if="serviceDrawerVisible" class="drawer-overlay" @click="serviceDrawerVisible = false">
+    <div v-if="serviceDrawerVisible" class="drawer-overlay">
       <div class="drawer-content" @click.stop>
         <div class="drawer-header">
           <h3>{{ serviceForm.id ? t('ollamaSettings.editServer') : t('ollamaSettings.addNewServerTitle') }}</h3>
@@ -129,22 +129,19 @@
         </div>
         
         <div class="drawer-body">
-          <form class="server-form" @submit.prevent="handleSaveService">
-            <div class="form-field">
-              <label>{{ t('ollamaSettings.serverNameRequired') }}</label>
-              <input v-model="serviceForm.name" :placeholder="t('ollamaSettings.enterServerName')" class="text-input" required />
-            </div>
+          <el-form ref="serviceFormRef" :model="serviceForm" :rules="formRules" label-position="top">
+            <el-form-item :label="t('ollamaSettings.serverNameRequired')" prop="name">
+              <el-input v-model="serviceForm.name" :placeholder="t('ollamaSettings.enterServerName')" />
+            </el-form-item>
             
-            <div class="form-field">
-              <label>{{ t('ollamaSettings.serverAddressRequired') }}</label>
-              <input v-model="serviceForm.baseUrl" :placeholder="t('ollamaSettings.serverAddressPlaceholder')" class="text-input" required />
-            </div>
+            <el-form-item :label="t('ollamaSettings.serverAddressRequired')" prop="baseUrl">
+              <el-input v-model="serviceForm.baseUrl" :placeholder="t('ollamaSettings.serverAddressPlaceholder')" />
+            </el-form-item>
             
-            <div class="form-field" v-if="serviceForm.id !== 'local'">
-              <label>{{ t('ollamaSettings.apiKeyOptional') }}</label>
-              <input v-model="serviceForm.apiKey" :placeholder="t('ollamaSettings.enterApiKey')" type="password" class="text-input" />
-            </div>
-          </form>
+            <el-form-item v-if="serviceForm.id !== 'local'" :label="t('ollamaSettings.apiKeyOptional')" prop="apiKey">
+              <el-input v-model="serviceForm.apiKey" :placeholder="t('ollamaSettings.enterApiKey')" type="password" show-password />
+            </el-form-item>
+          </el-form>
         </div>
         
         <div class="drawer-footer">
@@ -161,7 +158,7 @@
 
 <script setup lang="ts">
 import {onMounted, reactive, ref} from 'vue'
-import {ElMessage, ElMessageBox, FormInstance} from 'element-plus'
+import {ElMessage, ElMessageBox, FormInstance, FormRules} from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
   AddServer,
@@ -188,6 +185,15 @@ const serviceForm = reactive<Partial<OllamaServerConfig>>({
   baseUrl: '',
   apiKey: '',
   testStatus: 'unknown'
+});
+
+const formRules = reactive<FormRules>({
+  name: [
+    { required: true, message: t('ollamaSettings.serverNameRequired'), trigger: 'blur' }
+  ],
+  baseUrl: [
+    { required: true, message: t('ollamaSettings.serverAddressRequired'), trigger: 'blur' }
+  ]
 });
 
 // --- Data Loading and Processing ---
@@ -224,27 +230,29 @@ const openServiceDrawer = (server: OllamaServerConfig | null) => {
 
 const handleSaveService = async () => {
   if (!serviceFormRef.value) return;
-  await serviceFormRef.value.validate(async (valid) => {
-    if (valid) {
-      isSaving.value = true;
-      try {
-        const configToSave = {...serviceForm} as OllamaServerConfig;
-        if (configToSave.id) {
-          await UpdateServer(configToSave);
-        } else {
-          configToSave.id = Date.now().toString();
-          await AddServer(configToSave);
-        }
-        ElMessage.success(t('ollamaSettings.serverConfigSaved'));
-        serviceDrawerVisible.value = false;
-        await loadAllServers();
-      } catch (error) {
-        ElMessage.error(t('ollamaSettings.saveFailed') + ': ' + (error as Error).message);
-      } finally {
-        isSaving.value = false;
-      }
+  
+  try {
+    const valid = await serviceFormRef.value.validate();
+    if (!valid) return;
+    
+    isSaving.value = true;
+    const configToSave = {...serviceForm} as OllamaServerConfig;
+    
+    if (configToSave.id) {
+      await UpdateServer(configToSave);
+    } else {
+      configToSave.id = Date.now().toString();
+      await AddServer(configToSave);
     }
-  });
+    
+    ElMessage.success(t('ollamaSettings.serverConfigSaved'));
+    serviceDrawerVisible.value = false;
+    await loadAllServers();
+  } catch (error) {
+    ElMessage.error(t('ollamaSettings.saveFailed') + ': ' + (error as Error).message);
+  } finally {
+    isSaving.value = false;
+  }
 };
 
 // --- Service Operations ---
@@ -257,7 +265,20 @@ const testConnection = async (server: OllamaServerConfig & { isTesting?: boolean
     ElMessage.success(`${server.name} ${t('ollamaSettings.connectionSuccess')}`);
   } catch (error) {
     newStatus = 'failed';
-    ElMessage.error(`${server.name} ${t('ollamaSettings.connectionFailed')}: ${(error as Error).message}`);
+    let errorMessage = t('ollamaSettings.connectionFailed');
+    
+    if (error && typeof error === 'object' && 'message' in error) {
+      const msg = (error as Error).message;
+      if (msg && msg !== 'undefined' && msg.trim() !== '') {
+        errorMessage = msg;
+      } else {
+        errorMessage = t('ollamaSettings.serverNotReachable');
+      }
+    } else {
+      errorMessage = t('ollamaSettings.networkError');
+    }
+    
+    ElMessage.error(`${server.name} ${errorMessage}`);
   } finally {
     server.isTesting = false;
     server.testStatus = newStatus;

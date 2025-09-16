@@ -235,7 +235,9 @@
     "confirmDelete": "Confirm Delete",
     "confirm": "Confirm",
     "serverDeleted": "Server deleted",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "networkError": "Network connection failed, please check server address and network status",
+    "serverNotReachable": "Unable to connect to server, please check if the address is correct"
   },
   "modelMarket": {
     "title": "Model Market",
