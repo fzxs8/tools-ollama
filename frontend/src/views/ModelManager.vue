@@ -5,9 +5,12 @@
       <div class="header-content">
         <div class="header-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M4 7V4C4 2.9 4.9 2 6 2H18C19.1 2 20 2.9 20 4V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="2" y="7" width="20" height="15" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 1V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12H23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="header-text">
@@ -31,34 +34,42 @@
               </option>
             </select>
             <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
-        
+
         <div class="action-buttons">
           <button class="btn primary" @click="openDownloadDialog">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 15V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V15" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round"/>
+              <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
             </svg>
             {{ t('modelManager.downloadModel') }}
           </button>
-          
+
           <button class="btn secondary" @click="openDownloadQueueDialog">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M16 4H18A2 2 0 0 1 20 6V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V6A2 2 0 0 1 6 4H8" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 4H18A2 2 0 0 1 20 6V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V6A2 2 0 0 1 6 4H8"
+                    stroke="currentColor" stroke-width="2"/>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2"/>
             </svg>
             {{ t('modelManager.downloadQueue') }}
           </button>
-          
+
           <button class="btn secondary" @click="refreshModels">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <polyline points="23,4 23,10 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="1,20 1,14 7,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M22.88 14.36A9 9 0 0 1 8.51 18.36L4 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="23,4 23,10 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round"/>
+              <polyline points="1,20 1,14 7,14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M22.88 14.36A9 9 0 0 1 8.51 18.36L4 14" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             {{ t('common.refresh') }}
           </button>
@@ -70,54 +81,55 @@
         <div class="table-wrapper" v-loading="loading">
           <table class="models-table">
             <thead>
-              <tr>
-                <th>#</th>
-                <th>{{ t('modelManager.modelName') }}</th>
-                <th>{{ t('modelManager.size') }}</th>
-                <th>{{ t('modelManager.modified') }}</th>
-                <th>{{ t('modelManager.status') }}</th>
-                <th>{{ t('modelManager.actions') }}</th>
-              </tr>
+            <tr>
+              <th>#</th>
+              <th>{{ t('modelManager.modelName') }}</th>
+              <th>{{ t('modelManager.size') }}</th>
+              <th>{{ t('modelManager.modified') }}</th>
+              <th>{{ t('modelManager.status') }}</th>
+              <th>{{ t('modelManager.actions') }}</th>
+            </tr>
             </thead>
             <tbody>
-              <tr v-if="localModels.length === 0 && !loading">
-                <td colspan="6" class="empty-state">
-                  <div class="empty-content">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                      <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                      <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                    </svg>
-                    <p>{{ t('modelManager.noModels') }}</p>
-                    <span>{{ t('modelManager.downloadToStart') }}</span>
-                  </div>
-                </td>
-              </tr>
-              <tr v-for="(model, index) in localModels" :key="model.name" class="model-row">
-                <td>{{ index + 1 }}</td>
-                <td class="model-name">
-                  <div class="model-info">
-                    <span class="name">{{ model.name }}</span>
-                  </div>
-                </td>
-                <td>{{ formatSize(model.size) }}</td>
-                <td>{{ formatDate(model.modified_at) }}</td>
-                <td>
+            <tr v-if="localModels.length === 0 && !loading">
+              <td colspan="6" class="empty-state">
+                <div class="empty-content">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2"
+                          stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                  <p>{{ t('modelManager.noModels') }}</p>
+                  <span>{{ t('modelManager.downloadToStart') }}</span>
+                </div>
+              </td>
+            </tr>
+            <tr v-for="(model, index) in localModels" :key="model.name" class="model-row">
+              <td>{{ index + 1 }}</td>
+              <td class="model-name">
+                <div class="model-info">
+                  <span class="name">{{ model.name }}</span>
+                </div>
+              </td>
+              <td>{{ formatSize(model.size) }}</td>
+              <td>{{ formatDate(model.modified_at) }}</td>
+              <td>
                   <span class="status-badge" :class="{ running: model.isRunning, stopped: !model.isRunning }">
                     <span class="status-dot"></span>
                     {{ model.isRunning ? t('common.running') : t('common.stopped') }}
                   </span>
-                </td>
-                <td>
-                  <button class="btn-small primary" @click="viewModelDetails(model)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    {{ t('common.view') }}
-                  </button>
-                </td>
-              </tr>
+              </td>
+              <td>
+                <button class="btn-small primary" @click="viewModelDetails(model)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  {{ t('common.view') }}
+                </button>
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -125,21 +137,23 @@
     </div>
 
     <!-- Download Model Drawer -->
-    <el-drawer v-model="downloadDialogVisible" :title="t('modelManager.downloadModelTitle')" direction="rtl" size="40%" :close-on-click-modal="false" class="custom-drawer">
+    <el-drawer v-model="downloadDialogVisible" :title="t('modelManager.downloadModelTitle')"
+               direction="rtl" size="50%" :close-on-click-modal="false" class="custom-drawer">
       <div class="info-box">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
           <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <p>{{ t('modelManager.downloadInstruction') }} <a href="#" @click.prevent="openOllamaLibrary" class="link">https://ollama.com/library</a></p>
+        <p>{{ t('modelManager.downloadInstruction') }} <a href="#" @click.prevent="openOllamaLibrary" class="link">https://ollama.com/library</a>
+        </p>
       </div>
-      
+
       <div class="input-group">
         <label>{{ t('modelManager.modelName') }}</label>
-        <el-input v-model="modelNameToDownload" :placeholder="t('modelManager.enterModelName')" />
+        <el-input v-model="modelNameToDownload" :placeholder="t('modelManager.enterModelName')"/>
       </div>
-      
+
       <div class="drawer-footer">
         <el-button @click="downloadDialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" @click="handleDownload" :loading="isDownloading">
@@ -155,21 +169,24 @@
           <h3>{{ t('modelManager.downloadQueue') }}</h3>
           <button class="close-btn" @click="downloadQueueDrawerVisible = false">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-        
+
         <div class="drawer-body">
           <div v-if="downloadQueue.length === 0" class="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-              <path d="M16 4H18A2 2 0 0 1 20 6V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V6A2 2 0 0 1 6 4H8" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 4H18A2 2 0 0 1 20 6V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V6A2 2 0 0 1 6 4H8"
+                    stroke="currentColor" stroke-width="2"/>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="2"/>
             </svg>
             <p>{{ t('modelManager.noDownloads') }}</p>
           </div>
-          
+
           <div v-for="item in downloadQueue" :key="item.model" class="download-item">
             <div class="download-info">
               <h4>{{ item.model }}</h4>
@@ -191,7 +208,7 @@
         v-model="drawerVisible"
         title="Model Details"
         direction="rtl"
-        size="40%"
+        size="50%"
         :close-on-click-modal="false"
         class="custom-drawer"
     >
@@ -200,38 +217,54 @@
           <h4>{{ t('modelManager.modelDetails') }}</h4>
           <el-descriptions :column="1" border size="small">
             <el-descriptions-item :label="t('modelManager.modelName')">{{ selectedModel.name }}</el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.size')">{{ formatSize(selectedModel.size) }}</el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.modified')">{{ formatDate(selectedModel.modified_at) }}</el-descriptions-item>
+            <el-descriptions-item :label="t('modelManager.size')">{{
+                formatSize(selectedModel.size)
+              }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="t('modelManager.modified')">{{
+                formatDate(selectedModel.modified_at)
+              }}
+            </el-descriptions-item>
             <el-descriptions-item label="Digest">{{ selectedModel.digest }}</el-descriptions-item>
             <el-descriptions-item label="Model ID">{{ selectedModel.model }}</el-descriptions-item>
             <el-descriptions-item :label="t('modelManager.status')">
               <el-tag v-if="selectedModel.isRunning" type="success">{{ t('common.running') }}</el-tag>
               <el-tag v-else type="info">{{ t('common.stopped') }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.modelFamily')" v-if="selectedModel.details && selectedModel.details.family">
+            <el-descriptions-item :label="t('modelManager.modelFamily')"
+                                  v-if="selectedModel.details && selectedModel.details.family">
               {{ selectedModel.details.family }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.modelFormat')" v-if="selectedModel.details && selectedModel.details.format">
+            <el-descriptions-item :label="t('modelManager.modelFormat')"
+                                  v-if="selectedModel.details && selectedModel.details.format">
               {{ selectedModel.details.format }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.parameterSize')" v-if="selectedModel.details && selectedModel.details.parameter_size">
+            <el-descriptions-item :label="t('modelManager.parameterSize')"
+                                  v-if="selectedModel.details && selectedModel.details.parameter_size">
               {{ selectedModel.details.parameter_size }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.quantizationLevel')" v-if="selectedModel.details && selectedModel.details.quantization_level">
+            <el-descriptions-item :label="t('modelManager.quantizationLevel')"
+                                  v-if="selectedModel.details && selectedModel.details.quantization_level">
               {{ selectedModel.details.quantization_level }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.parentModel')" v-if="selectedModel.details && selectedModel.details.parent_model">
+            <el-descriptions-item :label="t('modelManager.parentModel')"
+                                  v-if="selectedModel.details && selectedModel.details.parent_model">
               {{ selectedModel.details.parent_model }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('modelManager.supportedFamilies')" v-if="selectedModel.details && selectedModel.details.families">
-              {{ Array.isArray(selectedModel.details.families) ? selectedModel.details.families.join(', ') : selectedModel.details.families }}
+            <el-descriptions-item :label="t('modelManager.supportedFamilies')"
+                                  v-if="selectedModel.details && selectedModel.details.families">
+              {{
+                Array.isArray(selectedModel.details.families) ? selectedModel.details.families.join(', ') : selectedModel.details.families
+              }}
             </el-descriptions-item>
           </el-descriptions>
-          
+
           <div v-if="selectedModel.details" style="margin-top: 15px;">
             <h5>{{ t('modelManager.rawData') }}</h5>
             <el-card shadow="never" style="background: #f8f9fa;">
-              <pre style="font-size: 12px; margin: 0; white-space: pre-wrap; word-break: break-all;">{{ JSON.stringify(selectedModel.details, null, 2) }}</pre>
+              <pre style="font-size: 12px; margin: 0; white-space: pre-wrap; word-break: break-all;">{{
+                  JSON.stringify(selectedModel.details, null, 2)
+                }}</pre>
             </el-card>
           </div>
         </div>
@@ -262,7 +295,10 @@
             </el-form-item>
           </el-form>
           <div style="margin-top: 10px">
-            <el-button @click="saveModelParams" type="primary" size="small">{{ t('modelManager.saveParameters') }}</el-button>
+            <el-button @click="saveModelParams" type="primary" size="small">{{
+                t('modelManager.saveParameters')
+              }}
+            </el-button>
             <el-button @click="resetModelParams" size="small">{{ t('modelManager.resetParameters') }}</el-button>
           </div>
         </div>
@@ -281,7 +317,9 @@
               />
             </el-form-item>
           </el-form>
-          <el-button @click="testModel" :loading="isTestingModel" type="primary" size="small">{{ t('modelManager.sendTest') }}</el-button>
+          <el-button @click="testModel" :loading="isTestingModel" type="primary" size="small">
+            {{ t('modelManager.sendTest') }}
+          </el-button>
 
           <div v-if="testResult || isTestingModel" style="margin-top: 15px;">
             <el-card shadow="never" v-loading="isTestingModel">
@@ -304,7 +342,7 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, reactive, ref} from 'vue'
 import {ElMessage, ElMessageBox, ElNotification} from 'element-plus'
-import { useI18n } from 'vue-i18n'
+import {useI18n} from 'vue-i18n'
 import * as runtime from '../../wailsjs/runtime/runtime.js'
 import {
   DeleteModel,
@@ -325,7 +363,7 @@ import {DownloadProgress, ModelParams} from "../classes/types";
 import OllamaServerConfig = types.OllamaServerConfig;
 import Model = types.Model;
 
-const { t } = useI18n();
+const {t} = useI18n();
 
 const openOllamaLibrary = () => {
   OpenInBrowser('https://ollama.com/library')
@@ -372,12 +410,12 @@ const formatDate = (dateString: string) => {
   if (!dateString || dateString.trim() === '') {
     return t('common.unknown')
   }
-  
+
   const date = new Date(dateString)
   if (isNaN(date.getTime())) {
     return t('common.unknown')
   }
-  
+
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
 }
 
@@ -933,8 +971,12 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .btn-small {
@@ -1051,7 +1093,6 @@ onUnmounted(() => {
 }
 
 
-
 /* Drawer Styles */
 .drawer-overlay {
   position: fixed;
@@ -1156,29 +1197,29 @@ onUnmounted(() => {
   .model-manager {
     padding: 1rem;
   }
-  
+
   .control-panel {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .action-buttons {
     justify-content: center;
   }
-  
+
   .models-table {
     font-size: 0.875rem;
   }
-  
+
   .models-table th,
   .models-table td {
     padding: 0.75rem 0.5rem;
   }
-  
+
   .drawer-content {
     width: 100vw;
   }
-  
+
   :deep(.custom-drawer .el-drawer) {
     height: calc(100vh - 2rem) !important;
     top: 1rem !important;

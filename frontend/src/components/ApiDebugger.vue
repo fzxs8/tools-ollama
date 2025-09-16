@@ -536,9 +536,11 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   background-color: #f8fafc;
   border-radius: 8px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .request-panel,

@@ -88,7 +88,7 @@
   "promptEngineering": {
     "title": "Prompt Engineering",
     "description": "AI conversation interface with multiple model support",
-    "selectModel": "Please select a server and model first, then enter your idea and click \"Generate\" to start.",
+    "selectModel": "select model",
     "selectService": "Select Service",
     "sendMessage": "Generate",
     "typeMessage": "Please enter your idea or requirement description, for example: I want to generate a professional weekly report, including work completed this week, problems encountered, and plans for next week.",
@@ -265,6 +265,10 @@
     "noticeTitle": "Notice",
     "noticeDescription": "Due to the target website's security policy, model details cannot be displayed directly on the current page. You can view detailed information in a new window using the button below.",
     "viewInNewWindow": "View in New Window",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link copied to clipboard",
+    "copyFailed": "Copy failed",
+    "modelDetails": "Model Details",
     "searchFailed": "Failed to search models",
     "loadFailed": "Failed to load online model list"
   },

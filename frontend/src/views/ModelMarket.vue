@@ -55,34 +55,50 @@
     <!-- Model Details Drawer -->
     <el-drawer
         v-model="drawerVisible"
-        :title="selectedModel?.model_name || t('modelMarket.drawerTitle')"
+        :title="selectedModel ? `${t('modelMarket.modelDetails')} - ${selectedModel.model_name}` : t('modelMarket.modelDetails')"
         direction="rtl"
         size="40%"
         :close-on-click-modal="false"
     >
       <div v-if="selectedModel" class="drawer-content">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item :label="t('modelMarket.drawerModelName')">{{ selectedModel.model_name }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerModelId')">{{ selectedModel.model_identifier }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerDescription')">{{ selectedModel.description || t('modelMarket.drawerNoDescription') }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerDownloads')">{{ formatPullCount(selectedModel.pulls) }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerTagsCount')">{{ selectedModel.tags }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerLastUpdated')">{{ selectedModel.last_updated }}</el-descriptions-item>
-          <el-descriptions-item :label="t('modelMarket.drawerUpdateTime')">{{ selectedModel.last_updated_str }}</el-descriptions-item>
-        </el-descriptions>
-        
-        <div style="margin-top: 20px;">
-          <el-alert
-            :title="t('modelMarket.noticeTitle')"
-            type="info"
-            :description="t('modelMarket.noticeDescription')"
-            show-icon
-            :closable="false"
-          />
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerModelName') }}:</label>
+          <span>{{ selectedModel.model_name }}</span>
         </div>
         
-        <div style="margin-top: 20px;">
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerModelId') }}:</label>
+          <span>{{ selectedModel.model_identifier }}</span>
+        </div>
+        
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerDescription') }}:</label>
+          <span>{{ selectedModel.description || t('modelMarket.drawerNoDescription') }}</span>
+        </div>
+        
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerDownloads') }}:</label>
+          <span>{{ formatPullCount(selectedModel.pulls) }}</span>
+        </div>
+        
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerTagsCount') }}:</label>
+          <span>{{ selectedModel.tags }}</span>
+        </div>
+        
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerLastUpdated') }}:</label>
+          <span>{{ selectedModel.last_updated }}</span>
+        </div>
+        
+        <div class="model-detail-item">
+          <label>{{ t('modelMarket.drawerUpdateTime') }}:</label>
+          <span>{{ selectedModel.last_updated_str }}</span>
+        </div>
+        
+        <div class="action-buttons">
           <el-button type="primary" @click="openModelPage(selectedModel.url)">{{ t('modelMarket.viewInNewWindow') }}</el-button>
+          <el-button @click="copyModelUrl(selectedModel.url)">{{ t('modelMarket.copyLink') }}</el-button>
         </div>
       </div>
     </el-drawer>
@@ -141,6 +157,15 @@ const showModelDetails = (model: OnlineModel) => {
 // 在浏览器中打开模型页面
 const openModelPage = (url: string) => {
   OpenInBrowser(url)
+}
+
+// 复制模型链接
+const copyModelUrl = (url: string) => {
+  navigator.clipboard.writeText(url).then(() => {
+    ElMessage.success(t('modelMarket.linkCopied'))
+  }).catch(() => {
+    ElMessage.error(t('modelMarket.copyFailed'))
+  })
 }
 
 // 加载在线模型列表
@@ -238,5 +263,56 @@ onMounted(() => {
 
 .drawer-content {
   height: 100%;
+  padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.model-detail-item {
+  display: flex;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.model-detail-item label {
+  font-weight: 600;
+  color: #4a5568;
+  min-width: 120px;
+  margin-right: 1rem;
+}
+
+.model-detail-item span {
+  color: #2d3748;
+  flex: 1;
+  word-break: break-word;
+}
+
+.notice-box {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #ebf8ff;
+  border: 1px solid #bee3f8;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  color: #2b6cb0;
+}
+
+.notice-box svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.notice-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2rem;
 }
 </style>

@@ -3,7 +3,7 @@
     :model-value="props.visible"
     :title="drawerTitle"
     direction="rtl"
-    size="40%"
+    size="50%"
     :close-on-click-modal="false"
     @update:modelValue="closeDrawer"
   >

@@ -3,7 +3,7 @@
     v-model="visible"
     :title="t('chatManager.conversationHistory')"
     direction="rtl"
-    size="400px"
+    size="50%"
     :close-on-click-modal="false"
   >
     <div class="conversation-list">

@@ -5,9 +5,9 @@
       <div class="header-content">
         <div class="header-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M12 12C14.21 12 16 10.21 16 8S14.21 4 12 4S8 5.79 8 8S9.79 12 12 12Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 21V19C8 16.79 9.79 15 12 15S16 16.79 16 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
         <div class="header-text">
@@ -150,7 +150,7 @@
     </div>
 
     <!-- API Documentation Drawer -->
-    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="60%" :close-on-click-modal="false">
+    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="50%" :close-on-click-modal="false">
       <div class="drawer-content">
         <div class="api-docs-tabs">
           <div class="tab-headers">
@@ -215,7 +215,8 @@
     </el-drawer>
 
     <!-- Log Drawer -->
-    <el-drawer v-model="isLogDrawerVisible" :title="t('openaiAdapter.realtimeLogs')" direction="rtl" size="50%" :close-on-click-modal="false">
+    <el-drawer v-model="isLogDrawerVisible" :title="t('openaiAdapter.realtimeLogs')"
+               direction="rtl" size="50%" :close-on-click-modal="false">
       <div class="drawer-content log-drawer">
         <div class="log-actions">
           <button @click="store.clearLogs">{{ t('openaiAdapter.clearLogs') }}</button>
@@ -1077,6 +1078,7 @@ onMounted(() => {
   padding: 1.5rem; 
   background: #f8fafc;
   height: 100%;
+  width: 100%;
   box-sizing: border-box;
 }
 

@@ -5,8 +5,11 @@
       <div class="header-content">
         <div class="header-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M21 12C21 16.97 16.97 21 12 21S3 16.97 3 12S7.03 3 12 3S21 7.03 21 12Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 15L8 11L16 11L12 15Z" fill="currentColor"/>
+            <path d="M21 3H3C1.9 3 1 3.9 1 5V19C1 20.1 1.9 21 3 21H21C22.1 21 23 20.1 23 19V5C23 3.9 22.1 3 21 3ZM21 19H3V5H21V19Z" fill="currentColor"/>
+            <path d="M5 7H19V9H5V7Z" fill="currentColor"/>
+            <path d="M5 11H11V13H5V11Z" fill="currentColor"/>
+            <path d="M5 15H9V17H5V15Z" fill="currentColor"/>
           </svg>
         </div>
         <div class="header-text">
@@ -24,7 +27,7 @@
         <select v-model="selectedServerId" class="base-url-selector">
           <option value="">{{ t('apiDebugger.selectServer') }}</option>
           <option v-for="server in servers" :key="server.id" :value="server.id">
-            {{ server.name }} ({{ server.baseUrl }})
+            {{ server.name }}
           </option>
         </select>
       </div>
@@ -388,7 +391,6 @@ async function handleRequest(request) {
 
 .debugger-content {
   flex: 1;
-  padding: 2rem;
   overflow: hidden;
 }
 </style>

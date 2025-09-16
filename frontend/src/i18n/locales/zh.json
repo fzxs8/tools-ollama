@@ -88,7 +88,7 @@
   "promptEngineering": {
     "title": "提示词工程",
     "description": "支持多模型的 AI 对话界面",
-    "selectModel": "请先选择服务和模型，然后输入您的想法并点击“生成”开始。",
+    "selectModel": "选择模型",
     "selectService": "选择服务",
     "sendMessage": "生成",
     "typeMessage": "请输入您的想法或需求描述，例如：我想生成一份专业的周报，包括本周完成的工作、遇到的问题和下周计划。",
@@ -265,6 +265,10 @@
     "noticeTitle": "提示",
     "noticeDescription": "由于目标网站的安全策略，无法直接在当前页面显示模型详情。您可以通过下方的按钮在新窗口中查看详细信息。",
     "viewInNewWindow": "在新窗口中查看",
+    "copyLink": "复制链接",
+    "linkCopied": "链接已复制到剪贴板",
+    "copyFailed": "复制失败",
+    "modelDetails": "模型详细信息",
     "searchFailed": "搜索模型失败",
     "loadFailed": "加载在线模型列表失败"
   },
