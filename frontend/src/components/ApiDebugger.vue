@@ -136,6 +136,12 @@
               {{ t('apiDebugger.responseBody') }}
             </button>
             <button 
+              :class="{ active: activeResponseTab === 'result' }" 
+              @click="activeResponseTab = 'result'"
+            >
+              {{ t('apiDebugger.responseResult') }}
+            </button>
+            <button 
               :class="{ active: activeResponseTab === 'headers' }" 
               @click="activeResponseTab = 'headers'"
             >
@@ -146,6 +152,9 @@
           <div class="tab-content">
             <div v-if="activeResponseTab === 'body'">
               <pre class="response-body">{{ formattedBody }}</pre>
+            </div>
+            <div v-if="activeResponseTab === 'result'">
+              <pre class="response-body">{{ extractedContent }}</pre>
             </div>
             <div v-if="activeResponseTab === 'headers'" class="key-value-editor">
               <div v-for="(header, index) in response.headers" :key="index" class="kv-row-readonly">
@@ -165,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -200,12 +209,16 @@ interface Props {
   baseUrl?: string;
   urlPlaceholder?: string;
   onRequest?: (request: ApiRequest) => Promise<any>;
+  selectedModel?: string;
+  defaultUrl?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   baseUrl: '',
   urlPlaceholder: '',
-  onRequest: undefined
+  onRequest: undefined,
+  selectedModel: '',
+  defaultUrl: ''
 });
 
 // 使用国际化的默认占位符
@@ -214,35 +227,51 @@ const computedUrlPlaceholder = computed(() =>
 );
 
 const activeTab = ref('params');
-const activeResponseTab = ref('body');
+const activeResponseTab = ref('result');
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const response = ref<any>(null);
 
 const request = reactive<ApiRequest>({
-  method: 'GET',
-  url: '',
+  method: 'POST',
+  url: props.defaultUrl || '',
   queryParams: [],
-  headers: [],
+  headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
   body: {
-    type: 'none',
+    type: 'raw',
     rawContent: '',
     rawContentType: 'application/json',
     formData: []
   }
 });
 
+// 初始化时自动加载示例
+if (props.defaultUrl === '/v1/chat/completions') {
+  setTimeout(() => {
+    loadStreamExample();
+  }, 100);
+}
+
+// 监听 baseUrl 变化，重新验证 URL
+watch(() => props.baseUrl, () => {
+  if (error.value && error.value.includes('Invalid URL')) {
+    error.value = null;
+  }
+});
+
 // 构建完整的 URL
 const fullUrl = computed(() => {
-  let url = request.url;
+  let url = request.url.trim();
+  if (!url) return '';
+  
   if (props.baseUrl && !url.startsWith('http')) {
     url = props.baseUrl.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
   }
   
-  const enabledParams = request.queryParams.filter(p => p.enabled && p.key);
+  const enabledParams = request.queryParams.filter(p => p.enabled && p.key.trim());
   if (enabledParams.length > 0) {
     const params = new URLSearchParams();
-    enabledParams.forEach(p => params.append(p.key, p.value));
+    enabledParams.forEach(p => params.append(p.key.trim(), p.value));
     url += (url.includes('?') ? '&' : '?') + params.toString();
   }
   
@@ -260,6 +289,49 @@ const formattedBody = computed(() => {
     }
   }
   return '';
+});
+
+// 提取流式响应中的内容
+const extractedContent = computed(() => {
+  if (!response.value?.body) return '';
+  
+  const body = response.value.body;
+  const contentType = response.value.headers?.find(h => h.key.toLowerCase() === 'content-type')?.value || '';
+  
+  if (contentType.includes('text/event-stream')) {
+    // 处理流式响应
+    const lines = body.split('\n');
+    let content = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.substring(6);
+        if (data === '[DONE]') break;
+        
+        try {
+          const chunk = JSON.parse(data);
+          if (chunk.choices?.[0]?.delta?.content) {
+            content += chunk.choices[0].delta.content;
+          }
+        } catch (e) {
+          // 忽略解析错误
+        }
+      }
+    }
+    
+    return content || '(无内容)';
+  } else {
+    // 处理普通响应
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.choices?.[0]?.message?.content) {
+        return parsed.choices[0].message.content;
+      }
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return body;
+    }
+  }
 });
 
 // 状态样式
@@ -284,8 +356,9 @@ const removeFormData = (index: number) => request.body.formData.splice(index, 1)
 
 // 示例加载
 const loadChatExample = () => {
+  const modelName = props.selectedModel || 'llama3';
   request.body.rawContent = JSON.stringify({
-    model: 'llama3',
+    model: modelName,
     messages: [
       {
         role: 'system',
@@ -303,8 +376,9 @@ const loadChatExample = () => {
 };
 
 const loadStreamExample = () => {
+  const modelName = props.selectedModel || 'llama3';
   request.body.rawContent = JSON.stringify({
-    model: 'llama3',
+    model: modelName,
     messages: [
       {
         role: 'system',
@@ -339,6 +413,13 @@ const sendRequest = async () => {
       // 使用自定义请求处理器
       result = await props.onRequest(request);
     } else {
+      // 验证 URL 格式
+      try {
+        new URL(fullUrl.value);
+      } catch (urlError) {
+        throw new Error('Invalid URL format');
+      }
+      
       // 使用默认的 fetch 请求
       const headers: Record<string, string> = {};
       request.headers.filter(h => h.enabled && h.key).forEach(h => {
@@ -360,11 +441,16 @@ const sendRequest = async () => {
       }
 
       const startTime = Date.now();
-      const fetchResponse = await fetch(fullUrl.value, {
+      const fetchOptions: RequestInit = {
         method: request.method,
-        headers,
-        body: ['GET', 'HEAD'].includes(request.method) ? undefined : body
-      });
+        headers
+      };
+      
+      if (!['GET', 'HEAD'].includes(request.method) && body) {
+        fetchOptions.body = body;
+      }
+      
+      const fetchResponse = await fetch(fullUrl.value, fetchOptions);
       const endTime = Date.now();
 
       const responseHeaders = Array.from(fetchResponse.headers.entries()).map(([key, value]) => ({
@@ -372,11 +458,35 @@ const sendRequest = async () => {
         value
       }));
 
+      let responseBody = '';
+      const contentType = fetchResponse.headers.get('content-type') || '';
+      
+      if (contentType.includes('text/event-stream')) {
+        // Handle streaming response
+        const reader = fetchResponse.body?.getReader();
+        const decoder = new TextDecoder();
+        
+        if (reader) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              responseBody += decoder.decode(value, { stream: true });
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        }
+      } else {
+        // Handle regular response
+        responseBody = await fetchResponse.text();
+      }
+
       result = {
         statusCode: fetchResponse.status,
         statusText: fetchResponse.statusText,
         headers: responseHeaders,
-        body: await fetchResponse.text(),
+        body: responseBody,
         requestDurationMs: endTime - startTime
       };
     }
@@ -386,8 +496,20 @@ const sendRequest = async () => {
     } else {
       response.value = result;
     }
-  } catch (e) {
-    error.value = `${t('apiDebugger.requestFailed')}: ${e}`;
+  } catch (e: any) {
+    console.error('Request failed:', e);
+    
+    // 提供更详细的错误信息
+    let errorMessage = 'Unknown error';
+    if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
+      errorMessage = 'Connection failed - check if the service is running and accessible';
+    } else if (e.name === 'AbortError') {
+      errorMessage = 'Request timeout';
+    } else if (e.message) {
+      errorMessage = e.message;
+    }
+    
+    error.value = `${t('apiDebugger.requestFailed')}: ${errorMessage}`;
   } finally {
     isLoading.value = false;
   }
@@ -397,12 +519,15 @@ const sendRequest = async () => {
 defineExpose({
   setRequest: (newRequest: Partial<ApiRequest>) => {
     Object.assign(request, newRequest);
+    // 清除之前的错误状态
+    error.value = null;
   },
   sendRequest,
   clearResponse: () => {
     response.value = null;
     error.value = null;
-  }
+  },
+  getFullUrl: () => fullUrl.value
 });
 </script>
 

@@ -163,7 +163,45 @@ func (m *OpenAIAdapterManager) Start() error {
 	adapter := ai.NewOpenAIAdapter(adapterLogger.WithPrefix("Handler"), ollamaClient, m.runtimeCtx)
 
 	mux := http.NewServeMux()
-	mux.Handle("/v1/chat/completions", adapter)
+
+	// Add CORS middleware for all routes
+	corsHandler := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	mux.Handle("/v1/chat/completions", corsHandler(adapter))
+
+	// Add /v1/models endpoint for compatibility
+	mux.HandleFunc("/v1/models", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"object":"list","data":[{"id":"` + m.config.TargetOllamaServerID + `","object":"model","created":1234567890,"owned_by":"ollama"}]}`))
+	})
 
 	addr := fmt.Sprintf("%s:%d", m.config.ListenIP, m.config.ListenPort)
 	m.server = &http.Server{Addr: addr, Handler: mux}

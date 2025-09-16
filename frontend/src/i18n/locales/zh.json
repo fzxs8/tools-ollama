@@ -193,6 +193,7 @@
     "quickTemplates": "快速模板",
     "nonStreamingChat": "非流式聊天",
     "streamingChat": "流式聊天",
+    "streamingMode": "流式模式",
     "serviceNotRunning": "服务未运行，请先启动 OpenAI 适配器服务"
   },
   "ollamaSettings": {
@@ -200,7 +201,7 @@
     "description": "配置您的 Ollama 服务器连接",
     "ollamaServers": "Ollama 服务器",
     "manageServers": "管理您的本地和远程 Ollama 服务器配置",
-    "addNewServer": "添加新服务器",
+    "addNewServer": "添加",
     "serverName": "服务器名称",
     "serverAddress": "服务器地址",
     "connectionStatus": "连接状态",
@@ -223,7 +224,7 @@
     "apiKeyOptional": "API 密钥（可选）",
     "enterApiKey": "输入 API 密钥",
     "cancel": "取消",
-    "saveServer": "保存服务器",
+    "saveServer": "保存",
     "loadServerListFailed": "加载服务列表失败",
     "serverConfigSaved": "服务配置已保存",
     "saveFailed": "保存失败",
@@ -265,6 +266,7 @@
     "status": "状态",
     "duration": "耗时",
     "responseBody": "响应体",
+    "responseResult": "响应结果",
     "responseHeaders": "响应头",
     "clickSendToRequest": "点击\"发送\"按钮发起请求",
     "failedToLoadServers": "加载服务器失败",

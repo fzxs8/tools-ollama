@@ -176,21 +176,23 @@
             <!-- API 调试器 -->
             <div v-if="activeApiTab === 'debugger'" class="debugger-content">
               <div class="debugger-header">
-                <h3>{{ t('openaiAdapter.apiDebuggerTitle') }}</h3>
-                <p>{{ t('openaiAdapter.apiDebuggerDescription') }}</p>
-              </div>
-              
-              <div class="api-templates">
-                <h4>{{ t('openaiAdapter.quickTemplates') }}</h4>
-                <div class="template-buttons">
-                  <button 
-                    v-for="template in apiTemplates" 
-                    :key="template.name"
-                    @click="loadApiTemplate(template)"
-                    class="template-btn"
-                  >
-                    {{ template.name }}
-                  </button>
+                <div class="header-left">
+                  <h3>{{ t('openaiAdapter.apiDebuggerTitle') }}</h3>
+                  <p>{{ t('openaiAdapter.apiDebuggerDescription') }}</p>
+                </div>
+                <div class="header-right">
+                  <div class="stream-toggle">
+                    <label class="toggle-label">
+                      <input 
+                        type="checkbox" 
+                        v-model="isStreamMode" 
+                        @change="onStreamModeChange"
+                        class="toggle-checkbox"
+                      />
+                      <span class="toggle-slider"></span>
+                      <span class="toggle-text">{{ t('openaiAdapter.streamingMode') }}</span>
+                    </label>
+                  </div>
                 </div>
               </div>
               
@@ -199,6 +201,8 @@
                 :base-url="adapterBaseUrl"
                 url-placeholder="/v1/chat/completions"
                 :on-request="handleApiRequest"
+                :selected-model="selectedModel"
+                default-url="/v1/chat/completions"
               />
             </div>
           </div>
@@ -249,6 +253,7 @@ const activeApiTab = ref('examples');
 const apiDebuggerRef = ref();
 const selectedModel = ref('');
 const availableModels = ref<Model[]>([]);
+const isStreamMode = ref(true);
 
 // --- Computed Properties for UI --- 
 const toggleButtonClass = computed(() => [
@@ -264,6 +269,24 @@ const adapterBaseUrl = computed(() => {
   const ip = config.value.listenIp === '0.0.0.0' ? '127.0.0.1' : config.value.listenIp;
   return `http://${ip}:${config.value.listenPort}`;
 });
+
+// 检查服务连接状态
+const checkServiceConnection = async () => {
+  if (!status.value.isRunning || !adapterBaseUrl.value) {
+    return false;
+  }
+  
+  try {
+    const response = await fetch(`${adapterBaseUrl.value}/v1/models`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('Service connection check failed:', error);
+    return false;
+  }
+};
 
 // API 模板
 const apiTemplates = computed(() => {
@@ -340,6 +363,11 @@ const toggleService = debounce(async () => {
     } else {
       await store.startServer();
     }
+    
+    // Debug connection after service toggle
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(debugServiceConnection, 2000);
+    }
   } finally {
     isToggling.value = false;
   }
@@ -385,12 +413,11 @@ const handleApiRequest = async (request) => {
     url = adapterBaseUrl.value.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
   }
   
-  // 添加查询参数
-  const enabledParams = request.queryParams.filter(p => p.enabled && p.key);
-  if (enabledParams.length > 0) {
-    const params = new URLSearchParams();
-    enabledParams.forEach(p => params.append(p.key, p.value));
-    url += (url.includes('?') ? '&' : '?') + params.toString();
+  // 验证 URL
+  try {
+    new URL(url);
+  } catch (e) {
+    throw new Error(`${t('apiDebugger.requestFailed')}: Invalid URL format`);
   }
   
   // 构建请求头
@@ -403,9 +430,6 @@ const handleApiRequest = async (request) => {
   let body;
   if (request.body.type === 'raw' && request.body.rawContent) {
     body = request.body.rawContent;
-    if (request.body.rawContentType && !headers['Content-Type']) {
-      headers['Content-Type'] = request.body.rawContentType;
-    }
   } else if (request.body.type === 'formData') {
     const formData = new FormData();
     request.body.formData.filter(f => f.key).forEach(f => {
@@ -417,11 +441,17 @@ const handleApiRequest = async (request) => {
   // 发送请求
   const startTime = Date.now();
   try {
-    const fetchResponse = await fetch(url, {
+    const fetchOptions = {
       method: request.method,
-      headers,
-      body: ['GET', 'HEAD'].includes(request.method) ? undefined : body
-    });
+      headers
+    };
+    
+    // 只有非 GET/HEAD 请求才添加 body
+    if (!['GET', 'HEAD'].includes(request.method) && body) {
+      fetchOptions.body = body;
+    }
+    
+    const fetchResponse = await fetch(url, fetchOptions);
     const endTime = Date.now();
     
     const responseHeaders = Array.from(fetchResponse.headers.entries()).map(([key, value]) => ({
@@ -429,15 +459,88 @@ const handleApiRequest = async (request) => {
       value
     }));
     
+    let responseBody = '';
+    const contentType = fetchResponse.headers.get('content-type') || '';
+    
+    if (contentType.includes('text/event-stream')) {
+      // Handle streaming response
+      const reader = fetchResponse.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (reader) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            responseBody += decoder.decode(value, { stream: true });
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    } else {
+      // Handle regular response
+      responseBody = await fetchResponse.text();
+    }
+    
     return {
       statusCode: fetchResponse.status,
       statusText: fetchResponse.statusText,
       headers: responseHeaders,
-      body: await fetchResponse.text(),
+      body: responseBody,
       requestDurationMs: endTime - startTime
     };
   } catch (error) {
-    throw new Error(`${t('apiDebugger.requestFailed')}: ${error.message}`);
+    console.error('Request failed:', error);
+    
+    // 提供更详细的错误信息
+    let errorMessage = 'Network error';
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      errorMessage = 'Connection failed - service may be down or unreachable';
+    } else if (error.name === 'AbortError') {
+      errorMessage = 'Request timeout';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(`${t('apiDebugger.requestFailed')}: ${errorMessage}`);
+  }
+};
+
+// --- Stream Mode Handling ---
+const onStreamModeChange = () => {
+  if (apiDebuggerRef.value) {
+    const currentModel = selectedModel.value || 'llama3';
+    const template = isStreamMode.value ? apiTemplates.value[1] : apiTemplates.value[0];
+    apiDebuggerRef.value.setRequest({
+      method: template.method,
+      url: template.url,
+      queryParams: [],
+      headers: template.headers || [],
+      body: template.body || {
+        type: 'none',
+        rawContent: '',
+        rawContentType: 'application/json',
+        formData: []
+      }
+    });
+  }
+};
+
+// --- Debug Functions ---
+const debugServiceConnection = async () => {
+  console.log('=== Service Connection Debug ===');
+  console.log('Service running:', status.value.isRunning);
+  console.log('Adapter base URL:', adapterBaseUrl.value);
+  console.log('Config:', config.value);
+  
+  if (status.value.isRunning && adapterBaseUrl.value) {
+    const isConnected = await checkServiceConnection();
+    console.log('Connection test result:', isConnected);
+    
+    if (!isConnected) {
+      console.warn('Service appears to be running but is not responding to requests');
+    }
   }
 };
 
@@ -459,6 +562,16 @@ const loadApiTemplate = (template) => {
     apiDebuggerRef.value.clearResponse();
   }
 };
+
+// 暴露调试函数供开发者控制台使用
+if (process.env.NODE_ENV === 'development') {
+  (window as any).debugOpenAIAdapter = {
+    checkConnection: debugServiceConnection,
+    getConfig: () => config.value,
+    getStatus: () => status.value,
+    getBaseUrl: () => adapterBaseUrl.value
+  };
+}
 
 // --- Log Handling ---
 const downloadLogs = () => {
@@ -496,12 +609,10 @@ onMounted(() => {
         await loadModelsForServer(store.config.targetOllamaServerId);
       }
       
-      // Auto-load streaming chat template
-      setTimeout(() => {
-        if (apiTemplates.value.length > 1) {
-          loadApiTemplate(apiTemplates.value[1]); // Load streaming chat template
-        }
-      }, 200);
+      // Debug service connection
+      if (process.env.NODE_ENV === 'development') {
+        await debugServiceConnection();
+      }
     } catch (error) {
       console.error('Failed to initialize OpenAI Adapter:', error);
     }
@@ -514,6 +625,10 @@ onMounted(() => {
 
   EventsOn('openai-adapter-status-changed', (newStatus: OpenAIAdapterStatus) => {
     store.setStatus(newStatus);
+    // Debug connection when status changes
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(debugServiceConnection, 1000);
+    }
   });
 });
 
@@ -1015,35 +1130,82 @@ onMounted(() => {
 }
 
 .debugger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.debugger-header h3 {
+.header-left h3 {
   margin: 0 0 0.5rem 0;
   color: #1f2937;
   font-size: 1.25rem;
   font-weight: 600;
 }
 
-.debugger-header p {
+.header-left p {
   margin: 0;
   color: #6b7280;
   font-size: 0.95rem;
 }
 
-.api-templates {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+.header-right {
+  flex-shrink: 0;
+  margin-left: 2rem;
 }
 
-.api-templates h4 {
-  margin: 0 0 1rem 0;
+.stream-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 0.5rem;
+}
+
+.toggle-checkbox {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background-color: #cbd5e0;
+  border-radius: 12px;
+  transition: background-color 0.3s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-checkbox:checked + .toggle-slider {
+  background-color: #667eea;
+}
+
+.toggle-checkbox:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle-text {
+  font-size: 0.9rem;
   color: #374151;
-  font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .template-buttons {

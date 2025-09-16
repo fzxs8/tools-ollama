@@ -193,6 +193,7 @@
     "quickTemplates": "Quick Templates",
     "nonStreamingChat": "Non-streaming Chat",
     "streamingChat": "Streaming Chat",
+    "streamingMode": "Streaming Mode",
     "serviceNotRunning": "Service is not running, please start the OpenAI Adapter service first"
   },
   "ollamaSettings": {
@@ -223,7 +224,7 @@
     "apiKeyOptional": "API Key (Optional)",
     "enterApiKey": "Enter API Key",
     "cancel": "Cancel",
-    "saveServer": "Save Server",
+    "saveServer": "Save",
     "loadServerListFailed": "Failed to load server list",
     "serverConfigSaved": "Server configuration saved",
     "saveFailed": "Save failed",
@@ -265,6 +266,7 @@
     "status": "Status",
     "duration": "Duration",
     "responseBody": "Response Body",
+    "responseResult": "Response Result",
     "responseHeaders": "Response Headers",
     "clickSendToRequest": "Click \"Send\" button to make a request",
     "failedToLoadServers": "Failed to load servers",
