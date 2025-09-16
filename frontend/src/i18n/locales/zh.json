@@ -182,6 +182,8 @@
     "viewApiDocs": "查看 API 文档",
     "viewLogs": "查看日志",
     "saveSettings": "保存设置",
+    "tools": "工具",
+    "toolsDescription": "调试和日志工具",
     "apiUsageExamples": "API 调用示例",
     "realtimeLogs": "适配器实时日志",
     "clearLogs": "清空日志",

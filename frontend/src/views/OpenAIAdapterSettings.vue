@@ -19,86 +19,94 @@
 
     <!-- Main Content Area -->
     <div class="main-content">
-      <!-- Configuration Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h3>{{ t('openaiAdapter.serviceConfiguration') }}</h3>
-          <p>{{ t('openaiAdapter.configDescription') }}</p>
-        </div>
-        
-        <div class="config-form">
-          <div class="form-row">
-            <div class="form-field">
-              <label for="listen-ip">{{ t('openaiAdapter.listenAddress') }}</label>
-              <div class="input-wrapper">
-                <input id="listen-ip" type="text" v-model="store.config.listenIp" :disabled="status.isRunning" placeholder="0.0.0.0" />
+      <!-- Top Row: Configuration and Tools -->
+      <div class="top-row">
+        <!-- Configuration Card -->
+        <div class="config-card">
+          <div class="card-header">
+            <div>
+              <h3>{{ t('openaiAdapter.serviceConfiguration') || 'Service Configuration' }}</h3>
+              <p>{{ t('openaiAdapter.configDescription') || 'Configure OpenAI adapter settings' }}</p>
+            </div>
+            <div class="status-badge" :class="{ 'running': status.isRunning, 'stopped': !status.isRunning }">
+              <span class="status-dot"></span>
+              {{ status.isRunning ? t('common.running') || 'Running' : t('common.stopped') || 'Stopped' }}
+            </div>
+          </div>
+          
+          <div class="config-form">
+            <div class="form-row">
+              <div class="form-field">
+                <label for="listen-ip">{{ t('openaiAdapter.listenAddress') || 'Listen Address' }}</label>
+                <div class="input-wrapper">
+                  <input id="listen-ip" type="text" v-model="store.config.listenIp" :disabled="status.isRunning" placeholder="0.0.0.0" />
+                </div>
+              </div>
+              
+              <div class="form-field">
+                <label for="listen-port">{{ t('openaiAdapter.listenPort') || 'Listen Port' }}</label>
+                <div class="input-wrapper">
+                  <input id="listen-port" type="number" v-model.number="store.config.listenPort" :disabled="status.isRunning" placeholder="11434" />
+                </div>
               </div>
             </div>
             
-            <div class="form-field">
-              <label for="listen-port">{{ t('openaiAdapter.listenPort') }}</label>
-              <div class="input-wrapper">
-                <input id="listen-port" type="number" v-model.number="store.config.listenPort" :disabled="status.isRunning" placeholder="11434" />
+            <div class="form-field full-width">
+              <label for="ollama-server">{{ t('openaiAdapter.targetService') || 'Target Service' }}</label>
+              <div class="select-wrapper">
+                <select id="ollama-server" v-model="store.config.targetOllamaServerId" :disabled="status.isRunning" @change="onServerChange">
+                  <option value="" disabled>{{ t('openaiAdapter.selectService') || 'Select Service' }}</option>
+                  <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
+                    {{ server.name }} ({{ server.baseUrl }})
+                  </option>
+                </select>
+                <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="form-field full-width" v-if="store.config.targetOllamaServerId">
+              <label for="target-model">{{ t('openaiAdapter.targetModel') || 'Target Model' }}</label>
+              <div class="select-wrapper">
+                <select id="target-model" v-model="selectedModel" :disabled="status.isRunning || !availableModels.length">
+                  <option value="" disabled>{{ t('openaiAdapter.selectModel') || 'Select Model' }}</option>
+                  <option v-for="model in availableModels" :key="model.name" :value="model.name">
+                    {{ model.name }}
+                  </option>
+                </select>
+                <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </div>
             </div>
           </div>
           
-          <div class="form-field full-width">
-            <label for="ollama-server">{{ t('openaiAdapter.targetService') }}</label>
-            <div class="select-wrapper">
-              <select id="ollama-server" v-model="store.config.targetOllamaServerId" :disabled="status.isRunning" @change="onServerChange">
-                <option value="" disabled>{{ t('openaiAdapter.selectService') }}</option>
-                <option v-for="server in ollamaServers" :key="server.id" :value="server.id">
-                  {{ server.name }} ({{ server.baseUrl }})
-                </option>
-              </select>
-              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Control Buttons -->
+          <div class="control-buttons">
+            <button :class="['toggle-btn', { 'running': status.isRunning }]" @click="toggleService" :disabled="isToggling">
+              <span v-if="!isToggling" class="btn-content">
+                <svg v-if="!status.isRunning" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                </svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                  <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                </svg>
+                {{ status.isRunning ? t('openaiAdapter.stopService') || 'Stop Service' : t('openaiAdapter.startService') || 'Start Service' }}
+              </span>
+              <div v-else class="loading-spinner"></div>
+            </button>
+            
+            <button class="action-btn primary" @click="store.saveConfig" :disabled="status.isRunning">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16L21 8V19A2 2 0 0 1 19 21Z" stroke="currentColor" stroke-width="2"/>
+                <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2"/>
+                <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2"/>
               </svg>
-            </div>
+              {{ t('openaiAdapter.saveSettings') || 'Save Settings' }}
+            </button>
           </div>
-          
-          <div class="form-field full-width" v-if="store.config.targetOllamaServerId">
-            <label for="target-model">{{ t('openaiAdapter.targetModel') }}</label>
-            <div class="select-wrapper">
-              <select id="target-model" v-model="selectedModel" :disabled="status.isRunning || !availableModels.length">
-                <option value="" disabled>{{ t('openaiAdapter.selectModel') }}</option>
-                <option v-for="model in availableModels" :key="model.name" :value="model.name">
-                  {{ model.name }}
-                </option>
-              </select>
-              <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Service Status Card -->
-      <div class="status-card">
-        <div class="status-header">
-          <h3>{{ t('openaiAdapter.serviceStatus') }}</h3>
-          <div class="status-badge" :class="{ 'running': status.isRunning, 'stopped': !status.isRunning }">
-            <span class="status-dot"></span>
-            {{ status.isRunning ? t('common.running') : t('common.stopped') }}
-          </div>
-        </div>
-        
-        <div class="status-body">
-          <button :class="['toggle-btn', { 'running': status.isRunning }]" @click="toggleService" :disabled="isToggling">
-            <span v-if="!isToggling" class="btn-content">
-              <svg v-if="!status.isRunning" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <polygon points="5,3 19,12 5,21" fill="currentColor"/>
-              </svg>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
-                <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
-              </svg>
-              {{ status.isRunning ? t('openaiAdapter.stopService') : t('openaiAdapter.startService') }}
-            </span>
-            <div v-else class="loading-spinner"></div>
-          </button>
           
           <div v-if="status.error && !status.isRunning" class="error-message">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -109,38 +117,34 @@
             {{ status.error }}
           </div>
         </div>
-      </div>
 
-      <!-- Action Buttons Area -->
-      <div class="actions-card">
-        <div class="actions-grid">
-          <button class="action-btn secondary" @click="store.fetchApiDocs" :disabled="!status.isRunning">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
-              <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
-              <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/>
-              <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            {{ t('openaiAdapter.viewApiDocs') }}
-          </button>
+        <!-- Tools Card -->
+        <div class="tools-card">
+          <div class="card-header">
+            <div>
+              <h3>{{ t('openaiAdapter.tools') || '工具' }}</h3>
+              <p>{{ t('openaiAdapter.toolsDescription') || '调试和日志工具' }}</p>
+            </div>
+          </div>
           
-          <button class="action-btn secondary" @click="store.toggleLogDrawer(true)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
-              <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
-              <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            {{ t('openaiAdapter.viewLogs') }}
-          </button>
-          
-          <button class="action-btn primary" @click="store.saveConfig" :disabled="status.isRunning">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16L21 8V19A2 2 0 0 1 19 21Z" stroke="currentColor" stroke-width="2"/>
-              <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2"/>
-              <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            {{ t('openaiAdapter.saveSettings') }}
-          </button>
+          <div class="tools-buttons">
+            <button class="tool-btn" @click="store.fetchApiDocs" :disabled="!status.isRunning">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12C21 16.97 16.97 21 12 21S3 16.97 3 12S7.03 3 12 3S21 7.03 21 12Z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ t('openaiAdapter.apiDebugger') || 'API Debugger' }}
+            </button>
+            
+            <button class="tool-btn" @click="store.toggleLogDrawer(true)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z" stroke="currentColor" stroke-width="2"/>
+                <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+                <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ t('openaiAdapter.viewLogs') || 'View Logs' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -636,15 +640,22 @@ onMounted(() => {
 
 <style scoped>
 .adapter-settings-page {
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   box-sizing: border-box;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .page-header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {
@@ -683,6 +694,78 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.top-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+  justify-content: center;
+}
+
+.control-buttons .toggle-btn,
+.control-buttons .action-btn {
+  flex: 1;
+  max-width: 200px;
+}
+
+.tools-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tools-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  color: #4a5568;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  text-align: left;
+}
+
+.tool-btn:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .status-card, .config-card, .actions-card {
@@ -694,18 +777,24 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.status-header {
+.card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
 }
 
-.status-header h3 {
-  margin: 0;
+.card-header h3 {
+  margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: #2d3748;
+}
+
+.card-header p {
+  margin: 0;
+  color: #718096;
+  font-size: 0.95rem;
 }
 
 .status-badge {
@@ -966,12 +1055,16 @@ onMounted(() => {
     padding: 1rem;
   }
   
+  .top-row {
+    grid-template-columns: 1fr;
+  }
+  
   .form-row {
     grid-template-columns: 1fr;
   }
   
-  .actions-grid {
-    grid-template-columns: 1fr;
+  .control-buttons {
+    flex-direction: column;
   }
   
   .header-content {

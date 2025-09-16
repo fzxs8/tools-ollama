@@ -182,6 +182,8 @@
     "viewApiDocs": "View API Documentation",
     "viewLogs": "View Logs",
     "saveSettings": "Save Settings",
+    "tools": "Tools",
+    "toolsDescription": "Debug and log tools",
     "apiUsageExamples": "API Usage Examples",
     "realtimeLogs": "Adapter Real-time Logs",
     "clearLogs": "Clear Logs",
