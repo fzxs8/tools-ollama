@@ -12,8 +12,8 @@
           </svg>
         </div>
         <div class="header-text">
-          <h1>{{ t('modelMarket.title') || 'Model Market' }}</h1>
-          <p>{{ t('modelMarket.description') || 'Discover and explore available AI models' }}</p>
+          <h1>{{ t('modelMarket.title') }}</h1>
+          <p>{{ t('modelMarket.description') }}</p>
         </div>
       </div>
     </div>
@@ -21,32 +21,32 @@
     <el-card class="market-card">
       <template #header>
         <div class="card-header">
-          <span>Model Market</span>
+          <span>{{ t('modelMarket.cardTitle') }}</span>
           <div>
             <el-input
               v-model="searchText"
-              placeholder="Search models..."
+              :placeholder="t('modelMarket.searchPlaceholder')"
               style="width: 300px; margin-right: 10px"
               clearable
               @keyup.enter="searchModels"
             />
-            <el-button type="primary" @click="searchModels">Search</el-button>
+            <el-button type="primary" @click="searchModels">{{ t('modelMarket.searchButton') }}</el-button>
           </div>
         </div>
       </template>
       
-      <el-table :data="onlineModels" style="width: 100%" v-loading="loading" empty-text="No data">
-        <el-table-column prop="model_name" label="Model Name" />
-        <el-table-column prop="description" label="Description" />
-        <el-table-column prop="pulls" label="Downloads">
+      <el-table :data="onlineModels" style="width: 100%" v-loading="loading" :empty-text="t('modelMarket.noData')">
+        <el-table-column prop="model_name" :label="t('modelMarket.tableName')" />
+        <el-table-column prop="description" :label="t('modelMarket.tableDescription')" />
+        <el-table-column prop="pulls" :label="t('modelMarket.tableDownloads')">
           <template #default="scope">
             {{ formatPullCount(scope.row.pulls) }}
           </template>
         </el-table-column>
-        <el-table-column prop="last_updated" label="Last Updated" />
-        <el-table-column label="Actions">
+        <el-table-column prop="last_updated" :label="t('modelMarket.tableLastUpdated')" />
+        <el-table-column :label="t('modelMarket.tableActions')">
           <template #default="scope">
-            <el-button size="small" @click="showModelDetails(scope.row)">Details</el-button>
+            <el-button size="small" @click="showModelDetails(scope.row)">{{ t('modelMarket.detailsButton') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -55,34 +55,34 @@
     <!-- Model Details Drawer -->
     <el-drawer
         v-model="drawerVisible"
-        :title="selectedModel?.model_name"
+        :title="selectedModel?.model_name || t('modelMarket.drawerTitle')"
         direction="rtl"
         size="40%"
         :close-on-click-modal="false"
     >
       <div v-if="selectedModel" class="drawer-content">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="Model Name">{{ selectedModel.model_name }}</el-descriptions-item>
-          <el-descriptions-item label="Model ID">{{ selectedModel.model_identifier }}</el-descriptions-item>
-          <el-descriptions-item label="Description">{{ selectedModel.description || 'No description' }}</el-descriptions-item>
-          <el-descriptions-item label="Downloads">{{ formatPullCount(selectedModel.pulls) }}</el-descriptions-item>
-          <el-descriptions-item label="Tags Count">{{ selectedModel.tags }}</el-descriptions-item>
-          <el-descriptions-item label="Last Updated">{{ selectedModel.last_updated }}</el-descriptions-item>
-          <el-descriptions-item label="Update Time">{{ selectedModel.last_updated_str }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerModelName')">{{ selectedModel.model_name }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerModelId')">{{ selectedModel.model_identifier }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerDescription')">{{ selectedModel.description || t('modelMarket.drawerNoDescription') }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerDownloads')">{{ formatPullCount(selectedModel.pulls) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerTagsCount')">{{ selectedModel.tags }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerLastUpdated')">{{ selectedModel.last_updated }}</el-descriptions-item>
+          <el-descriptions-item :label="t('modelMarket.drawerUpdateTime')">{{ selectedModel.last_updated_str }}</el-descriptions-item>
         </el-descriptions>
         
         <div style="margin-top: 20px;">
           <el-alert
-            title="Notice"
+            :title="t('modelMarket.noticeTitle')"
             type="info"
-            description="Due to the target website's security policy, model details cannot be displayed directly on the current page. You can view detailed information in a new window using the button below."
+            :description="t('modelMarket.noticeDescription')"
             show-icon
             :closable="false"
           />
         </div>
         
         <div style="margin-top: 20px;">
-          <el-button type="primary" @click="openModelPage(selectedModel.url)">View in New Window</el-button>
+          <el-button type="primary" @click="openModelPage(selectedModel.url)">{{ t('modelMarket.viewInNewWindow') }}</el-button>
         </div>
       </div>
     </el-drawer>
@@ -126,7 +126,7 @@ const searchModels = async () => {
     const results = await SearchOnlineModels(searchText.value)
     onlineModels.value = results as unknown as OnlineModel[]
   } catch (error: any) {
-    ElMessage.error('Failed to search models: ' + error.message)
+    ElMessage.error(t('modelMarket.searchFailed') + ': ' + error.message)
   } finally {
     loading.value = false
   }
@@ -150,7 +150,7 @@ const loadOnlineModels = async () => {
     const results = await SearchOnlineModels('')
     onlineModels.value = results as unknown as OnlineModel[]
   } catch (error: any) {
-    ElMessage.error('Failed to load online model list: ' + error.message)
+    ElMessage.error(t('modelMarket.loadFailed') + ': ' + error.message)
   } finally {
     loading.value = false
   }
