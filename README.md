@@ -189,15 +189,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/tools-ollama&type=Date)](https://star-history.com/#your-username/tools-ollama&Date)
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=fzxs8/tools-ollama&type=Date)](https://www.star-history.com/#fzxs8/tools-ollama&Date)
 
 ---
 
 <div align="center">
   <p>Made with ❤️ by the Ollama Tools Team</p>
   <p>
-    <a href="https://github.com/your-username/tools-ollama">GitHub</a> •
-    <a href="https://github.com/your-username/tools-ollama/issues">Issues</a> •
-    <a href="https://github.com/your-username/tools-ollama/discussions">Discussions</a>
+    <a href="https://github.com/fzxs8/tools-ollama">GitHub</a> •
+    <a href="https://github.com/fzxs8/tools-ollama/issues">Issues</a> •
+    <a href="https://github.com/fzxs8/tools-ollama/discussions">Discussions</a>
   </p>
 </div>
