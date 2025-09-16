@@ -27,7 +27,7 @@
             <select v-model="selectedServer" @change="onServerChange">
               <option value="" disabled>{{ t('modelManager.selectServer') }}</option>
               <option v-for="server in availableServers" :key="server.id" :value="server.id">
-                {{ server.name }} ({{ server.baseUrl }})
+                {{ server.name }}
               </option>
             </select>
             <svg class="select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -125,7 +125,7 @@
     </div>
 
     <!-- Download Model Drawer -->
-    <el-drawer v-model="downloadDialogVisible" :title="t('modelManager.downloadModelTitle')" direction="rtl" size="40%">
+    <el-drawer v-model="downloadDialogVisible" :title="t('modelManager.downloadModelTitle')" direction="rtl" size="40%" :close-on-click-modal="false">
       <div class="drawer-content">
         <div class="info-box">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -151,7 +151,7 @@
     </el-drawer>
 
     <!-- Download Queue Drawer -->
-    <div v-if="downloadQueueDrawerVisible" class="drawer-overlay" @click="downloadQueueDrawerVisible = false">
+    <div v-if="downloadQueueDrawerVisible" class="drawer-overlay">
       <div class="drawer-content" @click.stop>
         <div class="drawer-header">
           <h3>{{ t('modelManager.downloadQueue') }}</h3>
@@ -194,6 +194,7 @@
         title="Model Details"
         direction="rtl"
         size="40%"
+        :close-on-click-modal="false"
     >
       <div v-if="selectedModel">
         <div>
@@ -697,7 +698,9 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   box-sizing: border-box;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .page-header {
@@ -708,8 +711,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .header-icon {
@@ -739,11 +740,11 @@ onUnmounted(() => {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .control-panel {
@@ -857,10 +858,14 @@ onUnmounted(() => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-wrapper {
-  overflow-x: auto;
+  overflow: auto;
+  flex: 1;
 }
 
 .models-table {

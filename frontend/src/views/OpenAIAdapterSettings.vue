@@ -146,7 +146,7 @@
     </div>
 
     <!-- API Documentation Drawer -->
-    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="60%">
+    <el-drawer v-model="isApiDrawerVisible" :title="t('openaiAdapter.apiUsageExamples')" direction="rtl" size="60%" :close-on-click-modal="false">
       <div class="drawer-content">
         <div class="api-docs-tabs">
           <div class="tab-headers">
@@ -211,7 +211,7 @@
     </el-drawer>
 
     <!-- Log Drawer -->
-    <el-drawer v-model="isLogDrawerVisible" :title="t('openaiAdapter.realtimeLogs')" direction="rtl" size="50%">
+    <el-drawer v-model="isLogDrawerVisible" :title="t('openaiAdapter.realtimeLogs')" direction="rtl" size="50%" :close-on-click-modal="false">
       <div class="drawer-content log-drawer">
         <div class="log-actions">
           <button @click="store.clearLogs">{{ t('openaiAdapter.clearLogs') }}</button>
@@ -651,8 +651,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
 .header-icon {
@@ -682,8 +680,6 @@ onMounted(() => {
 }
 
 .main-content {
-  max-width: 800px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

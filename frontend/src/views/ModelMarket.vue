@@ -40,6 +40,7 @@
         :title="selectedModel?.model_name"
         direction="rtl"
         size="40%"
+        :close-on-click-modal="false"
     >
       <div v-if="selectedModel" class="drawer-content">
         <el-descriptions :column="1" border>
@@ -141,9 +142,10 @@ onMounted(() => {
 
 <style scoped>
 .model-market {
-  padding: 20px;
+  padding: 2rem;
   height: 100%;
   box-sizing: border-box;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .market-card {

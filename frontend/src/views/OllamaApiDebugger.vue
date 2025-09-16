@@ -274,18 +274,23 @@ async function handleRequest(request) {
 .api-debugger-container {
   display: flex;
   height: 100%;
-  background-color: #f0f2f5;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
 .sidebar {
   width: 280px;
   flex-shrink: 0;
-  background-color: #fff;
-  border-right: 1px solid #e0e0e0;
-  padding: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-right: 1.5rem;
 }
 
 .server-selector-wrapper {
@@ -363,7 +368,6 @@ async function handleRequest(request) {
 
 .main-content {
   flex-grow: 1;
-  padding: 1rem;
   overflow: hidden;
 }
 </style>

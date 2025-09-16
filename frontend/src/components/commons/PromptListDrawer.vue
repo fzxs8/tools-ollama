@@ -4,6 +4,7 @@
     :title="drawerTitle"
     direction="rtl"
     size="40%"
+    :close-on-click-modal="false"
     @update:modelValue="closeDrawer"
   >
     <div class="common-prompts-container">

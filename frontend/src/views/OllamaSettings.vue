@@ -328,8 +328,6 @@ const deleteService = (server: OllamaServerConfig) => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .header-icon {
@@ -359,8 +357,6 @@ const deleteService = (server: OllamaServerConfig) => {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

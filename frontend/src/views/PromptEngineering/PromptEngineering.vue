@@ -99,11 +99,11 @@
     </div>
 
     <!-- 抽屉区域 -->
-    <el-drawer v-model="showOptimizeDrawer" :title="t('promptEngineering.optimizePrompt')" direction="rtl" size="40%">
+    <el-drawer v-model="showOptimizeDrawer" :title="t('promptEngineering.optimizePrompt')" direction="rtl" size="40%" :close-on-click-modal="false">
       <!-- ...抽屉内容... -->
     </el-drawer>
 
-    <el-drawer v-model="showSaveDrawer" :title="drawerTitle" direction="rtl" size="40%">
+    <el-drawer v-model="showSaveDrawer" :title="drawerTitle" direction="rtl" size="40%" :close-on-click-modal="false">
       <div class="save-drawer-content">
         <el-form :model="promptToSave" label-position="top" ref="saveFormRef">
           <el-form-item :label="t('promptEngineering.promptTitle')" prop="name" :rules="[{ required: true, message: t('promptEngineering.titleRequired'), trigger: 'blur' }]">
@@ -396,9 +396,9 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 <style scoped>
 .prompt-engineering {
   height: 100%;
-  padding: 20px;
+  padding: 2rem;
   box-sizing: border-box;
-  background-color: #f4f5f7;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   flex-direction: column;
 }

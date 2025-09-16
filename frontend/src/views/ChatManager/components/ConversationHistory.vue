@@ -4,6 +4,7 @@
     :title="t('chatManager.conversationHistory')"
     direction="rtl"
     size="400px"
+    :close-on-click-modal="false"
   >
     <div class="conversation-list">
       <el-empty v-if="conversations.length === 0" :description="t('chatManager.noConversationHistory')" />

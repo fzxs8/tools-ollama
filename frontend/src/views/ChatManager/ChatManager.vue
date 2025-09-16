@@ -631,8 +631,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .header-icon {
@@ -664,8 +662,6 @@ onMounted(async () => {
 .chat-layout {
   flex: 1;
   display: flex;
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
   padding: 0 2rem 2rem 2rem;
   gap: 1.5rem;
