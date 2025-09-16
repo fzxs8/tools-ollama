@@ -617,14 +617,20 @@ onMounted(async () => {
 .chat-interface {
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .page-header {
-  padding: 2rem 2rem 1rem 2rem;
+  margin-bottom: 2rem;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {
@@ -673,7 +679,7 @@ onMounted(async () => {
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
@@ -683,7 +689,7 @@ onMounted(async () => {
   flex: 1;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
@@ -695,7 +701,7 @@ onMounted(async () => {
 @media (max-width: 1200px) {
   .chat-layout {
     flex-direction: column;
-    padding: 0 1rem 1rem 1rem;
+    padding: 0;
   }
 
   .chat-sidebar {
@@ -703,8 +709,8 @@ onMounted(async () => {
     height: auto;
   }
 
-  .page-header {
-    padding: 1.5rem 1rem 1rem 1rem;
+  .chat-interface {
+    padding: 1.5rem;
   }
 
   .header-text h1 {
@@ -713,7 +719,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .page-header {
+  .chat-interface {
     padding: 1rem;
   }
 

@@ -30,12 +30,12 @@
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="docs/screenshots/main-interface.png" alt="Main Interface" width="800">
+  <img src="docs/screenshots/model_manager.png" alt="Main Interface" width="800">
   <p><em>Main Interface - Model Management</em></p>
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/chat-interface.png" alt="Chat Interface" width="800">
+  <img src="docs/screenshots/chat_manager.png" alt="Chat Interface" width="800">
   <p><em>Chat Interface - Interactive Testing</em></p>
 </div>
 

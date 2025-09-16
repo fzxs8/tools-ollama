@@ -723,7 +723,7 @@ onMounted(() => {
 .tools-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -742,7 +742,7 @@ onMounted(() => {
   gap: 0.75rem;
   padding: 1rem 1.5rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -771,7 +771,7 @@ onMounted(() => {
 .status-card, .config-card, .actions-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -846,7 +846,7 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 1rem 2rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -961,7 +961,7 @@ onMounted(() => {
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 1rem;
   background: white;
   color: #2d3748;
@@ -1012,7 +1012,7 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 1rem 1.5rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;

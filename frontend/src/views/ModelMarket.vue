@@ -92,9 +92,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { SearchOnlineModels } from '../../wailsjs/go/main/App'
 import { OpenInBrowser } from '../../wailsjs/go/main/App'
 import {OnlineModel} from "../classes/types";
+
+const { t } = useI18n();
 
 
 const searchText = ref('')
@@ -171,6 +174,11 @@ onMounted(() => {
 
 .page-header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {
@@ -210,6 +218,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .card-header {

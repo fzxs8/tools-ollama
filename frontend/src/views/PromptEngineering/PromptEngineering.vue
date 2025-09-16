@@ -421,6 +421,11 @@ const handlePreviewPrompt = (prompt: Prompt) => {
 
 .page-header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {

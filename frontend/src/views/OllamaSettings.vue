@@ -322,6 +322,11 @@ const deleteService = (server: OllamaServerConfig) => {
 
 .page-header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {
@@ -365,7 +370,7 @@ const deleteService = (server: OllamaServerConfig) => {
 .control-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -395,7 +400,7 @@ const deleteService = (server: OllamaServerConfig) => {
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -431,7 +436,7 @@ const deleteService = (server: OllamaServerConfig) => {
 .servers-table-container {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
@@ -487,7 +492,7 @@ const deleteService = (server: OllamaServerConfig) => {
   background: rgba(72, 187, 120, 0.1);
   color: #38a169;
   padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
   border: 1px solid rgba(72, 187, 120, 0.2);
@@ -546,7 +551,7 @@ const deleteService = (server: OllamaServerConfig) => {
   gap: 0.375rem;
   padding: 0.5rem 0.875rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -671,7 +676,7 @@ const deleteService = (server: OllamaServerConfig) => {
   border: none;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #718096;
   transition: all 0.3s ease;
 }
@@ -708,7 +713,7 @@ const deleteService = (server: OllamaServerConfig) => {
 .text-input {
   padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 1rem;
   background: white;
   color: #2d3748;

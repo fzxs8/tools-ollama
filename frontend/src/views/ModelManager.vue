@@ -705,6 +705,11 @@ onUnmounted(() => {
 
 .page-header {
   margin-bottom: 2rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .header-content {
@@ -750,7 +755,7 @@ onUnmounted(() => {
 .control-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -782,7 +787,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 0.75rem 2.5rem 0.75rem 1rem;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   background: white;
   color: #2d3748;
@@ -818,7 +823,7 @@ onUnmounted(() => {
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -854,7 +859,7 @@ onUnmounted(() => {
 .models-table-container {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
@@ -939,7 +944,7 @@ onUnmounted(() => {
   gap: 0.375rem;
   padding: 0.5rem 0.875rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -998,7 +1003,7 @@ onUnmounted(() => {
   padding: 1rem;
   background: #ebf8ff;
   border: 1px solid #bee3f8;
-  border-radius: 12px;
+  border-radius: 8px;
   margin-bottom: 1.5rem;
   color: #2b6cb0;
 }
@@ -1097,7 +1102,7 @@ onUnmounted(() => {
 .download-item {
   padding: 1rem;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
   margin-bottom: 1rem;
 }
 
