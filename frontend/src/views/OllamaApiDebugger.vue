@@ -1,7 +1,25 @@
 <template>
-  <div class="api-debugger-container">
-    <!-- Left Sidebar: Server Selector and API List -->
-    <div class="sidebar">
+  <div class="api-debugger-page">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12C21 16.97 16.97 21 12 21S3 16.97 3 12S7.03 3 12 3S21 7.03 21 12Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>{{ t('apiDebugger.title') || 'API Debugger' }}</h1>
+          <p>{{ t('apiDebugger.description') || 'Test and debug Ollama API endpoints' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Left Sidebar: Server Selector and API List -->
+      <div class="sidebar">
       <div class="server-selector-wrapper">
         <select v-model="selectedServerId" class="base-url-selector">
           <option value="">{{ t('apiDebugger.selectServer') }}</option>
@@ -26,14 +44,15 @@
       </div>
     </div>
 
-    <!-- Main Content: API Debugger Component -->
-    <div class="main-content">
-      <ApiDebugger
-        ref="apiDebuggerRef"
-        :base-url="selectedServerUrl"
-        :url-placeholder="'/api/tags'"
-        :on-request="handleRequest"
-      />
+      <!-- API Debugger Component -->
+      <div class="debugger-content">
+        <ApiDebugger
+          ref="apiDebuggerRef"
+          :base-url="selectedServerUrl"
+          :url-placeholder="'/api/tags'"
+          :on-request="handleRequest"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -271,12 +290,57 @@ async function handleRequest(request) {
 </script>
 
 <style scoped>
-.api-debugger-container {
-  display: flex;
-  height: 100%;
+.api-debugger-page {
+  height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.header-text h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-text p {
+  margin: 0.5rem 0 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  min-height: 0;
 }
 
 .sidebar {
@@ -290,7 +354,6 @@ async function handleRequest(request) {
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  margin-right: 1.5rem;
 }
 
 .server-selector-wrapper {
@@ -366,8 +429,14 @@ async function handleRequest(request) {
 .method-badge.patch { background-color: #50e3c2; }
 .method-badge.head { background-color: #9012fe; }
 
-.main-content {
-  flex-grow: 1;
+.debugger-content {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2rem;
   overflow: hidden;
 }
 </style>
