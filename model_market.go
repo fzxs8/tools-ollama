@@ -31,8 +31,11 @@ func (m *ModelMarket) SetContext(ctx context.Context) {
 func (m *ModelMarket) SearchOnlineModels(query string) ([]interface{}, error) {
 	m.logger.Debug("开始在线搜索模型", "query", query)
 	searchClient := core.NewHttp(m.logger.WithPrefix("SearchClient"))
+	//searchClient.
 
-	resp, err := searchClient.Get("https://ollamadb.dev/api/v1/models", core.Options{
+	// 确保使用完整的绝对URL
+	baseURL := "https://ollamadb.dev/api/v1/models"
+	resp, err := searchClient.Get(baseURL, core.Options{
 		Query: map[string]string{
 			"search": query,
 		},
