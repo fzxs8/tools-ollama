@@ -30,24 +30,25 @@
 ## 📸 界面截图
 
 <div align="center">
-  <img src="docs/screenshots/main-interface.png" alt="主界面" width="800">
-  <p><em>主界面 - 模型管理</em></p>
+  <img src="docs/screenshots/model_manager.png" alt="Main Interface" width="800">
+  <p><em>Main Interface - Model Management</em></p>
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/chat-interface.png" alt="聊天界面" width="800">
-  <p><em>聊天界面 - 交互式测试</em></p>
+  <img src="docs/screenshots/chat_manager.png" alt="Chat Interface" width="800">
+  <p><em>Chat Interface - Interactive Testing</em></p>
 </div>
 
 <div align="center">
   <img src="docs/screenshots/prompt_engineering.png" alt="Chat Interface" width="800">
-  <p><em>提示词工程</em></p>
+  <p><em>prompt engineering</em></p>
 </div>
 
 <div align="center">
   <img src="docs/screenshots/ollama_api_debugger.png" alt="Chat Interface" width="800">
-  <p><em>ollama api 调试</em></p>
+  <p><em>ollama api debugger</em></p>
 </div>
+
 ## 🚀 快速开始
 
 ### 环境要求
