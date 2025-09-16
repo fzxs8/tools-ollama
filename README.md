@@ -117,10 +117,10 @@ wails dev
 
 ## 📚 Documentation
 
-- [User Guide](docs/user-guide.md) - Complete user manual
-- [API Documentation](docs/api.md) - API reference
-- [Development Guide](docs/development.md) - For contributors
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [User Guide](docs/user-guide.en.md) - Complete user manual
+- [API Documentation](docs/api.en.md) - API reference
+- [Development Guide](docs/development.en.md) - For contributors
+- [Troubleshooting](docs/troubleshooting.en.md) - Common issues and solutions
 
 ## 🏗️ Architecture
 
