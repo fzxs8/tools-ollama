@@ -33,3 +33,22 @@ build with `wails build`.
 - `info.json` - Application details used for Windows builds. The data here will be used by the Windows installer,
   as well as the application itself (right click the exe -> properties -> details)
 - `wails.exe.manifest` - The main application manifest file.
+
+```shell
+# 将 logo.png 转换为 macOS 图标
+convert ../frontend/src/assets/images/logo.png \
+  -resize 256x256^ \
+  -gravity center \
+  -extent 256x256 \
+  ./darwin/icon.icns
+
+
+# 将 logo.png 转换为 Windows 图标
+convert ../frontend/src/assets/images/logo.png \
+  -resize 256x256^ \
+  -gravity center \
+  -extent 256x256 \
+  ./windows/icon.ico
+
+
+```
