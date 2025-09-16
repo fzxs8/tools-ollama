@@ -300,44 +300,9 @@ async function handleRequest(request) {
   overflow: hidden;
 }
 
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.header-content {
+.api-debugger-page .main-content {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.header-icon {
-  width: 60px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  backdrop-filter: blur(10px);
-}
-
-.header-text h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-text p {
-  margin: 0.5rem 0 0 0;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1.1rem;
-}
-
-.main-content {
-  display: flex;
+  flex-direction: row;
   flex: 1;
   gap: 1.5rem;
   min-height: 0;
@@ -346,14 +311,6 @@ async function handleRequest(request) {
 .sidebar {
   width: 280px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 8px;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .server-selector-wrapper {
@@ -431,11 +388,6 @@ async function handleRequest(request) {
 
 .debugger-content {
   flex: 1;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 2rem;
   overflow: hidden;
 }

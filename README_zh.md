@@ -39,6 +39,15 @@
   <p><em>聊天界面 - 交互式测试</em></p>
 </div>
 
+<div align="center">
+  <img src="docs/screenshots/prompt_engineering.png" alt="Chat Interface" width="800">
+  <p><em>提示词工程</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/ollama_api_debugger.png" alt="Chat Interface" width="800">
+  <p><em>ollama api 调试</em></p>
+</div>
 ## 🚀 快速开始
 
 ### 环境要求

@@ -39,6 +39,16 @@
   <p><em>Chat Interface - Interactive Testing</em></p>
 </div>
 
+<div align="center">
+  <img src="docs/screenshots/prompt_engineering.png" alt="Chat Interface" width="800">
+  <p><em>prompt engineering</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/ollama_api_debugger.png" alt="Chat Interface" width="800">
+  <p><em>ollama api debugger</em></p>
+</div>
+
 ## 🚀 Quick Start
 
 ### Prerequisites
