@@ -38,7 +38,7 @@ func NewApp() *App {
 	os.MkdirAll("data", 0755)
 
 	store := duolasdk.NewStore(core.StoreOption{
-		FileName: "data/ollama-client.db",
+		FileName: "tools-ollama",
 	})
 
 	app := &App{
