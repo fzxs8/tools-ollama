@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"tools-ollama/types"
 
-	"github.com/fzxs8/duolasdk/core"
+	"github.com/16chusi/duolasdk/core"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

@@ -8,9 +8,9 @@ import (
 	"time"
 	"tools-ollama/types"
 
-	"github.com/fzxs8/duolasdk"
-	"github.com/fzxs8/duolasdk/core"
-	"github.com/fzxs8/duolasdk/core/ai" // 导入 ai 包
+	"github.com/16chusi/duolasdk"
+	"github.com/16chusi/duolasdk/core"
+	"github.com/16chusi/duolasdk/core/ai" // 导入 ai 包
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )

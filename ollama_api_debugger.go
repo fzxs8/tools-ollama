@@ -10,7 +10,7 @@ import (
 	"time"
 	"tools-ollama/types"
 
-	"github.com/fzxs8/duolasdk/core"
+	"github.com/16chusi/duolasdk/core"
 )
 
 // OllamaApiDebugger 模块负责处理所有与 API 调试器相关的功能

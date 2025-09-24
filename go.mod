@@ -3,12 +3,12 @@ module tools-ollama
 go 1.24.4
 
 require (
-	github.com/fzxs8/duolasdk v1.0.8
+	github.com/16chusi/duolasdk v1.0.8
 	github.com/google/uuid v1.6.0
 	github.com/wailsapp/wails/v2 v2.10.2
 )
 
-replace github.com/fzxs8/duolasdk v1.0.8 => ../duolasdk
+replace github.com/16chusi/duolasdk v1.0.8 => ../duolasdk
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect

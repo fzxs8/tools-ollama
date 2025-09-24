@@ -197,8 +197,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <div align="center">
   <p>Made with ❤️ by the Ollama Tools Team</p>
   <p>
-    <a href="https://github.com/fzxs8/tools-ollama">GitHub</a> •
-    <a href="https://github.com/fzxs8/tools-ollama/issues">Issues</a> •
-    <a href="https://github.com/fzxs8/tools-ollama/discussions">Discussions</a>
+    <a href="https://github.com/16chusi/tools-ollama">GitHub</a> •
+    <a href="https://github.com/16chusi/tools-ollama/issues">Issues</a> •
+    <a href="https://github.com/16chusi/tools-ollama/discussions">Discussions</a>
   </p>
 </div>

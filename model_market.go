@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fzxs8/duolasdk/core"
+	"github.com/16chusi/duolasdk/core"
 )
 
 // ModelMarket 模型市场

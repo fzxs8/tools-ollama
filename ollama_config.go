@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"tools-ollama/types"
 
-	"github.com/fzxs8/duolasdk"
-	"github.com/fzxs8/duolasdk/core"
+	"github.com/16chusi/duolasdk"
+	"github.com/16chusi/duolasdk/core"
 )
 
 // OllamaConfigManager Ollama配置管理器

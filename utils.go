@@ -10,7 +10,7 @@ import (
 	"time"
 	"tools-ollama/types"
 
-	"github.com/fzxs8/duolasdk/core"
+	"github.com/16chusi/duolasdk/core"
 	"github.com/google/uuid"
 )
 
